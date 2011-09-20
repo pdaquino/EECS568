@@ -1,7 +1,7 @@
 \title{Answers to Problem Set 1}
 \author{
-				Lauren \\
-				Robert Goedell \\
+				Lauren Hinkle\\
+				Robert Goeddel \\
         Pedro Barbuda \\
         Yash Chitalia}
 \date{\today}
@@ -13,7 +13,7 @@
 \begin{document}
 \maketitle
 
-\section{Task 1}
+\section{Linear Algebra Review}
 
 \paragraph{A}
 
@@ -23,6 +23,24 @@ A = \left( \begin{array}{ccc} 1 & 0 & 0 \\ 0 & 1 & 0 \end{array} \right)
 \end{equation}
 
 \paragraph{C}
-The idea is that $AA^T = I \Rightarrow A^TA=I$ only if $A$ is square. We proved it by showing that if $A$ is rectangular it only works one way around (i.e. if $AA^T=1$ then $A^TA\neqI$).
+The idea is that $AA^T = I \Rightarrow A^TA=I$ only if $A$ is square. We proved it by showing that if $A$ is rectangular it only works one way around (i.e. if $AA^T=1$ then $A^TA \neq I$).
+
+\paragraph{D}
+
+\section{Multiavariate Gaussians}
+
+\paragraph{A}
+Let $N$ be the number of samples, $K$ be the number of random variables in $\mathbf{x}$ and $\mathbf{\mu}$ be the sample mean vector. The $i$-th sample of the random variable $\mathbf{x}_k$ is denoted by $\mathbf{x}_{ik}$ Then each element of $\mathbf{\mu}$ is going to be of the form:
+
+\begin{equation}
+\mu_k = \frac{1}{N}\displaystyle\sum_{i=1}^{N}{x_{ik}}, k=1,2,...,K
+\end{equation}
+
+And every element $\sigma_{jk}$ of the $K \times K$ covariance matrix $\Sigma$ will be given by:
+
+\begin{equation}
+\sigma_{jk}=\frac{1}{N-1}\displaystyle\sum_{i=1}^{N}{(x_{ij}-\mu_j)(x_{ik}-\mu_{k})}
+\end{equation}
+
 
 \end{document}
