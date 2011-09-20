@@ -29,7 +29,37 @@ public class MultiGaussian
         from the provided samples. This should implement your algorithm from A. **/
     public MultiGaussian(ArrayList<double[]> samples)
     {
-        // XXX write me.
+        // Assumes samples exist
+        assert (samples.size() > 0);
+
+        // Initialization
+        int d = samples.get(0).length;
+        u = new double[d];
+        P = new double[d][d];
+
+        // Sample mean
+        for (double[] sample: samples) {
+            // Assumes samples are all of equal length
+            assert (sample.length == d);
+
+            for (int i = 0; i < d; i++) {
+                u[i] += sample[i];
+            }
+        }
+        for (int i = 0; i < u.length; i++) {
+            u[i] /= samples.size();
+        }
+
+        // Sample covariance
+        for (int j = 0; j < d; j++) {
+            for (int k = 0; k < d; k++) {
+                // Calculate value for Pjk
+                for (double[] sample: samples) {
+                    P[j][k] += ((sample[j] - u[j])*(sample[k] - u[k]));
+                }
+                P[j][k] /= (samples.size() - 1);
+            }
+        }
     }
 
     /** Return the covariance associated with this object. (Trivial). **/
@@ -51,12 +81,18 @@ public class MultiGaussian
     **/
     public double[] sample(Random r)
     {
-        // XXX The code below is NOT correct, but demonstrates some of
-        // the APIs you might use.
+        CholeskyDecomposition cd = new CholeskyDecomposition(new Matrix(P));
+        Matrix B = cd.getL();
 
-        double y[] = new double[u.length];
+        double z[] = new double[u.length];
+        for (int i = 0; i < z.length; i++) {
+            z[i] = r.nextGaussian();
+        }
+
+        double[] y = B.times(z);
+        assert (y.length == u.length);
         for (int i = 0; i < y.length; i++) {
-            y[i] = r.nextGaussian();
+            y[i] += u[i];
         }
 
         return y;
@@ -67,8 +103,15 @@ public class MultiGaussian
     **/
     public double chi2(double[] x)
     {
-        // XXX write me
-        return 0;
+        assert (x.length == u.length);
+        double[] w = new double[u.length];
+
+        for (int i = 0; i < w.length; i++) {
+            w[i] = x[i] - u[i];
+        }
+
+        Matrix M = new Matrix(P).inverse();
+        return LinAlg.dotProduct(w, M.times(w));
     }
 
     /** Compute a set of points that, when plotted as a curve, would trace out an
