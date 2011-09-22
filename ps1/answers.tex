@@ -1,9 +1,9 @@
 \title{Answers to Problem Set 1}
 \author{
-				Lauren Hinkle\\
-				Robert Goeddel \\
-        Pedro Barbuda \\
-        Yash Chitalia}
+				Lauren Hinkle (lhinkle)\\
+        Pedro d'Aquino  (pdaquino)\\				
+				Robert Goeddel (rgoeddel)\\
+        Yash Chitalia (yashc)}
 \date{\today}
 
 \documentclass[12pt]{article}
@@ -23,9 +23,30 @@ A = \left( \begin{array}{ccc} 1 & 0 & 0 \\ 0 & 1 & 0 \end{array} \right)
 \end{equation}
 
 \paragraph{C}
-The idea is that $AA^T = I \Rightarrow A^TA=I$ only if $A$ is square. We proved it by showing that if $A$ is rectangular it only works one way around (i.e. if $AA^T=1$ then $A^TA \neq I$).
+Let $A$ be a $m \times n$ matrix such that $AA^T=I$. We can decompose $AA^T$ using SVD:
 
-\paragraph{D}
+\[
+AA^T = USV^T\left(USV^T\right)^T = USV^TVS^TU^T\]
+
+Because $V$ is orthonormal, $VV^T=I$ and:
+
+\[
+AA^T = USS^TU^T
+\]
+
+For $AA^T=I$, $SS^T=I$. This follows from the fact that $U$ is orthonormal.
+
+If we expand $A^TA$ using SVD, we reach:
+
+\[
+A^TA = VS^TSV^T
+\]
+
+For $A^TA$ to be $I$, then $S^TS=I$. But we know that $SS^T$ is also $I$, so these conditions must hold simultaneously for $A^TA=I$.
+
+Recall that $S$ is diagonal and has the same dimensions as $A$. If it is also square, then those conditions can hold simultaneously because $SS^T=S^TS$. However, if $S$ is rectangular, at least one row or column will have nothing but zeroes. In this case, there is only one direction in which multiplying $S$ and $S^T$ yields $I$; in the other direction the result will be a square matrix with at least one row and column equal to zero.
+
+\paragraph{D} Orthogonal and normal.
 
 \section{Multiavariate Gaussians}
 
@@ -42,5 +63,49 @@ And every element $\sigma_{jk}$ of the $K \times K$ covariance matrix $\Sigma$ w
 \sigma_{jk}=\frac{1}{N-1}\displaystyle\sum_{i=1}^{N}{(x_{ij}-\mu_j)(x_{ik}-\mu_{k})}
 \end{equation}
 
+\paragraph{B}
+
+We first prove that for any $m \times n$ matrix $A$, $AA^T$ is SPD. Let $x$ be any column vector of dimensions $m\times1$ and let
+
+\[
+\underbrace{x^T}_{1\times m}\underbrace{A}_{m\times n}=\underbrace{t}_{1\times n}
+\]
+
+Then:
+
+\[
+x^TAA^Tx = \underbrace{t}_{1\times n}\underbrace{t^T}_{n \times 1} = \underbrace{s}_{1\times 1}
+\]
+
+Additionaly, $s\geq 0$:
+
+\[s = \displaystyle\sum_{i=1}^n{t_i^2}\]
+
+Therefore, $AA^T$ is SPD. We can extend this to prove that any covariance matrix is also SPD. Again, let$x$ be any column vector of dimensions $m\times1$. We need to prove that $x^T\Sigma x \geq 0$.
+
+\[
+x^T\Sigma x=x^TE\left[\left(X-E[X]\right)\left(X-E[X]\right)^T\right]x
+\]
+
+Let $A=X-E[X]$. Then we rewrite the equation as:
+
+\[
+x^T\Sigma x=x^TE\left[AA^T\right]x = E\left[x^TAA^Tx\right]
+\]
+
+But we have already proved that $x^TAA^Tx$ is a scalar $s$, $s \geq 0$:
+
+\[
+x^T\Sigma x  =E\left[s\right] \geq 0
+\]
+
+\paragraph{C}
+Let $Z$ be a multivariate distribution comprised of independent standard normal univariate distributions. Then the mean $\mu_Z = 0$ and the covariance $\Sigma_Z=I$, the identity matrix. If we apply a linear transformation of the form $AZ + b$, we will have a multivariate normal distribution of the form:
+
+\[
+\mathcal{N}\left(A\mu_Z + b, B\Sigma_Z B^T\right) = \mathcal{N}\left(A0 + b, BIB^T\right) = \mathcal{N}\left(b, BB^T\right)
+\]
+
+Therefore, we can draw from $\mathcal{N}\left(\mu,P\right)$ by making $b=\mu$ and $BB^T=P$ (using, for instance, Cholesky decomposition).
 
 \end{document}
