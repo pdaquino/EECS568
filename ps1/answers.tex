@@ -23,9 +23,30 @@ A = \left( \begin{array}{ccc} 1 & 0 & 0 \\ 0 & 1 & 0 \end{array} \right)
 \end{equation}
 
 \paragraph{C}
-The idea is that $AA^T = I \Rightarrow A^TA=I$ only if $A$ is square. We proved it by showing that if $A$ is rectangular it only works one way around (i.e. if $AA^T=1$ then $A^TA \neq I$).
+Let $A$ be a $m \times n$ matrix such that $AA^T=I$. We can decompose $AA^T$ using SVD:
 
-\paragraph{D}
+\[
+AA^T = USV^T\left(USV^T\right)^T = USV^TVS^TU^T\]
+
+Because $V$ is orthonormal, $VV^T=I$ and:
+
+\[
+AA^T = USS^TU^T
+\]
+
+For $AA^T=I$, $SS^T=I$. This follows from the fact that $U$ is orthonormal.
+
+If we expand $A^TA$ using SVD, we reach:
+
+\[
+A^TA = VS^TSV^T
+\]
+
+For $A^TA$ to be $I$, then $S^TS=I$. But we know that $SS^T$ is also $I$, so these conditions must hold simultaneously for $A^TA=I$.
+
+Recall that $S$ is diagonal and has the same dimensions as $A$. If it is also square, then those conditions can hold simultaneously because $SS^T=S^TS$. However, if $S$ is rectangular, at least one row or column will have nothing but zeroes. In this case, there is only one direction in which multiplying $S$ and $S^T$ yields $I$; in the other direction the result will be a square matrix with at least one row and column equal to zero.
+
+\paragraph{D} Orthogonal and normal.
 
 \section{Task 2: Multiavariate Gaussians}
 
