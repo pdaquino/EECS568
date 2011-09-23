@@ -288,7 +288,7 @@ public class MultiGaussian
 
         final VisWorld.Buffer vbSamples = vw.getBuffer("samples");
         vbSamples.setDrawOrder(-100);
-        final VisFont vFont = new VisFont(new Font("Sans Serif", Font.PLAIN, 12));
+        final VisFont vFont = new VisFont(new Font("Sans Serif", Font.PLAIN, 128));
 
         // ParameterGUI (buttons)
         ParameterGUI pg = new ParameterGUI();
@@ -321,7 +321,7 @@ public class MultiGaussian
 
                     // Display ratio of points falling inside ellipse
                     vbSamples.addBack(new VisChain(LinAlg.translate(0, 10, 0),
-                                                   LinAlg.scale(0.5, 0.5, 0.5),
+                                                   LinAlg.scale(0.05, 0.05, 0.05),
                                                    vFont.makeText(Double.toString((double)containedSamples.size()/total),
                                                                   Color.black)));
 
