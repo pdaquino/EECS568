@@ -2,6 +2,7 @@ package team;
 
 import april.jmat.*;
 import april.vis.*;
+import april.util.*;
 
 import java.util.*;
 import java.awt.*;
@@ -111,9 +112,7 @@ public class MultiGaussian
 
         for (int i = 0; i < w.length; i++) {
             w[i] = x[i] - u[i];
-            System.out.printf("%f ", w[i]);
         }
-        System.out.println();
 
         Matrix M = new Matrix(P).inverse();
         return LinAlg.dotProduct(w, M.times(w));
@@ -248,10 +247,94 @@ public class MultiGaussian
         System.out.println(pass(0, chi23) ? "PASS" : "FAIL");
 
         // Test 4: Plotting contours and points
+        mu = new double[2];
+        Sigma = new double[][] { {1, 0},
+                                 {0, 1} };
+        final MultiGaussian fmg = new MultiGaussian(Sigma, mu);
+
+        final double CHI2 = 1.0;
+
         JFrame jf = new JFrame("PS1 MultiGaussians");
         jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         jf.setLayout(new BorderLayout());
         jf.setSize(800, 600);
+
+        VisWorld vw = new VisWorld();
+        VisLayer vl = new VisLayer(vw);
+        VisCanvas vc = new VisCanvas(vl);
+
+        jf.add(vc, BorderLayout.CENTER);
+
+        // Grid rendering
+        VisGrid vg = new VisGrid();
+        VisWorld.Buffer vbGrid = vw.getBuffer("grid");
+        vbGrid.setDrawOrder(-1000);
+        vbGrid.addBack(new VisDepthTest(false, vg));
+        vbGrid.swap();
+
+        VisWorld.Buffer vbEllipse = vw.getBuffer("ellipse");
+        vbEllipse.setDrawOrder(-50);
+        VisWorld.Buffer vbEllipsePoints = vw.getBuffer("ellipsePoints");
+        vbEllipsePoints.setDrawOrder(-49);
+        ArrayList<double[]> contour = fmg.getContour(CHI2);  // Arbitrary Chi2 value
+        VisVertexData vvd = new VisVertexData(contour);
+        VisConstantColor vcBlue = new VisConstantColor(Color.blue);
+        VisConstantColor vcRed = new VisConstantColor(Color.red);
+
+        vbEllipsePoints.addBack(new VisLighting(false, new VisPoints(vvd, vcBlue, 2.0)));
+        vbEllipse.addBack(new VisLighting(false, new VisLines(vvd, vcRed, 1.0, VisLines.TYPE.LINE_LOOP)));
+        vbEllipsePoints.swap();
+        vbEllipse.swap();
+
+        final VisWorld.Buffer vbSamples = vw.getBuffer("samples");
+        vbSamples.setDrawOrder(-100);
+        final VisFont vFont = new VisFont(new Font("Sans Serif", Font.PLAIN, 12));
+
+        // ParameterGUI (buttons)
+        ParameterGUI pg = new ParameterGUI();
+        pg.addButtons("samples", "Generate Samples",
+                      "reset", "Reset Samples");
+        pg.addListener(new ParameterListener() {
+            public void parameterChanged(ParameterGUI pg, String name)
+            {
+                if (name.equals("samples")) {
+                    // Generate 1000 random samples and plot them, as well
+                    // as the ratio of samples falling inside our ellipse
+                    ArrayList<double[]> samples = new ArrayList<double[]>();
+                    ArrayList<double[]> containedSamples = new ArrayList<double[]>();
+                    Random r = new Random();
+                    int total = 10000;
+                    for (int i = 0; i < total; i++) {
+                        double[] sample = fmg.sample(r);
+                        if (fmg.chi2(sample) < CHI2) {
+                            containedSamples.add(sample);
+                        } else {
+                            samples.add(sample);
+                        }
+                    }
+                    VisVertexData vvdSamples = new VisVertexData(samples);
+                    VisVertexData vvdCSamples = new VisVertexData(containedSamples);
+                    VisConstantColor vcYellow = new VisConstantColor(Color.yellow);
+                    VisConstantColor vcRed2 = new VisConstantColor(Color.red);
+                    vbSamples.addBack(new VisLighting(false, new VisPoints(vvdSamples, vcYellow, 2.0)));
+                    vbSamples.addBack(new VisLighting(false, new VisPoints(vvdCSamples, vcRed2, 2.0)));
+
+                    // Display ratio of points falling inside ellipse
+                    vbSamples.addBack(new VisChain(LinAlg.translate(0, 10, 0),
+                                                   LinAlg.scale(0.5, 0.5, 0.5),
+                                                   vFont.makeText(Double.toString((double)containedSamples.size()/total),
+                                                                  Color.black)));
+
+
+                    vbSamples.swap();
+                } else if (name.equals("reset")) {
+                    vbSamples.swap();
+                }
+            }
+        });
+
+        jf.add(pg, BorderLayout.SOUTH);
+
 
         jf.setVisible(true);
     }
