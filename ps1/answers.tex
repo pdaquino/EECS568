@@ -311,9 +311,31 @@ Therefore,
 \label{fig:covplot_100_30}
 \end{figure}
 
-Figure \ref{fig:covplot_50_15} is the plot for the error levels given in the assignment. In this case, the projected covariance matrix is a relatively good aproximation of the actual covariance in the data. Figure \ref{fig:covplot_100_15} is the plot when the noise level in $r$ increases, which makes the projected covariance even more accurate, as a result of the linearization). Finally, Figure \ref{fig:covplot_50_30} shows the consequences of increasing the error in $\theta$.
 
-We can see from varying the noise levels that as $w_\theta$ increases, the projected covariance matrix becomes progressively less accurate. This also happens because of linearization error. When we linearize on $\theta_0=\frac{\pi}{8}$, we are effectively drawing a tangent at that angle of the circle. This approximation is good enough for small errors in $\theta$, but if the noise is significant than the tangent approximation will no longer hold. Interestingly, increases in $w_r$ compensate that effect by expanding the radius of the circle, as can be seen in figure \ref{fig:covplot_100_30}.
+% Figure~\ref{fig:covplot_50_15} is the plot for the error levels given in the assignment.
+% In this case, the projected covariance matrix is a relatively good aproximation of the
+% actual covariance in the data. Figure \ref{fig:covplot_100_15} is the plot when the noise
+% level in $r$ increases, which makes the projected covariance even more accurate, as a
+% result of the linearization). Finally, Figure \ref{fig:covplot_50_30} shows the
+% consequences of increasing the error in $\theta$.
+
+Figure~\ref{fig:covplot_50_15} shows the required plots for the error levels given
+in the assignment. The 3-sigma curve for the fit points does indeed seem to contain
+the majority of the samples, however, it is not a great representation of the actual distribution
+of points seen. The projected 3-sigma curve is worse, still, than the fit curve as
+it contains fewer of the points with high error from $w_\theta$.
+Figures~\ref{fig:covplot_100_15}~and~\ref{fig:covplot_50_30} show how manipulating the
+parameters influence the accuracy of the projection.
+
+We can see from varying the noise levels that as $w_\theta$ increases, the projected
+covariance matrix becomes progressively less accurate. This happens due to
+linearization error. When we linearize on $\theta_0=\frac{\pi}{8}$, we are effectively
+drawing a tangent at that angle of the circle defined by $\hat{r}$ and $\hat{\theta}$.
+This approximation is good enough for
+small errors in $\theta$, but if the noise is significant the tangent approximation
+will no longer hold. Interestingly, increases in $w_r$ seem to compensate for that
+effect by smudging the error caused by $w_{\theta}$ out, as can be seen in figure
+\ref{fig:covplot_100_30}.
 
 % something extra about consequences?
 
