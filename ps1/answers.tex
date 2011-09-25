@@ -13,7 +13,7 @@
 \begin{document}
 \maketitle
 
-\section{Linear Algebra Review}
+\section{Task 1: Linear Algebra Review}
 
 \paragraph{A}
 
@@ -23,32 +23,11 @@ A = \left( \begin{array}{ccc} 1 & 0 & 0 \\ 0 & 1 & 0 \end{array} \right)
 \end{equation}
 
 \paragraph{C}
-Let $A$ be a $m \times n$ matrix such that $AA^T=I$. We can decompose $AA^T$ using SVD:
+The idea is that $AA^T = I \Rightarrow A^TA=I$ only if $A$ is square. We proved it by showing that if $A$ is rectangular it only works one way around (i.e. if $AA^T=1$ then $A^TA \neq I$).
 
-\[
-AA^T = USV^T\left(USV^T\right)^T = USV^TVS^TU^T\]
+\paragraph{D}
 
-Because $V$ is orthonormal, $VV^T=I$ and:
-
-\[
-AA^T = USS^TU^T
-\]
-
-For $AA^T=I$, $SS^T=I$. This follows from the fact that $U$ is orthonormal.
-
-If we expand $A^TA$ using SVD, we reach:
-
-\[
-A^TA = VS^TSV^T
-\]
-
-For $A^TA$ to be $I$, then $S^TS=I$. But we know that $SS^T$ is also $I$, so these conditions must hold simultaneously for $A^TA=I$.
-
-Recall that $S$ is diagonal and has the same dimensions as $A$. If it is also square, then those conditions can hold simultaneously because $SS^T=S^TS$. However, if $S$ is rectangular, at least one row or column will have nothing but zeroes. In this case, there is only one direction in which multiplying $S$ and $S^T$ yields $I$; in the other direction the result will be a square matrix with at least one row and column equal to zero.
-
-\paragraph{D} Orthogonal and normal.
-
-\section{Multiavariate Gaussians}
+\section{Task 2: Multiavariate Gaussians}
 
 \paragraph{A}
 Let $N$ be the number of samples, $K$ be the number of random variables in $\mathbf{x}$ and $\mathbf{\mu}$ be the sample mean vector. The $i$-th sample of the random variable $\mathbf{x}_k$ is denoted by $\mathbf{x}_{ik}$ Then each element of $\mathbf{\mu}$ is going to be of the form:
@@ -107,5 +86,76 @@ Let $Z$ be a multivariate distribution comprised of independent standard normal 
 \]
 
 Therefore, we can draw from $\mathcal{N}\left(\mu,P\right)$ by making $b=\mu$ and $AA^T=P$ (using, for instance, Cholesky decomposition).
+
+\paragraph{D}
+Let there be a two-dimensional distribution with given covariance $\Sigma$ such that there is a $\chi^2$ error of $c$ for some point $p$ where $p = \mu +
+\left[ {\begin{smallmatrix}
+\alpha cos(\theta)  \\
+\alpha sin(\theta)  \\
+ \end{smallmatrix} } \right]$
+with a given value of $\theta$ and unknown $\alpha$.
+
+By definition, $\chi^2 = \mathbf{w}^T \Sigma^{-1} \mathbf{w}$ where $\mathbf{w} = \mathbf{p}-\mathbf{\mu}$.  Then 
+\begin{align*}
+\mathbf{w} &= \mu +
+	\left[ {\begin{smallmatrix}
+	\alpha cos(\theta)  \\
+	\alpha sin(\theta)  \\
+ 	\end{smallmatrix} } \right] 
+	- \mu \\
+ &= \alpha \left[ {\begin{smallmatrix}
+	cos(\theta)  \\
+	sin(\theta)  \\
+	 \end{smallmatrix} } \right]
+\end{align*}
+And therefore the unknown $\alpha$ can be calculated.
+\begin{align*}
+\chi^2 = c &=  \mathbf{w}^T \Sigma^{-1} \mathbf{w} \\
+&=  \alpha \left[ {\begin{smallmatrix}
+	cos(\theta)  sin(\theta)  \\
+	 \end{smallmatrix} } \right]
+ 	\Sigma
+ 	\alpha \left[ {\begin{smallmatrix}
+	cos(\theta)  \\
+	sin(\theta)  \\
+	 \end{smallmatrix} } \right] \\
+&= \alpha^2 \left[ {\begin{smallmatrix}
+	cos(\theta)  sin(\theta)  \\
+	 \end{smallmatrix} } \right]
+ 	\Sigma
+ 	\left[ {\begin{smallmatrix}
+	cos(\theta)  \\
+	sin(\theta)  \\
+	 \end{smallmatrix} } \right] \\
+\alpha^2 &= \frac{c}{\left[ {\begin{smallmatrix}
+	cos(\theta)  sin(\theta)  \\
+	 \end{smallmatrix} } \right]
+ 	\Sigma
+ 	\left[ {\begin{smallmatrix}
+	cos(\theta)  \\
+	sin(\theta)  \\
+	 \end{smallmatrix} } \right]} \\
+\alpha &=\sqrt{ c \left( \left[ {\begin{smallmatrix}
+	cos(\theta)  sin(\theta)  \\
+	 \end{smallmatrix} } \right]
+ 	\Sigma
+ 	\left[ {\begin{smallmatrix}
+	cos(\theta)  \\
+	sin(\theta)  \\
+	 \end{smallmatrix} } \right]
+	 \right)^{-1}}
+\end{align*}
+
+
+\paragraph{E}
+
+\paragraph{F}
+
+\section{Task 3: Covariance Matrices and Covariance Projection}
+
+\paragraph{A}
+
+\paragraph{B}
+
 
 \end{document}
