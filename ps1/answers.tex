@@ -184,7 +184,7 @@ And therefore the unknown $\alpha$ can be calculated.
 
 
 \paragraph{E}
-NOTE: Run team.MultiGaussian to see our tests live.
+NOTE: Run team.MultiGaussian to see our tests for yourself.
 
 To test that our sample mean/covariance code generated sane results,
 we calculated an example by hand and then compared to the actual results.
@@ -192,14 +192,37 @@ In this case, we did the small case of the points:
 
 \[(0,1) (1,0) (1,1)\]
 
-By our prediction, the sample mean should come out to be $(\frac{2/3}, \frac{2/3})$
+By our prediction, the sample mean should come out to be $(\frac{2}{3}, \frac{2}{3})$
 and the sample covariance
+$\left[ {\begin{smallmatrix}
+\frac{1}{3} & \;-\frac{1}{6} \\
+-\frac{1}{6} & \;\frac{1}{3} \\
+\end{smallmatrix} } \right]$.
+Results confirmed that sample mean and covariance were calculated correctly.
+
+Bootstrapping from our sample mean and covariance test, we tested our sample
+drawing code. Our expectation was that, for many samples drawn from a known
+distribution, a MultiGaussian reconstructed from the samples would have a
+nearly identical mean and covariance matrix to the original MultiGaussian.
+To ensure that we didn't just get lucky with our random samples, we ran
+this test several times to verify our success.
+
+To test $\chi^{2}$ calculation, we again just tried several examples by hand and
+then compared results to MultiGaussian. All results checked out.
+
+For our final test, we launched up a visualization to determine whether or not
+getContour() returned good results. We chose a simple example 2D MultiGaussian
+(0 mean, independent variances of 1 for both dimensions) and plotted our contour
+at $\chi^{2} = 1$ (see Figure \ref{fig:multigaussian}).
 
 \begin{figure}
 \centering
 \includegraphics[width=0.8\textwidth]{figures/MultiGaussian_1_sigma.png}
+\caption{Around 39\% of our sampled points fell within our ellipse for $\chi^{2} = 1$.
+The contour is plotted as a red line with blue points at each sample. Red points are
+samples that should fall inside the ellipse, yellow points are samples outside. The
+large number indicates the percentage of the points falling inside the ellipse.}
 \label{fig:multigaussian}
-\caption{Around 39\% of our sampled points fell within our ellipse for $\chi^{2} = 1$.}
 \end{figure}
 
 \section{Task 3: Covariance Matrices and Covariance Projection}
@@ -256,7 +279,7 @@ Therefore,
 \Sigma_{x,y} = \left[ {\begin{array}{cc}
 		50\cos^2\theta_0 + 0.15r_0^2\sin^2\theta_0 & 50\cos\theta_0\sin\theta_0 - 0.15r_0^2\cos\theta_0\sin\theta_0  \\[5pt]
 	50\cos\theta_0\sin\theta_0 - 0.15r_0^2\cos\theta_0\sin\theta_0 & 50\sin^2\theta_0 + 0.15r_0^2\cos^2\theta_0 \\[5pt]
-	 \end{array} } \right] 
+	 \end{array} } \right]
 \]
 
 \paragraph{B} For this sampling, we assumed that the trues values of the measurements are $\hat{r}=100$ and $\hat{\theta}=\frac{\pi}{8}$. In this way, we have a projected covariance matrix with non-zero values, which wouldn't be the case for, e.g., $\hat{r}=\hat{\theta}=0$. We also use $r_0=100$ and $\theta_0=\frac{\pi}{8}$ for the linearization.
