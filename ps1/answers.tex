@@ -244,7 +244,13 @@ Therefore,
 	 \end{array} } \right] 
 \]
 
-\paragraph{B}
+\paragraph{B} For this sampling, we assumed that the trues values of the measurements are $\hat{r}=100$ and $\hat{\theta}=\frac{\pi}{8}$. In this way, we have a projected covariance matrix with non-zero values, which wouldn't be the case for, e.g., $\hat{r}=\hat{\theta}=0$. We also use $r_0=100$ and $\theta_0=\frac{\pi}{8}$ for the linearization.
+
+% put figures and reference them here (i forgot the figure code so i'm copying that from rob when he commits
+
+We can see from varying the noise levels that as $w_\theta$ increases, the projected covariance matrix becomes progressively less accurate. This happens because of linearization error. When we linearize on $\theta_0=\frac{\pi}{8}$, we are effectively drawing a tangent at that angle of the circle. (This is especially visible on Figure something.) This approximation is good enough for small errors in $\theta$, but if the noise is significant than the tangent approximation will no longer hold. Interestingly, increases in $w_r$ compensate that effect by expanding the radius of the circle.
+
+% something extra about consequences?
 
 
 \end{document}
