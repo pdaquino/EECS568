@@ -103,9 +103,9 @@ x^T\Sigma x  =E\left[s\right] \geq 0
 Let $Z$ be a multivariate distribution comprised of independent standard normal univariate distributions. Then the mean $\mu_Z = 0$ and the covariance $\Sigma_Z=I$, the identity matrix. If we apply a linear transformation of the form $AZ + b$, we will have a multivariate normal distribution of the form:
 
 \[
-\mathcal{N}\left(A\mu_Z + b, B\Sigma_Z B^T\right) = \mathcal{N}\left(A0 + b, BIB^T\right) = \mathcal{N}\left(b, BB^T\right)
+\mathcal{N}\left(A\mu_Z + b, A\Sigma_Z A^T\right) = \mathcal{N}\left(A0 + b, BIB^T\right) = \mathcal{N}\left(b, AA^T\right)
 \]
 
-Therefore, we can draw from $\mathcal{N}\left(\mu,P\right)$ by making $b=\mu$ and $BB^T=P$ (using, for instance, Cholesky decomposition).
+Therefore, we can draw from $\mathcal{N}\left(\mu,P\right)$ by making $b=\mu$ and $AA^T=P$ (using, for instance, Cholesky decomposition).
 
 \end{document}
