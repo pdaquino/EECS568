@@ -192,8 +192,13 @@ In this case, we did the small case of the points:
 
 \[(0,1) (1,0) (1,1)\]
 
-By our prediction, the sample mean should come out to be $(\frac{2/3}, \frac{2/3})$
-and the sample covariance
+By our prediction, the sample mean should come out to be $(\frac{2}{3}, \frac{2}{3})$
+and the sample covariance to be
+$\left[ {\begin{smallmatrix}
+\frac{1}{3} & \;-\frac{1}{6} \\
+\frac{1}{6} & \;\frac{1}{3}  \\
+\end{smallmatrix} } \right]$.
+As expected, our code results matched exactly.
 
 \begin{figure}
 \centering
@@ -256,7 +261,7 @@ Therefore,
 \Sigma_{x,y} = \left[ {\begin{array}{cc}
 		50\cos^2\theta_0 + 0.15r_0^2\sin^2\theta_0 & 50\cos\theta_0\sin\theta_0 - 0.15r_0^2\cos\theta_0\sin\theta_0  \\[5pt]
 	50\cos\theta_0\sin\theta_0 - 0.15r_0^2\cos\theta_0\sin\theta_0 & 50\sin^2\theta_0 + 0.15r_0^2\cos^2\theta_0 \\[5pt]
-	 \end{array} } \right] 
+	 \end{array} } \right]
 \]
 
 \paragraph{B}
