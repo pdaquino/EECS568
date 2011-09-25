@@ -96,7 +96,7 @@ Additionaly, $s\geq 0$:
 
 \[s = \displaystyle\sum_{i=1}^n{t_i^2}\]
 
-Therefore, $AA^T$ is SPD. We can extend this to prove that any covariance matrix is also SPD. Again, let$x$ be any column vector of dimensions $m\times1$. We need to prove that $x^T\Sigma x \geq 0$.
+Therefore, $AA^T$ is SPD. We can extend this to prove that any covariance matrix is also SPD. Again, let $x$ be any column vector of dimensions $m\times1$. We need to prove that $x^T\Sigma x \geq 0$.
 
 \[
 x^T\Sigma x=x^TE\left[\left(X-E[X]\right)\left(X-E[X]\right)^T\right]x
@@ -201,7 +201,6 @@ and the sample covariance
 \label{fig:multigaussian}
 \caption{Around 39\% of our sampled points fell within our ellipse for $\chi^{2} = 1$.}
 \end{figure}
-
 \section{Task 3: Covariance Matrices and Covariance Projection}
 
 \paragraph{A}
@@ -261,9 +260,37 @@ Therefore,
 
 \paragraph{B} For this sampling, we assumed that the trues values of the measurements are $\hat{r}=100$ and $\hat{\theta}=\frac{\pi}{8}$. In this way, we have a projected covariance matrix with non-zero values, which wouldn't be the case for, e.g., $\hat{r}=\hat{\theta}=0$. We also use $r_0=100$ and $\theta_0=\frac{\pi}{8}$ for the linearization.
 
-% put figures and reference them here (i forgot the figure code so i'm copying that from rob when he commits
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{figures/GaussianFit_50_0_15.png}
+\caption{In red, the projection sampled points and the 3-$\sigma$ contour of the fitted multigaussian for $\sigma^2_r=50$ and $\sigma^2_\theta=0.15$ as in the assignment. In yellow, the 3-$\sigma$ contour of the projected covariance matrix.}
+\label{fig:covplot_50_15}
+\end{figure}
 
-We can see from varying the noise levels that as $w_\theta$ increases, the projected covariance matrix becomes progressively less accurate. This happens because of linearization error. When we linearize on $\theta_0=\frac{\pi}{8}$, we are effectively drawing a tangent at that angle of the circle. (This is especially visible on Figure something.) This approximation is good enough for small errors in $\theta$, but if the noise is significant than the tangent approximation will no longer hold. Interestingly, increases in $w_r$ compensate that effect by expanding the radius of the circle.
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{figures/GaussianFit_100_0_15.png}
+\caption{The points and contours for $\sigma^2_r=100$ and $\sigma^2_\theta=0.15$}
+\label{fig:covplot_100_15}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{figures/GaussianFit_50_0_3.png}
+\caption{The points and contours for $\sigma^2_r=50$ and $\sigma^2_\theta=0.3$}
+\label{fig:covplot_50_30}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{figures/GaussianFit_100_0_3.png}
+\caption{The points and contours for $\sigma^2_r=50$ and $\sigma^2_\theta=0.3$}
+\label{fig:covplot_100_30}
+\end{figure}
+
+Figure \ref{fig:covplot_50_15} is the plot for the error levels given in the assignment. In this case, the projected covariance matrix is a relatively good aproximation of the actual covariance in the data. Figure \ref{fig:covplot_100_15} is the plot when the noise level in $r$ increases, which makes the projected covariance even more accurate, as a result of the linearization). Finally, Figure \ref{fig:covplot_50_30} shows the consequences of increasing the error in $\theta$.
+
+We can see from varying the noise levels that as $w_\theta$ increases, the projected covariance matrix becomes progressively less accurate. This also happens because of linearization error. When we linearize on $\theta_0=\frac{\pi}{8}$, we are effectively drawing a tangent at that angle of the circle. This approximation is good enough for small errors in $\theta$, but if the noise is significant than the tangent approximation will no longer hold. Interestingly, increases in $w_r$ compensate that effect by expanding the radius of the circle, as can be seen in figure \ref{fig:covplot_100_30}.
 
 % something extra about consequences?
 
