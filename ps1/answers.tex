@@ -16,11 +16,25 @@
 \section{Task 1: Linear Algebra Review}
 
 \paragraph{A}
+Let $A$ be a matrix with the property $AA^T = I$ where $A$ is an $m\times n$ matrix.  Then it must be that $r_i$ is orthogonal to $r_j$ for all rows $r_i, r_j \in A$.  Additionally, $m \leq n$, this is explained in 2C.
 
 \paragraph{B}
-\begin{equation}
-A = \left( \begin{array}{ccc} 1 & 0 & 0 \\ 0 & 1 & 0 \end{array} \right)
-\end{equation}
+\begin{equation*}
+A = \left[ \begin{array}{ccc} 1 & 0 & 0 \\ 0 & 1 & 0 \end{array} \right]
+\end{equation*}
+
+Proof: \\
+\begin{align*}
+AA^T:\hspace{10 mm}
+\left[ \begin{array}{ccc} 1 & 0 & 0 \\ 0 & 1 & 0 \end{array} \right]
+\left[ \begin{array}{cc} 1 & 0  \\ 0 & 1 \\ 0 & 0 \end{array} \right]
+&=\left[ \begin{array}{cc} 1 & 0  \\ 0 & 1 \end{array} \right] \\
+A^TA:\hspace{10 mm}
+\left[ \begin{array}{cc} 1 & 0  \\ 0 & 1 \\ 0 & 0 \end{array} \right]
+\left[ \begin{array}{ccc} 1 & 0 & 0 \\ 0 & 1 & 0 \end{array} \right]
+&=\left[ \begin{array}{ccc} 1 & 0 & 0  \\ 0 & 1 & 0 \\ 0 & 0 & 0 \end{array} \right]
+\end{align*}
+
 
 \paragraph{C}
 Let $A$ be a $m \times n$ matrix such that $AA^T=I$. We can decompose $AA^T$ using SVD:
@@ -156,7 +170,7 @@ And therefore the unknown $\alpha$ can be calculated.
 	cos(\theta)  \\
 	sin(\theta)  \\
 	 \end{smallmatrix} } \right]} \\
-\alpha &=\sqrt{ c \left( \left[ {\begin{smallmatrix}
+\alpha &=\pm\sqrt{ c \left( \left[ {\begin{smallmatrix}
 	cos(\theta)  sin(\theta)  \\
 	 \end{smallmatrix} } \right]
  	\Sigma
