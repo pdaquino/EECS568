@@ -190,6 +190,60 @@ And therefore the unknown $\alpha$ can be calculated.
 
 \paragraph{A}
 
+We first write $x$ and $y$ in terms of $r$ and $\theta$:
+
+\[x = r\cos\theta\]
+\[y = r\sin\theta\]
+
+
+The covariance matrix in terms of $x$ and $y$ can be expressed in terms of the original covariance matrix as follows:
+
+\[
+\Sigma_{x,y} = J_{r,\theta}^{x,y}|_{x_0}\Sigma_{r,\theta}\left(J_{r,\theta}^{x,y}\right)^T
+\]
+
+Where:
+
+\[
+J_{r,\theta}^{x,y} =
+\left[ {\begin{array}{cc}
+	\frac{\partial r}{\partial x} & \frac{\partial \theta}{\partial x}  \\
+	\frac{\partial r}{\partial x} & \frac{\partial \theta}{\partial x}  \\
+	 \end{array} } \right] =
+\left[ {\begin{array}{cc}
+	cos(\theta) & -r\sin\theta  \\
+	\sin\theta & r\cos\theta  \\
+	 \end{array} } \right]
+\]
+\[
+\Sigma_{r,\theta} = 
+\left[ {\begin{array}{cc}
+	50 & 0  \\
+	0 & 15 \end{array} }\right]
+\]
+
+Therefore,
+
+\[
+\Sigma_{x,y} = \left[ {\begin{array}{cc}
+	cos(\theta) & -r\sin\theta  \\
+	\sin\theta & r\cos\theta  \\
+	 \end{array} } \right] 	 
+	 	\left[ {\begin{array}{cc}
+	50 & 0  \\
+	0 & 15 \end{array} }\right]
+	\left[ {\begin{array}{cc}
+	\cos\theta) & \sin\theta  \\
+	-r\sin\theta & r\cos\theta  \\
+	 \end{array} } \right] 
+\]
+\[
+\Sigma_{x,y} = \left[ {\begin{array}{cc}
+	50\cos^2\theta + 0.15r^2\sin^2\theta & 50\cos\theta\sin\theta - 0.15r^2\cos\theta\sin\theta  \\
+	50\cos\theta\sin\theta - 0.15r^2\cos\theta\sin\theta & 50\sin^2\theta + 0.15r^2\cos^2\theta \\
+	 \end{array} } \right] 
+\]
+
 \paragraph{B}
 
 
