@@ -6,6 +6,7 @@ import april.util.*;
 
 import java.util.*;
 import java.awt.*;
+import java.io.*;
 import javax.swing.*;
 
 /** Represents a multi-variate Gaussian distribution. This is a
@@ -304,6 +305,9 @@ public class MultiGaussian
                     ArrayList<double[]> containedSamples = new ArrayList<double[]>();
                     Random r = new Random();
                     int total = 10000;
+                    try {
+                    PrintWriter fout = new PrintWriter(new FileWriter("test.csv"));
+                    fout.printf("x,y\n");
                     for (int i = 0; i < total; i++) {
                         double[] sample = fmg.sample(r);
                         if (fmg.chi2(sample) < CHI2) {
@@ -311,6 +315,11 @@ public class MultiGaussian
                         } else {
                             samples.add(sample);
                         }
+                        fout.printf("%f,%f\n",sample[0],sample[1]);
+                    }
+                    fout.close();
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
                     }
                     VisVertexData vvdSamples = new VisVertexData(samples);
                     VisVertexData vvdCSamples = new VisVertexData(containedSamples);
