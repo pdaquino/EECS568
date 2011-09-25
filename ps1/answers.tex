@@ -1,7 +1,7 @@
 \title{Answers to Problem Set 1}
 \author{
 				Lauren Hinkle (lhinkle)\\
-        Pedro d'Aquino  (pdaquino)\\				
+        Pedro d'Aquino  (pdaquino)\\
 				Robert Goeddel (rgoeddel)\\
         Yash Chitalia (yashc)}
 \date{\today}
@@ -131,13 +131,13 @@ Let there be a two-dimensional distribution with given covariance $\Sigma$ such 
  \end{smallmatrix} } \right]$
 with a given value of $\theta$ and unknown $\alpha$.
 
-By definition, $\chi^2 = \mathbf{w}^T \Sigma^{-1} \mathbf{w}$ where $\mathbf{w} = \mathbf{p}-\mathbf{\mu}$.  Then 
+By definition, $\chi^2 = \mathbf{w}^T \Sigma^{-1} \mathbf{w}$ where $\mathbf{w} = \mathbf{p}-\mathbf{\mu}$.  Then
 \begin{align*}
 \mathbf{w} &= \mu +
 	\left[ {\begin{smallmatrix}
 	\alpha cos(\theta)  \\
 	\alpha sin(\theta)  \\
- 	\end{smallmatrix} } \right] 
+ 	\end{smallmatrix} } \right]
 	- \mu \\
  &= \alpha \left[ {\begin{smallmatrix}
 	cos(\theta)  \\
@@ -184,8 +184,23 @@ And therefore the unknown $\alpha$ can be calculated.
 
 
 \paragraph{E}
+NOTE: Run team.MultiGaussian to see our tests live.
 
-\paragraph{F}
+To test that our sample mean/covariance code generated sane results,
+we calculated an example by hand and then compared to the actual results.
+In this case, we did the small case of the points:
+
+\[(0,1) (1,0) (1,1)\]
+
+By our prediction, the sample mean should come out to be $(\frac{2/3}, \frac{2/3})$
+and the sample covariance
+
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{figures/MultiGaussian_1_sigma.png}
+\label{fig:multigaussian}
+\caption{Around 39\% of our sampled points fell within our ellipse for $\chi^{2} = 1$.}
+\end{figure}
 
 \section{Task 3: Covariance Matrices and Covariance Projection}
 
@@ -208,8 +223,8 @@ Where:
 \[
 J_{r,\theta}^{x,y} =
 \left[ {\begin{array}{cc}
-	\frac{\partial r}{\partial x}|_{r_0} & \frac{\partial \theta}{\partial x}|_{\theta_0}  \\
-	\frac{\partial r}{\partial x}|_{r_0} & \frac{\partial \theta}{\partial x}|_{\theta_0}  \\
+	\frac{\partial r}{\partial x}|_{r_0} & \frac{\partial \theta}{\partial x}|_{\theta_0}  \\[5pt]
+	\frac{\partial r}{\partial x}|_{r_0} & \frac{\partial \theta}{\partial x}|_{\theta_0}  \\[5pt]
 	 \end{array} } \right] =
 \left[ {\begin{array}{cc}
 	\cos\theta_0 & -r\sin\theta_0  \\
@@ -217,7 +232,7 @@ J_{r,\theta}^{x,y} =
 	 \end{array} } \right]
 \]
 \[
-\Sigma_{r,\theta} = 
+\Sigma_{r,\theta} =
 \left[ {\begin{array}{cc}
 	50 & 0  \\
 	0 & 15 \end{array} }\right]
@@ -229,18 +244,18 @@ Therefore,
 \Sigma_{x,y} = \left[ {\begin{array}{cc}
 	\cos\theta_0 & -r_0\sin\theta_0  \\
 	\sin\theta_0 & r_0\cos\theta_0  \\
-	 \end{array} } \right] 	 
+	 \end{array} } \right]
 	 	\left[ {\begin{array}{cc}
 	50 & 0  \\
 	0 & 15 \end{array} }\right]
 	\left[ {\begin{array}{cc}
-	\cos\theta_0) & \sin\theta_0  \\
+	\cos\theta_0 & \sin\theta_0  \\
 	-r_0\sin\theta_0 & r_0\cos\theta_0  \\
 	 \end{array} } \right] \]
 \[
 \Sigma_{x,y} = \left[ {\begin{array}{cc}
-		50\cos^2\theta_0 + 0.15r_0^2\sin^2\theta_0 & 50\cos\theta_0\sin\theta_0 - 0.15r_0^2\cos\theta_0\sin\theta_0  \\
-	50\cos\theta_0\sin\theta_0 - 0.15r_0^2\cos\theta_0\sin\theta_0 & 50\sin^2\theta_0 + 0.15r_0^2\cos^2\theta_0 \\
+		50\cos^2\theta_0 + 0.15r_0^2\sin^2\theta_0 & 50\cos\theta_0\sin\theta_0 - 0.15r_0^2\cos\theta_0\sin\theta_0  \\[5pt]
+	50\cos\theta_0\sin\theta_0 - 0.15r_0^2\cos\theta_0\sin\theta_0 & 50\sin^2\theta_0 + 0.15r_0^2\cos^2\theta_0 \\[5pt]
 	 \end{array} } \right] 
 \]
 
