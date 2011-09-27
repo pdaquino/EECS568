@@ -1,6 +1,2 @@
-[user]
-    name = Rob Goeddel
-    email = rgoeddel@umich.edu
-
 [core]
     autocrlf = true
