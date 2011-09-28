@@ -58,7 +58,7 @@ A^TA = VS^TSV^T
 
 For $A^TA$ to be $I$, then $S^TS=I$. But we know that $SS^T$ is also $I$, so these conditions must hold simultaneously for $A^TA=I$.
 
-Recall that $S$ is diagonal and has the same dimensions as $A$. If it is also square, then those conditions can hold simultaneously because $SS^T=S^TS$. However, if $S$ is rectangular, at least one row or column will have nothing but zeroes. In this case, there is only one direction in which multiplying $S$ and $S^T$ yields $I$; in particular, it must be the direction which produces the matrix with the lowest dimension. Therefore, if $S$ is $m \times n$, then $SS^T$ can only equal the identitiy matrix if $m \leq n$. Because $A$ has the same dimensions as $S$, it follows immediately that if $AA^T=I$, $A^TA=I \iff A$ is square.
+Recall that $S$ is diagonal and has the same dimensions as $A$. If it is also square, then those conditions can hold simultaneously because $SS^T=S^TS$. However, if $S$ is rectangular, at least one row or column will have nothing but zeroes. In this case, there is only one direction in which multiplying $S$ and $S^T$ yields $I$; in particular, it must be the direction which produces the matrix with the lowest dimension (see part B for an example). Therefore, if $S$ is $m \times n$, then $SS^T$ can only equal the identitiy matrix if $m \leq n$. Because $A$ has the same dimensions as $S$, it follows immediately that if $AA^T=I$, $A^TA=I \iff A$ is square.
 
 \paragraph{D}
 Classes of matrices for which $AA^T = I$ and $A^TA=I$ will hold are square matrices, orthogonal (by definition of an orthogonal matrix), and symmetric.
@@ -220,8 +220,9 @@ at $\chi^{2} = 1$ (see Figure \ref{fig:multigaussian}).
 \includegraphics[width=0.8\textwidth]{figures/MultiGaussian_1_sigma.png}
 \caption{Around 39\% of our sampled points fell within our ellipse for $\chi^{2} = 1$.
 The contour is plotted as a red line with blue points at each sample. Red points are
-samples that should fall inside the ellipse, yellow points are samples outside. The
-large number indicates the percentage of the points falling inside the ellipse.}
+samples that should fall inside the ellipse ($\chi^{2} \leq 1$), yellow points are
+samples outside. The large number indicates the percentage of the points falling inside
+the ellipse.}
 \label{fig:multigaussian}
 \end{figure}
 \section{Task 3: Covariance Matrices and Covariance Projection}
