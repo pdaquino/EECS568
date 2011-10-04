@@ -14,7 +14,25 @@
 
 \section{Graphical Models and Conditional Distributions}
 
+\paragraph{A}
+\begin{enumerate}
+	\item $u_i$ and $u_{i+1}$ are unconditionally independent, but are dependent given the robot trajectory.
+	\item $z_i$ and $z_{i+1}$ are dependent, even given all the positions, because the dependence flows through $L_0$.
+	\item ???
+\end{enumerate}
+
+\paragraph{B}
+\begin{enumerate}
+	\item
+	\begin{align*}
+	p(a|z) &= \frac{p(z|a)p(a)}{p(z)} \\
+						&= \frac{p(z|a)p(a)}{p(z|a)p(a) + p(z|b)p(b)} \\
+						&= \frac{p(z|a)p(a)}{p(z|a)p(a) + p(z|b)(1-p(a))}
+	\end{align*}
+\end{enumerate}
+
 \pagebreak
+
 \section{Matrix Sparsity}
 
 % XXX Assumed reflexive edges? YES / NO?
