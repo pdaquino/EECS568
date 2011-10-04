@@ -88,15 +88,41 @@ h & X & & & & X & X & \\
 g, b, a, d, c, e, f, h
 
 \paragraph{(iv)}
+\emph{XXX Ask about this...we must be answering what they MEANT to say}
 Given graph $G = (V, E)$, let the number of vertices $|V| = n$ and number of
 edges $|E| = m$.
 
 First, find the minimum degree node. Simple bookkeeping during graph
-construction allows
+construction allows us to find minimum degree in constant time, so this
+process only takes $\mathcal{O}(n)$.
 
-$\mathcal{O}(n^2 + \frac{m^2}{n})$
+Given this minimum degree node, now we must marginalize it. This means building
+a clique between every node connected by an edge to the minimum degree node and
+then removing said node. Up to $n-1$ nodes may be connected to the min degree
+node and we need to check the connnections between all of these. In case 1, an
+edge already exists and we don't do anything. This takes constant time. In case
+2, we need to create the edge. Again, this takes constant time (add 2 entries
+to the adjacency matrix, increment degree counters). Therefore, the entire
+process takes $\mathcal{O}(n^2)$ time.
+
+We repeat this process $n-1$ times in total to calculate the minimum degree
+variable elimination ordering, so we get $\mathcal{O}(n)\mathcal{O}(n + n^2)
+= \mathcal{O}(n^3)$ worst case time.
+
+Clever trick: Since we know that we chose the node of min degree, we know it has
+no more than $\frac{m}{n}$ connected edges. Thus the complexity ends up looking
+like $\mathcal{O}(n^2 + \frac{m^2}{n})$. Analysis gets tricky here, though,
+since marginalizing a bad node can actually result in an increase in edges. We
+do not yet have proof that this behavior does not affect the asymptotic
+complexity.
 
 \paragraph{(v)}
+Instead of actually finding the minimum degree node every time, just calculate
+the minimum degrees once at the beginning and then sort the list. Use this list
+as an approximation of the actual one. Instead of taking $\mathcal{O}(n^2)$
+operations to calculate the next minimum degree node, we spend
+$\mathcal{O}(n\log(n))$ operations once to approximate the ordering. The total
+time to marginalize the graph is still $\mathcal{O}(n^3)$.
 
 \pagebreak
 \section{SLAM}
