@@ -1,0 +1,87 @@
+\documentclass[12pt]{article}
+\usepackage{graphicx}
+\usepackage{amsmath}
+
+\title{Answers to Problem Set 1}
+\author{
+				Lauren Hinkle (lhinkle)\\
+        Pedro d'Aquino  (pdaquino)\\
+				Robert Goeddel (rgoeddel)}
+
+\begin{document}
+\maketitle
+\pagebreak
+
+\section{Graphical Models and Conditional Distributions}
+
+\pagebreak
+\section{Matrix Sparsity}
+
+% XXX Assumed reflexive edges? YES / NO?
+\paragraph{(i)}
+The adjaceny matrix for the given graph looks like:
+
+\begin{tabular}{| c || c | c | c | c | c | c | c | c |}
+\hline
+& a & b & c & d & e & f & g & h \\
+\hline \hline
+a & & X & X & & & & & X \\
+\hline
+b & X & & X & & & & & \\
+\hline
+c & X & X & & X & X & & & \\
+\hline
+d & & & X & & X & & & \\
+\hline
+e & & & X & X & & X & & \\
+\hline
+f & & & & & X & & & X  \\
+\hline
+g & & & & & & & & X \\
+\hline
+h & X & & & & & X & X & \\
+\hline
+\end{tabular}
+
+\paragraph{(ii)}
+Node C has the highest degree with 4 connections. Marginalizing out C gives us:
+
+\begin{tabular}{| c || c | c | c | c | c | c | c |}
+\hline
+& a & b & d & e & f & g & h \\
+\hline \hline
+a & & X & X & X & & & X \\
+\hline
+b & X & & X & X & & & \\
+\hline
+d & X & X & & X & & & \\
+\hline
+e & X & X & X & & X & & \\
+\hline
+f & & & & X & & & X  \\
+\hline
+g & & & & & & & X \\
+\hline
+h & X & & & & X & X & \\
+\hline
+\end{tabular}
+
+\paragraph{(iii)}
+g, b, a, d, c, e, f, h
+
+\paragraph{(iv)}
+Given graph $G = (V, E)$, let the number of vertices $|V| = n$ and number of
+edges $|E| = m$.
+
+First, find the minimum degree node. Simple bookkeeping during graph
+construction allows
+
+$\mathcal{O}(n^2 + \frac{m^2}{n})$
+
+\paragraph{(v)}
+
+\pagebreak
+\section{SLAM}
+
+
+\end{document}
