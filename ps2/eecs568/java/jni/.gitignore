@@ -1,0 +1,3 @@
+*.o
+libjgl.so
+gltest
