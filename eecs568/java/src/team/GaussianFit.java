@@ -101,7 +101,7 @@ class GaussianFit
 
         vbp.addBack(new VisLighting(false, new VisPoints(points,
                                                          vccRed,
-                                                         2.0)));
+                                                         10.0)));
         vbp.swap();
 
         // Fit a contour to the samples
