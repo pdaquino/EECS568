@@ -19,6 +19,7 @@ public class LeastSquaresListener implements Simulator.Listener {
     ArrayList<Edge> edges = new ArrayList<Edge>();
     
     private RobotPose latestRobotPose;
+    private int currentStateVectorSize = 0;
     
     double xyt[] = new double[3]; // dead reconning
     ArrayList<double[]> trajectory = new ArrayList<double[]>();
@@ -32,30 +33,81 @@ public class LeastSquaresListener implements Simulator.Listener {
         latestRobotPose = new RobotPose(0);
         latestRobotPose.setPosition(new double[]{0,0,0});
         nodes.add(latestRobotPose);
+        currentStateVectorSize += latestRobotPose.getNumDimensions();
+        
+        edges.add(new ConstraintEdge());
     }
 
     public void update(Simulator.odometry_t odom, ArrayList<Simulator.landmark_t> dets) {
         // Magic stuff here
         // build J
         // newRobotPose will be updated by the constructor of OdometryEdge
-        RobotPose newRobotPose = new RobotPose(nodes.size());
+        RobotPose newRobotPose = new RobotPose(currentStateVectorSize);
         OdometryEdge odomEdge = new OdometryEdge(odom.obs[0], odom.obs[1],
                 baseline, latestRobotPose, newRobotPose);
         nodes.add(newRobotPose);
+        currentStateVectorSize += newRobotPose.getNumDimensions();
         edges.add(odomEdge);
         this.latestRobotPose = newRobotPose;
         
         Matrix J = buildJacobian();
-        double[] r = buildResidual();
-        
+        Matrix r = buildResidual();
+        dumpMatrixDimensions("J",J);
+        //J.print();
+        dumpMatrixDimensions("r", r);
+        //r.print();
+        Matrix JT = J.transpose();
+        dumpMatrixDimensions("Jt",JT);
+        Matrix JTJ = JT.times(J);   
+        Matrix JTr = JT.times(r);
+        //JTJ.print();
+        //CholeskyDecomposition solver = new CholeskyDecomposition(JTJ);
+        //Matrix updatedState = solver.solve(JTr);        
+        //LUDecomposition luSolver = new LUDecomposition(JTJ);
+        //Matrix updatedState = luSolver.solve(JTr);
+        // thikonov stuff
+        Matrix I = Matrix.identity(currentStateVectorSize, currentStateVectorSize).times(42);
+        //LUDecomposition luSolver = new LUDecomposition(JTJ.plus(I));
+        //Matrix updatedState = luSolver.solve(JTr);        
+        Matrix deltaX = JTJ.plus(I).inverse().times(JT).times(r);
+        //dumpMatrixDimensions("Xhat", x_hat);
+        deltaX.print();
+        //updatedState.print();
         // Draw our trajectory and detections
-        drawStuff();
+        double[] stateVector = getStateVector();
+        for(int i = 0; i < stateVector.length; i++) {
+            stateVector[i] += deltaX.get(i);
+            System.out.println("i: " + stateVector[i]);
+        }
+        updateNodesPosition(stateVector);
+        drawStuff(dets);
     }
 
-    public void drawStuff() {
-        // Draw stuff here
+    private void dumpMatrixDimensions(String name, Matrix J) {
+        System.out.println(name+" is " + J.getRowDimension() + "x" + J.getColumnDimension());
     }
 
+    public void drawStuff( ArrayList<Simulator.landmark_t> dets) {
+        trajectory.clear();
+//        double[] currentXyt = new double[3];
+        int i = 0;
+        xyt = new double[]{0,0,0};
+        for(Node n : nodes) {
+            System.out.print("Node " + (i++) + ": ");
+            dumpPose(n.getPosition());
+            if(!(n instanceof RobotPose)) continue;
+            xyt = LinAlg.xytMultiply(xyt, n.getPosition());
+            trajectory.add(LinAlg.resize(xyt,2));
+        }
+        System.out.print("Last node: ");dumpPose(nodes.get(nodes.size()-1).getPosition());
+        System.out.print("Predicted: ");dumpPose(xyt);
+        drawDummy(dets);
+    }
+
+    private void dumpPose(double[] xyt) {
+        System.out.println("("+xyt[0]+","+xyt[1]+","+xyt[2]+")");
+    }
+    
     public void drawDummy(ArrayList<Simulator.landmark_t> landmarks) {
         // Draw local Trajectory
         {
@@ -120,11 +172,7 @@ public class LeastSquaresListener implements Simulator.Listener {
     }
 
     private int getStateVectorSize() {
-        int size = 0;
-        for(Node n : nodes) {
-            size += n.getNumDimensions();
-        }
-        return size;
+        return currentStateVectorSize;
     }
     
     private int getNumJacobianRows() {
@@ -135,16 +183,41 @@ public class LeastSquaresListener implements Simulator.Listener {
         return size;
     }
 
-    private double[] buildResidual() {
-        double[] residual = new double[getStateVectorSize()];
+    private Matrix buildResidual() {
+        Matrix residual = new Matrix(getNumJacobianRows(), 1, Matrix.DENSE);
         int currentRow = 0;
         for(Edge e : edges) {
             double[] edgeResidual = e.getResidual();
             for(double r : edgeResidual) {
-                residual[currentRow] = r;
+                residual.set(currentRow, 0, r);
                 currentRow++;
             }
         }
         return residual;
+    }
+
+    private double[] getStateVector() {
+        double[] stateVector = new double[getStateVectorSize()];
+        int i = 0;
+        for(Node n : nodes) {
+            double[] position = n.getPosition();
+            for(double dimension : position) {
+                stateVector[i] = dimension;
+                i++;
+            }
+        }
+        return stateVector;
+    }
+    
+    private void updateNodesPosition(double[] updatedStateVector) {
+        int i = 0;
+        for(Node n : nodes) {
+            double[] position = new double[n.getNumDimensions()];
+            for(int j = 0; j < position.length; j++) {
+                position[j] = updatedStateVector[i];
+                i++;
+            }
+            n.setPosition(position);
+        }
     }
 }

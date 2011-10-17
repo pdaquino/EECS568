@@ -190,6 +190,19 @@ public class CholeskyDecomposition
 
     public static void main(String args[])
     {
+        Matrix A = new Matrix(3, 1);
+        A.set(0, 0, 1);
+        A.set(1, 0, 2);
+        A.set(2, 0, 3);
+        Matrix B = new Matrix(3,1);
+        B.set(0, 0, 2);
+        B.set(1, 0, 3);
+        B.set(2, 0, 4);
+        Matrix ATA = A.transpose().times(A);
+        Matrix ATB = A.transpose().times(B);
+        Matrix x = new CholeskyDecomposition(ATA).solve(ATB);
+        System.out.println(x.get(0));
+        /*
         java.util.Random r = new java.util.Random();
 
         if (true) {
@@ -240,5 +253,7 @@ public class CholeskyDecomposition
             assert(X.equals(X2) && B.equals(B2));
             System.out.println("ok "+iters);
         }
+         * 
+         */
     }
 }

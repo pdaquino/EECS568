@@ -25,11 +25,9 @@ public class OdometryEdge implements Edge{
     
     @Override
     public double[] getResidual() {
-        double[] pose0 = start.getPosition();
-        double[] pose1 = end.getPosition();
-        assert pose0.length == 3 && pose1.length == 3;
-        double deltaX = pose1[0] - pose0[0];
-        double deltaT = pose1[2] - pose0[2];
+        double[] endPose = end.getPosition();
+        double deltaX = endPose[0];
+        double deltaT = endPose[2];
         
         double expectedDl = deltaX - (b*deltaT)/2;
         double expectedDr = deltaX + b*deltaT/2;
@@ -43,9 +41,12 @@ public class OdometryEdge implements Edge{
 
     private double[] getPredictedEndPosition(RobotPose start) {
         double[] newPosition = new double[3];
-        newPosition[0] = start.getPosition()[0] + (dr+dl)/2;
-        newPosition[1] = start.getPosition()[1];
-        newPosition[2] = start.getPosition()[2] + Math.atan((dr - dl)/b);
+        //newPosition[0] = start.getPosition()[0] + (dr+dl)/2;
+        //newPosition[1] = start.getPosition()[1];
+        //newPosition[2] = start.getPosition()[2] + Math.atan((dr - dl)/b);
+        newPosition[0] = (dr+dl)/2;
+        newPosition[1] = 0;
+        newPosition[2] = Math.atan((dr - dl)/b);
         return newPosition;
     }
 
@@ -60,10 +61,10 @@ public class OdometryEdge implements Edge{
     private CSRVec getDlRow(int stateVectorSize) {
         CSRVec vec = new CSRVec(stateVectorSize);
         int startIdx = start.getIndex();
-        vec.set(startIdx, 1);
-        vec.set(startIdx+2, -b/2);
+        //vec.set(startIdx, 1);
+        //vec.set(startIdx+2, -b/2);
         int endIdx = end.getIndex();
-        vec.set(startIdx, 1);
+        vec.set(endIdx, 1);
         vec.set(endIdx+2, -b/2);
         return vec;
     }
@@ -71,10 +72,10 @@ public class OdometryEdge implements Edge{
     private CSRVec getDrRow(int stateVectorSize) {
         CSRVec vec = new CSRVec(stateVectorSize);
         int startIdx = start.getIndex();
-        vec.set(startIdx, 1);
-        vec.set(startIdx+2, b/2);
+        //vec.set(startIdx, 1);
+        //vec.set(startIdx+2, b/2);
         int endIdx = end.getIndex();
-        vec.set(startIdx, 1);
+        vec.set(endIdx, 1);
         vec.set(endIdx+2, b/2);
         return vec;
     }

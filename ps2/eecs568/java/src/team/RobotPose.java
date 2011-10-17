@@ -10,6 +10,7 @@ public class RobotPose implements Node {
     int index;
     public RobotPose(int index) {
         this.index = index;
+        System.out.println("RobotPose constructed with index "+index);
     }
     
     @Override

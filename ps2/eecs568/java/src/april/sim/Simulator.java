@@ -274,7 +274,9 @@ public class Simulator implements Runnable
     }
 
     ArrayList<double[]> truthTrajectory = new ArrayList<double[]>();
-
+private void dumpPose(double[] xyt) {
+        System.out.println("("+xyt[0]+","+xyt[1]+","+xyt[2]+")");
+    }
     public void drawTruth(ArrayList<landmark_t> clean_dets, ArrayList<landmark_t> noisy_dets)
     {
 
@@ -286,7 +288,7 @@ public class Simulator implements Runnable
 
 
         truthTrajectory.add(LinAlg.resize(truth_xyt,2));
-
+        System.out.print("Truth: "); dumpPose(truth_xyt);
 
         // Draw the robot
         {
