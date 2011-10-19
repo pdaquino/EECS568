@@ -14,14 +14,16 @@ public class LeastSquaresListener implements Simulator.Listener {
     VisWorld vw;
     Config config;
     double baseline; // Robot baseline in [m]
-    
+
     ArrayList<Node> nodes = new ArrayList<Node>();
     ArrayList<Edge> edges = new ArrayList<Edge>();
-    
+
+    HashMap<Integer, LandmarkPose> lmarks = new HashMap<Integer, LandmarkPose>();
+
     private RobotPose latestRobotPose;
     private int currentStateVectorSize = 0;
-    
-    double xyt[] = new double[3]; // dead reconning
+
+    double xyt[] = new double[3]; // Best guess of our most recent pose
     ArrayList<double[]> trajectory = new ArrayList<double[]>();
 
     public void init(Config config_, VisWorld vw_) {
@@ -29,12 +31,12 @@ public class LeastSquaresListener implements Simulator.Listener {
         vw = vw_;
 
         baseline = config.requireDouble("robot.baseline_m");
-        
+
         latestRobotPose = new RobotPose(0);
         latestRobotPose.setPosition(new double[]{0,0,0});
         nodes.add(latestRobotPose);
         currentStateVectorSize += latestRobotPose.getNumDimensions();
-        
+
         edges.add(new ConstraintEdge());
     }
 
@@ -49,7 +51,28 @@ public class LeastSquaresListener implements Simulator.Listener {
         currentStateVectorSize += newRobotPose.getNumDimensions();
         edges.add(odomEdge);
         this.latestRobotPose = newRobotPose;
-        
+
+        // Deal with landmarks
+        for (Simulator.landmark_t landmark: dets) {
+            LandmarkPose lpose;
+            if (lmarks.containsKey(landmark.id)) {
+                lpose = lmarks.get(landmark.id);
+            } else {
+                lpose = new LandmarkPose(currentStateVectorSize);
+                currentStateVectorSize += lpose.getNumDimensions();
+                double[] robotPos = newRobotPose.getPosition();
+                double[] lmarkPos = new double[2];
+                double theta = MathUtil.mod2pi(robotPos[2] + landmark.obs[1]);
+                lmarkPos[0] = robotPos[0] + landmark.obs[0]*Math.cos(theta);
+                lmarkPos[1] = robotPos[1] + landmark.obs[1]*Math.sin(theta);
+                lpose.setPosition(lmarkPos);
+                nodes.add(lpose);
+                lmarks.put(landmark.id, lpose);
+            }
+            LandmarkEdge ledge = new LandmarkEdge(landmark.obs[0], landmark.obs[1], newRobotPose, lpose);
+            edges.add(ledge);
+        }
+
         Matrix J = buildJacobian();
         Matrix r = buildResidual();
         dumpMatrixDimensions("J",J);
@@ -58,28 +81,30 @@ public class LeastSquaresListener implements Simulator.Listener {
         //r.print();
         Matrix JT = J.transpose();
         dumpMatrixDimensions("Jt",JT);
-        Matrix JTJ = JT.times(J);   
+        Matrix JTJ = JT.times(J);
         Matrix JTr = JT.times(r);
         //JTJ.print();
         //CholeskyDecomposition solver = new CholeskyDecomposition(JTJ);
-        //Matrix updatedState = solver.solve(JTr);        
+        //Matrix updatedState = solver.solve(JTr);
         //LUDecomposition luSolver = new LUDecomposition(JTJ);
         //Matrix updatedState = luSolver.solve(JTr);
-        // thikonov stuff
+        // tikhonov stuff
         Matrix I = Matrix.identity(currentStateVectorSize, currentStateVectorSize).times(42);
-        //LUDecomposition luSolver = new LUDecomposition(JTJ.plus(I));
-        //Matrix updatedState = luSolver.solve(JTr);        
+        LUDecomposition luSolver = new LUDecomposition(JTJ.plus(I));
+        Matrix updatedState = luSolver.solve(JTr);
         Matrix deltaX = JTJ.plus(I).inverse().times(JT).times(r);
         //dumpMatrixDimensions("Xhat", x_hat);
-        deltaX.print();
+        //deltaX.print();
         //updatedState.print();
         // Draw our trajectory and detections
         double[] stateVector = getStateVector();
         for(int i = 0; i < stateVector.length; i++) {
             stateVector[i] += deltaX.get(i);
-            System.out.println("i: " + stateVector[i]);
+            //System.out.println("i: " + stateVector[i]);
         }
         updateNodesPosition(stateVector);
+
+        xyt = newRobotPose.getPosition();
         drawStuff(dets);
     }
 
@@ -91,15 +116,16 @@ public class LeastSquaresListener implements Simulator.Listener {
         trajectory.clear();
 //        double[] currentXyt = new double[3];
         int i = 0;
-        xyt = new double[]{0,0,0};
+        //xyt = new double[]{0,0,0};
         for(Node n : nodes) {
-            System.out.print("Node " + (i++) + ": ");
-            dumpPose(n.getPosition());
+            //System.out.print("Node " + (i++) + ": ");
+            //dumpPose(n.getPosition());
             if(!(n instanceof RobotPose)) continue;
-            xyt = LinAlg.xytMultiply(xyt, n.getPosition());
-            trajectory.add(LinAlg.resize(xyt,2));
+            //xyt = LinAlg.xytMultiply(xyt, n.getPosition());
+            //trajectory.add(LinAlg.resize(xyt,2));
+            trajectory.add(LinAlg.resize(n.getPosition(), 2));
         }
-        System.out.print("Last node: ");dumpPose(nodes.get(nodes.size()-1).getPosition());
+        //System.out.print("Last node: ");dumpPose(nodes.get(nodes.size()-1).getPosition());
         System.out.print("Predicted: ");dumpPose(xyt);
         drawDummy(dets);
     }
@@ -107,7 +133,7 @@ public class LeastSquaresListener implements Simulator.Listener {
     private void dumpPose(double[] xyt) {
         System.out.println("("+xyt[0]+","+xyt[1]+","+xyt[2]+")");
     }
-    
+
     public void drawDummy(ArrayList<Simulator.landmark_t> landmarks) {
         // Draw local Trajectory
         {
@@ -174,7 +200,7 @@ public class LeastSquaresListener implements Simulator.Listener {
     private int getStateVectorSize() {
         return currentStateVectorSize;
     }
-    
+
     private int getNumJacobianRows() {
         int size = 0;
         for(Edge e : edges) {
@@ -208,7 +234,7 @@ public class LeastSquaresListener implements Simulator.Listener {
         }
         return stateVector;
     }
-    
+
     private void updateNodesPosition(double[] updatedStateVector) {
         int i = 0;
         for(Node n : nodes) {
