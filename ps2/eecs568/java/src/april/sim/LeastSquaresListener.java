@@ -53,6 +53,7 @@ public class LeastSquaresListener implements Simulator.Listener {
         this.latestRobotPose = newRobotPose;
 
         // Deal with landmarks
+        ArrayList<LandmarkPose> recentLmarks = new ArrayList<LandmarkPose>();
         for (Simulator.landmark_t landmark: dets) {
             LandmarkPose lpose;
             if (lmarks.containsKey(landmark.id)) {
@@ -61,81 +62,87 @@ public class LeastSquaresListener implements Simulator.Listener {
                 lpose = new LandmarkPose(currentStateVectorSize);
                 currentStateVectorSize += lpose.getNumDimensions();
                 double[] robotPos = newRobotPose.getPosition();
-                double[] lmarkPos = new double[2];
-                double theta = MathUtil.mod2pi(robotPos[2] + landmark.obs[1]);
-                lmarkPos[0] = robotPos[0] + landmark.obs[0]*Math.cos(theta);
-                lmarkPos[1] = robotPos[1] + landmark.obs[1]*Math.sin(theta);
+                double[] rel_xy = new double[] {landmark.obs[0] * Math.cos(landmark.obs[1]),
+                                                landmark.obs[0] * Math.sin(landmark.obs[1])};
+                double[] lmarkPos = LinAlg.transform(robotPos, rel_xy);
                 lpose.setPosition(lmarkPos);
                 nodes.add(lpose);
                 lmarks.put(landmark.id, lpose);
             }
+            recentLmarks.add(lpose);
             LandmarkEdge ledge = new LandmarkEdge(landmark.obs[0], landmark.obs[1], newRobotPose, lpose);
             edges.add(ledge);
         }
 
         Matrix J = buildJacobian();
-        Matrix r = buildResidual();
         dumpMatrixDimensions("J",J);
         //J.print();
-        dumpMatrixDimensions("r", r);
-        //r.print();
         Matrix JT = J.transpose();
-        dumpMatrixDimensions("Jt",JT);
+        //dumpMatrixDimensions("Jt",JT);
         Matrix JTJ = JT.times(J);
-        Matrix JTr = JT.times(r);
         //JTJ.print();
+
+        // Tikhonov regularlization
+        double alpha = 5.0; // regularization constant...XXX choose wisely
+        Matrix I = Matrix.identity(currentStateVectorSize, currentStateVectorSize).times(alpha);
+        Matrix Tikhonov = JTJ.plus(I.transpose().times(I));
+
         //CholeskyDecomposition solver = new CholeskyDecomposition(JTJ);
         //Matrix updatedState = solver.solve(JTr);
         //LUDecomposition luSolver = new LUDecomposition(JTJ);
         //Matrix updatedState = luSolver.solve(JTr);
+        //
         // tikhonov stuff
-        Matrix I = Matrix.identity(currentStateVectorSize, currentStateVectorSize).times(42);
+        /*Matrix I = Matrix.identity(currentStateVectorSize, currentStateVectorSize).times(100);
         LUDecomposition luSolver = new LUDecomposition(JTJ.plus(I));
         Matrix updatedState = luSolver.solve(JTr);
-        Matrix deltaX = JTJ.plus(I).inverse().times(JT).times(r);
-        //dumpMatrixDimensions("Xhat", x_hat);
-        //deltaX.print();
-        //updatedState.print();
-        // Draw our trajectory and detections
-        double[] stateVector = getStateVector();
-        for(int i = 0; i < stateVector.length; i++) {
-            stateVector[i] += deltaX.get(i);
-            //System.out.println("i: " + stateVector[i]);
+        Matrix deltaX = JTJ.plus(I).inverse().times(JT).times(r);*/
+
+        double MAX_ITERS = 100;
+        for (int iter = 0; iter < MAX_ITERS; iter++) {
+            //Matrix r = buildResidual();
+            double[] r = buildResidual();
+            //dumpMatrixDimensions("r", r);
+            //r.print();
+            //Matrix JTr = JT.times(r);
+            double[] JTr = JT.times(r);
+
+            //Matrix deltaX = Tikhonov.inverse().times(JTr);
+            double[] deltaX = Tikhonov.inverse().times(JTr);
+
+            // Draw our trajectory and detections
+            double[] stateVector = getStateVector();
+            for(int i = 0; i < stateVector.length; i++) {
+                //stateVector[i] += deltaX.get(i, 0);
+                stateVector[i] += deltaX[i];
+            }
+            updateNodesPosition(stateVector);
         }
-        updateNodesPosition(stateVector);
+        MSE(buildResidual());
 
         xyt = newRobotPose.getPosition();
-        drawStuff(dets);
+        drawStuff(recentLmarks);
     }
 
     private void dumpMatrixDimensions(String name, Matrix J) {
         System.out.println(name+" is " + J.getRowDimension() + "x" + J.getColumnDimension());
     }
 
-    public void drawStuff( ArrayList<Simulator.landmark_t> dets) {
+    public void drawStuff(ArrayList<LandmarkPose> recentLmarks) {
+        ArrayList<double[]> rpoints = new ArrayList<double[]>();
+        rpoints.add(new double[]{-.3, .3});
+        rpoints.add(new double[]{-.3, -.3});
+        rpoints.add(new double[]{.45, 0});
+
         trajectory.clear();
-//        double[] currentXyt = new double[3];
-        int i = 0;
-        //xyt = new double[]{0,0,0};
+
+        // Draw estimated trajectory based on our state
         for(Node n : nodes) {
-            //System.out.print("Node " + (i++) + ": ");
-            //dumpPose(n.getPosition());
             if(!(n instanceof RobotPose)) continue;
-            //xyt = LinAlg.xytMultiply(xyt, n.getPosition());
-            //trajectory.add(LinAlg.resize(xyt,2));
             trajectory.add(LinAlg.resize(n.getPosition(), 2));
         }
-        //System.out.print("Last node: ");dumpPose(nodes.get(nodes.size()-1).getPosition());
         System.out.print("Predicted: ");dumpPose(xyt);
-        drawDummy(dets);
-    }
 
-    private void dumpPose(double[] xyt) {
-        System.out.println("("+xyt[0]+","+xyt[1]+","+xyt[2]+")");
-    }
-
-    public void drawDummy(ArrayList<Simulator.landmark_t> landmarks) {
-        // Draw local Trajectory
         {
             VisWorld.Buffer vb = vw.getBuffer("trajectory-local");
             vb.addBack(new VisLines(new VisVertexData(trajectory),
@@ -144,40 +151,53 @@ public class LeastSquaresListener implements Simulator.Listener {
             vb.swap();
         }
 
-        ArrayList<double[]> rpoints = new ArrayList<double[]>();
-        rpoints.add(new double[]{-.3, .3});
-        rpoints.add(new double[]{-.3, -.3});
-        rpoints.add(new double[]{.45, 0});
-
-        // Probably should be replaced with student-code
+        // Draw estimated robot position
         {
             VisWorld.Buffer vb = vw.getBuffer("robot-local");
             VisObject robot = new VisLines(new VisVertexData(rpoints),
-                    new VisConstantColor(Color.red),
-                    3,
-                    VisLines.TYPE.LINE_LOOP);
-
-
+                                           new VisConstantColor(Color.red),
+                                           3,
+                                           VisLines.TYPE.LINE_LOOP);
             double xyzrpy[] = new double[]{xyt[0], xyt[1], 0,
                 0, 0, xyt[2]};
             vb.addBack(new VisChain(LinAlg.xyzrpyToMatrix(xyzrpy), robot));
             vb.swap();
         }
 
-        // Draw the landmark observations
+        // Draw landmark observations from this run
         {
             VisWorld.Buffer vb = vw.getBuffer("landmarks-noisy");
-            for (Simulator.landmark_t lmark : landmarks) {
-                double[] obs = lmark.obs;
+            for (LandmarkPose lmark : recentLmarks) {
+                double[] xy = lmark.getPosition();
                 ArrayList<double[]> obsPoints = new ArrayList<double[]>();
-                obsPoints.add(LinAlg.resize(xyt, 2)); Matrix p;
-                double rel_xy[] = {obs[0] * Math.cos(obs[1]), obs[0] * Math.sin(obs[1])};
-                obsPoints.add(LinAlg.transform(xyt, rel_xy));
+                obsPoints.add(LinAlg.resize(xyt, 2));
+                obsPoints.add(xy);
                 vb.addBack(new VisLines(new VisVertexData(obsPoints),
-                        new VisConstantColor(lmark.id == -1 ? Color.gray : Color.cyan), 2, VisLines.TYPE.LINE_STRIP));
+                        new VisConstantColor(Color.cyan), 2, VisLines.TYPE.LINE_STRIP));
+                        //new VisConstantColor(lmark.id == -1 ? Color.gray : Color.cyan), 2, VisLines.TYPE.LINE_STRIP));
             }
             vb.swap();
         }
+
+        // Draw current esimated landmark positions
+        {
+            VisWorld.Buffer vb = vw.getBuffer("estimated-landmarks");
+            ArrayList<double[]> points = new ArrayList<double[]>();
+            for (LandmarkPose lmark: lmarks.values()) {
+                points.add(lmark.getPosition());
+            }
+            vb.addBack(new VisPoints(new VisVertexData(points),
+                                     new VisConstantColor(Color.red),
+                                     5));
+            vb.swap();
+        }
+    }
+
+    private void dumpPose(double[] xyt) {
+        System.out.println("("+xyt[0]+","+xyt[1]+","+xyt[2]+")");
+    }
+
+    public void drawDummy(ArrayList<Simulator.landmark_t> landmarks) {
     }
 
     private Matrix buildJacobian() {
@@ -209,41 +229,53 @@ public class LeastSquaresListener implements Simulator.Listener {
         return size;
     }
 
-    private Matrix buildResidual() {
-        Matrix residual = new Matrix(getNumJacobianRows(), 1, Matrix.DENSE);
+    private double[] buildResidual() {
+        //Matrix residual = new Matrix(getNumJacobianRows(), 1, Matrix.DENSE);
+        double[] residual = new double[getNumJacobianRows()];
         int currentRow = 0;
+        double mse = 0;
         for(Edge e : edges) {
             double[] edgeResidual = e.getResidual();
             for(double r : edgeResidual) {
-                residual.set(currentRow, 0, r);
-                currentRow++;
+                //residual.set(currentRow++, 0, r);
+                residual[currentRow++] = r;
+                mse += r*r;
             }
         }
+        // Output mean square error
+        //System.out.printf("MSE: %f\n", mse);
+        // Chi^2 error?
         return residual;
     }
 
     private double[] getStateVector() {
         double[] stateVector = new double[getStateVectorSize()];
-        int i = 0;
         for(Node n : nodes) {
             double[] position = n.getPosition();
-            for(double dimension : position) {
-                stateVector[i] = dimension;
-                i++;
+            int idx = n.getIndex();
+            for(int i = 0; i < position.length; i++) {
+                stateVector[idx + i] = position[i];
             }
         }
         return stateVector;
     }
 
     private void updateNodesPosition(double[] updatedStateVector) {
-        int i = 0;
         for(Node n : nodes) {
             double[] position = new double[n.getNumDimensions()];
-            for(int j = 0; j < position.length; j++) {
-                position[j] = updatedStateVector[i];
-                i++;
+            int idx = n.getIndex();
+            for(int i = 0; i < position.length; i++) {
+                position[i] = updatedStateVector[idx + i];
             }
             n.setPosition(position);
         }
+    }
+
+    private void MSE(double[] r)
+    {
+        double mse = 0;
+        for (double err: r)
+            mse += err*err;
+        System.out.printf("MSE: %f\n", mse);
     }
 }

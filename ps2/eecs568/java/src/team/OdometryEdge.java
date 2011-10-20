@@ -58,7 +58,7 @@ public class OdometryEdge implements Edge{
     private CSRVec getDlRow(int stateVectorSize) {
         CSRVec vec = new CSRVec(stateVectorSize);
         double cosTa = Math.cos(start.getPosition()[2]);
-        double sinTa = Math.cos(start.getPosition()[2]);
+        double sinTa = Math.sin(start.getPosition()[2]);
         double dx = end.getPosition()[0] - start.getPosition()[0];
         double dy = end.getPosition()[1] - start.getPosition()[1];
         int startIdx = start.getIndex();
@@ -75,7 +75,7 @@ public class OdometryEdge implements Edge{
     private CSRVec getDrRow(int stateVectorSize) {
         CSRVec vec = new CSRVec(stateVectorSize);
         double cosTa = Math.cos(start.getPosition()[2]);
-        double sinTa = Math.cos(start.getPosition()[2]);
+        double sinTa = Math.sin(start.getPosition()[2]);
         double dx = end.getPosition()[0] - start.getPosition()[0];
         double dy = end.getPosition()[1] - start.getPosition()[1];
         int startIdx = start.getIndex();

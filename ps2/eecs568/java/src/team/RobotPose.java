@@ -6,13 +6,13 @@ package team;
  */
 public class RobotPose implements Node {
 
-    private double[] position = {0, 0 , 0};
+    private double[] position = {0, 0 , 0}; // (x,y,t)
     int index;
     public RobotPose(int index) {
         this.index = index;
-        System.out.println("RobotPose constructed with index "+index);
+        //System.out.println("RobotPose constructed with index "+index);
     }
-    
+
     @Override
     public double[] getPosition() {
         return this.position;
@@ -32,5 +32,5 @@ public class RobotPose implements Node {
     public int getNumDimensions() {
         return 3;
     }
-    
+
 }
