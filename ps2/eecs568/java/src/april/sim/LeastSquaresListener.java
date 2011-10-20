@@ -57,7 +57,7 @@ public class LeastSquaresListener implements Simulator.Listener {
 
         // Deal with landmarks
         ArrayList<LandmarkPose> recentLmarks = new ArrayList<LandmarkPose>();
-        /*for (Simulator.landmark_t landmark: dets) {
+        for (Simulator.landmark_t landmark: dets) {
             LandmarkPose lpose;
             if (lmarks.containsKey(landmark.id)) {
                 lpose = lmarks.get(landmark.id);
@@ -75,7 +75,7 @@ public class LeastSquaresListener implements Simulator.Listener {
             recentLmarks.add(lpose);
             LandmarkEdge ledge = new LandmarkEdge(landmark.obs[0], landmark.obs[1], newRobotPose, lpose);
             edges.add(ledge);
-        }*/
+        }
 
         Matrix J = buildJacobian();
         dumpMatrixDimensions("J",J);
@@ -88,7 +88,7 @@ public class LeastSquaresListener implements Simulator.Listener {
         // Tikhonov regularlization
         double alpha = 5.0; // regularization constant...XXX choose wisely
         Matrix I = Matrix.identity(currentStateVectorSize, currentStateVectorSize).times(alpha);
-        Matrix Tikhonov = JTJ.plus(I.transpose().times(I));
+        Matrix Tikhonov = JTJ.plus(I);
 
         //CholeskyDecomposition solver = new CholeskyDecomposition(JTJ);
         //Matrix updatedState = solver.solve(JTr);
@@ -116,9 +116,10 @@ public class LeastSquaresListener implements Simulator.Listener {
             //r.print();
             //Matrix JTr = JT.times(r);
             double[] JTr = JT.times(r);
-
-            //Matrix deltaX = Tikhonov.inverse().times(JTr);
-            double[] deltaX = Tikhonov.inverse().times(JTr);
+            
+            CholeskyDecomposition solver = new CholeskyDecomposition(Tikhonov);
+            double[] deltaX = solver.solve(Matrix.columnMatrix(JTr)).copyAsVector();
+            //double[] deltaX = Tikhonov.inverse().times(JTr);
 
             // Draw our trajectory and detections
             double[] stateVector = getStateVector();
