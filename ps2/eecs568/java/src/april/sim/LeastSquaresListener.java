@@ -23,6 +23,9 @@ public class LeastSquaresListener implements Simulator.Listener {
     private RobotPose latestRobotPose;
     private int currentStateVectorSize = 0;
 
+    private final int NOISE_WAIT = 25;
+    private int noiseCount = 0;
+
     double xyt[] = new double[3]; // Best guess of our most recent pose
     ArrayList<double[]> trajectory = new ArrayList<double[]>();
 
@@ -99,7 +102,11 @@ public class LeastSquaresListener implements Simulator.Listener {
         Matrix deltaX = JTJ.plus(I).inverse().times(JT).times(r);*/
 
         //XXX Debug
-        //addNoise(); // Noise up the state vector and see if we recover
+        /*if (noiseCount % NOISE_WAIT == 0) {
+            noiseCount = 0;
+            addNoise(); // Noise up the state vector and see if we recover
+        }
+        noiseCount++;*/
 
         double MAX_ITERS = 100;
         for (int iter = 0; iter < MAX_ITERS; iter++) {
@@ -128,14 +135,16 @@ public class LeastSquaresListener implements Simulator.Listener {
     }
 
 
-    // Debugging
+    // Debugging...assumes no landmarks
     private void addNoise()
     {
         double[] stateVector = getStateVector();
 
         Random rand = new Random();
-        double mag = 0.05;
+        double mag = 0.5;
         for (int i = 0; i < stateVector.length; i++) {
+            if (i % 3 == 2)
+                continue;
             double delta = rand.nextDouble() - 0.5;
             delta *= mag;
             stateVector[i] += delta;
