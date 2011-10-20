@@ -40,7 +40,7 @@ public class LeastSquaresListener implements Simulator.Listener {
         nodes.add(latestRobotPose);
         currentStateVectorSize += latestRobotPose.getNumDimensions();
 
-        edges.add(new ConstraintEdge());
+        edges.add(new ConstraintEdge(latestRobotPose, new double[3]));
     }
 
     public void update(Simulator.odometry_t odom, ArrayList<Simulator.landmark_t> dets) {
@@ -48,7 +48,7 @@ public class LeastSquaresListener implements Simulator.Listener {
         // build J
         // newRobotPose will be updated by the constructor of OdometryEdge
         RobotPose newRobotPose = new RobotPose(currentStateVectorSize);
-        OdometryEdge odomEdge = new OdometryEdge(odom.obs[0], odom.obs[1],
+        OdometryEdge odomEdge = new OdometryEdge(config, odom.obs[0], odom.obs[1],
                 baseline, latestRobotPose, newRobotPose);
         nodes.add(newRobotPose);
         currentStateVectorSize += newRobotPose.getNumDimensions();
@@ -57,7 +57,7 @@ public class LeastSquaresListener implements Simulator.Listener {
 
         // Deal with landmarks
         ArrayList<LandmarkPose> recentLmarks = new ArrayList<LandmarkPose>();
-        for (Simulator.landmark_t landmark: dets) {
+        /*for (Simulator.landmark_t landmark: dets) {
             LandmarkPose lpose;
             if (lmarks.containsKey(landmark.id)) {
                 lpose = lmarks.get(landmark.id);
@@ -73,22 +73,24 @@ public class LeastSquaresListener implements Simulator.Listener {
                 lmarks.put(landmark.id, lpose);
             }
             recentLmarks.add(lpose);
-            LandmarkEdge ledge = new LandmarkEdge(landmark.obs[0], landmark.obs[1], newRobotPose, lpose);
+            LandmarkEdge ledge = new LandmarkEdge(config, landmark.obs[0], landmark.obs[1], newRobotPose, lpose);
             edges.add(ledge);
-        }
+        }*/
 
-        Matrix J = buildJacobian();
-        dumpMatrixDimensions("J",J);
+        //Matrix J = buildJacobian();
+        //dumpMatrixDimensions("J",J);
         //J.print();
-        Matrix JT = J.transpose();
+        //Matrix JT = J.transpose();
         //dumpMatrixDimensions("Jt",JT);
-        Matrix JTJ = JT.times(J);
+        //Matrix JTJ = JT.times(J);
         //JTJ.print();
+
+        Matrix[] matrices = buildJTSigmaJ();
 
         // Tikhonov regularlization
         double alpha = 5.0; // regularization constant...XXX choose wisely
         Matrix I = Matrix.identity(currentStateVectorSize, currentStateVectorSize).times(alpha);
-        Matrix Tikhonov = JTJ.plus(I);
+        Matrix Tikhonov = matrices[0].plus(I);
 
         //CholeskyDecomposition solver = new CholeskyDecomposition(JTJ);
         //Matrix updatedState = solver.solve(JTr);
@@ -110,15 +112,13 @@ public class LeastSquaresListener implements Simulator.Listener {
 
         double MAX_ITERS = 100;
         for (int iter = 0; iter < MAX_ITERS; iter++) {
-            //Matrix r = buildResidual();
             double[] r = buildResidual();
-            //dumpMatrixDimensions("r", r);
-            //r.print();
-            //Matrix JTr = JT.times(r);
-            double[] JTr = JT.times(r);
-            
+            //System.out.println(Arrays.toString(r));
+            //double[] JTr = JT.times(r); // XXX
+            double[] JTSigmar = matrices[1].times(r);
+
             CholeskyDecomposition solver = new CholeskyDecomposition(Tikhonov);
-            double[] deltaX = solver.solve(Matrix.columnMatrix(JTr)).copyAsVector();
+            double[] deltaX = solver.solve(Matrix.columnMatrix(JTSigmar)).copyAsVector();
             //double[] deltaX = Tikhonov.inverse().times(JTr);
 
             // Draw our trajectory and detections
@@ -228,10 +228,7 @@ public class LeastSquaresListener implements Simulator.Listener {
         System.out.println("("+xyt[0]+","+xyt[1]+","+xyt[2]+")");
     }
 
-    public void drawDummy(ArrayList<Simulator.landmark_t> landmarks) {
-    }
-
-    private Matrix buildJacobian() {
+    /*private Matrix buildJacobian() {
         int numColumns = getStateVectorSize();
         int numRows = getNumJacobianRows();
         Matrix J = new Matrix(numRows, numColumns, Matrix.SPARSE);
@@ -246,6 +243,34 @@ public class LeastSquaresListener implements Simulator.Listener {
         assert J.getColumnDimension() == numColumns;
         assert J.getRowDimension() == numRows;
         return J;
+    }*/
+
+    private Matrix[] buildJTSigmaJ() {
+        int numStates = getStateVectorSize();
+        int numRows = getNumJacobianRows();
+        Matrix sum0 = new Matrix(numStates, numStates, Matrix.SPARSE);  // JTSigmaJ
+        Matrix sum1 = new Matrix(numStates, numRows, Matrix.SPARSE);    // JTSigma
+
+        int columnCnt = 0;
+        for (Edge e: edges) {
+            // Get J rows...(Ji) as a matrix
+            Matrix J = e.getJacobian(numStates);
+            //J.print();
+            // Transpose it
+            Matrix JT = J.transpose();
+            // Get covariance matrix
+            Matrix Sigma = e.getCovarianceInverse();
+            //Sigma.print();
+            // sum.plus(Ji'*sigma^-1*Ji)
+            Matrix JTSigma = JT.times(Sigma);
+            sum0.plusEquals(JTSigma.times(J));
+            sum1.plusEquals(0, columnCnt, JTSigma);
+            columnCnt += e.getNumberJacobianRows();
+        }
+
+        Matrix[] sums = new Matrix[] {sum0, sum1};
+
+        return sums;
     }
 
     private int getStateVectorSize() {

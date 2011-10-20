@@ -1,6 +1,7 @@
 package team;
 
 import april.jmat.*;
+import april.config.*;
 
 /**
  *
@@ -13,7 +14,9 @@ public class OdometryEdge implements Edge{
     private double dl, dr, b;
     private double[] zxyt;
 
-    public OdometryEdge(double dl, double dr, double b, RobotPose start,
+    static Matrix invSigma = null;
+
+    public OdometryEdge(Config config, double dl, double dr, double b, RobotPose start,
             RobotPose end) {
         this.b = b;
         this.dl = dl;
@@ -22,6 +25,22 @@ public class OdometryEdge implements Edge{
         this.end = end;
         zxyt = new double[] {(dr+dl)/2, 0, Math.atan((dr-dl)/b)};
         end.setPosition(getPredictedEndPosition(start));
+
+        if (invSigma == null) {
+            int rows = getNumberJacobianRows();
+            invSigma = new Matrix(rows, rows, Matrix.SPARSE);
+            double[] sigmas = config.requireDoubles("noisemodels.odometryDiag");
+            double lateralNoise = .05; // XXX??????????
+
+            invSigma.set(0,0,(1.0/4.0)*(sigmas[0]+sigmas[1]));
+            invSigma.set(2,2,(b*b/4.0)*(sigmas[0]+sigmas[1]));
+            invSigma.set(0,2,(b/2.0)*(sigmas[0]-sigmas[1]));
+            invSigma.set(2,0,(b/2.0)*(sigmas[0]-sigmas[1]));
+            invSigma.set(1,1,lateralNoise);
+
+            invSigma = invSigma.inverse();
+            //invSigma.print();
+        }
     }
 
     @Override
@@ -57,14 +76,18 @@ public class OdometryEdge implements Edge{
     }
 
     @Override
-    public CSRVec[] getJacobianRows(int stateVectorSize) {
-        CSRVec[] vecs = new CSRVec[getNumberJacobianRows()];
-        //vecs[0] = getDlRow(stateVectorSize);
-        //vecs[1] = getDrRow(stateVectorSize);
-        vecs[0] = getXRow(stateVectorSize);
-        vecs[1] = getYRow(stateVectorSize);
-        vecs[2] = getTRow(stateVectorSize);
-        return vecs;
+    public Matrix getJacobian(int stateVectorSize) {
+        Matrix J = new Matrix(getNumberJacobianRows(), stateVectorSize, Matrix.SPARSE);
+        J.setRow(0, getXRow(stateVectorSize));
+        J.setRow(1, getYRow(stateVectorSize));
+        J.setRow(2, getTRow(stateVectorSize));
+        return J;
+    }
+
+    public Matrix getCovarianceInverse()
+    {
+        return Matrix.identity(getNumberJacobianRows(), getNumberJacobianRows());
+        //return invSigma;
     }
 
     private CSRVec getDlRow(int stateVectorSize) {

@@ -1,6 +1,6 @@
 package team;
 
-import april.jmat.CSRVec;
+import april.jmat.*;
 
 /**
  *
@@ -8,24 +8,58 @@ import april.jmat.CSRVec;
  */
 public class ConstraintEdge implements Edge {
 
+    Node pose;
+    double[] pin;
+
+    static Matrix invSigma = null;
+
+    public ConstraintEdge(Node pose, double[] pin)
+    {
+        this.pose = pose;
+        this.pin = pin;
+
+        if (invSigma == null) {
+            int size = getNumberJacobianRows();
+            invSigma = new Matrix(size, size, Matrix.SPARSE);
+            for (int i = 0; i < size; i++) {
+                invSigma.set(i, i, 100000);
+            }
+        }
+    }
+
     @Override
     public double[] getResidual() {
-        return new double[] {0};
+        double[] residual = new double[getNumberJacobianRows()];
+        double[] pos = pose.getPosition();
+
+        assert(pin.length == pos.length);
+        for (int i = 0; i < residual.length; i++) {
+            residual[i] = pos[i] - pin[i];
+        }
+
+        return residual;
     }
 
     @Override
     public int getNumberJacobianRows() {
-        return 1;
+        return pose.getNumDimensions();
     }
 
     @Override
-    public CSRVec[] getJacobianRows(int stateVectorSize) {
-        CSRVec[] vec = new CSRVec[1];
-        vec[0] = new CSRVec(stateVectorSize);
-        vec[0].set(0, 1);
-        vec[0].set(1, 1);
-        vec[0].set(2, 1);
-        return vec;
+    public Matrix getJacobian(int stateVectorSize) {
+        int rows = getNumberJacobianRows();
+        Matrix J = new Matrix(rows, stateVectorSize, Matrix.SPARSE);
+        int idx = pose.getIndex();
+        for (int i = 0; i < rows; i++) {
+            J.set(i, idx+i, 1);
+        }
+        return J;
+    }
+
+    public Matrix getCovarianceInverse()
+    {
+        return Matrix.identity(getNumberJacobianRows(), getNumberJacobianRows());
+        //return invSigma;
     }
 
 }

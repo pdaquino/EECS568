@@ -1,14 +1,14 @@
 package team;
 
-import april.jmat.CSRVec;
+import april.jmat.*;
 
 /**
- * 
+ *
  * @author pdaquino
  */
 public interface Edge {
     double[] getResidual();
     int getNumberJacobianRows();
-    CSRVec[] getJacobianRows(int stateVectorSize);
-    
+    Matrix getJacobian(int stateVectorSize);
+    Matrix getCovarianceInverse();
 }

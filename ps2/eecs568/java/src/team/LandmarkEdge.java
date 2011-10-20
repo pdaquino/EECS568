@@ -1,6 +1,7 @@
 package team;
 
 import april.jmat.*;
+import april.config.*;
 
 public class LandmarkEdge implements Edge
 {
@@ -9,12 +10,23 @@ public class LandmarkEdge implements Edge
 
     private double r, theta;
 
-    public LandmarkEdge(double r, double theta, RobotPose robot, LandmarkPose lmark)
+    static Matrix invSigma = null;
+
+    public LandmarkEdge(Config config, double r, double theta, RobotPose robot, LandmarkPose lmark)
     {
         this.r = r;
         this.theta = theta;
         this.robot = robot;
         this.lmark = lmark;
+
+        if (invSigma == null) {
+            int rows = getNumberJacobianRows();
+            invSigma = new Matrix(rows, rows, Matrix.SPARSE);
+            double[] sigmas = config.requireDoubles("noisemodels.landmarkDiag");
+            invSigma.set(0,0,1.0/sigmas[0]);
+            invSigma.set(1,1,1.0/sigmas[1]);
+            //invSigma.print();
+        }
     }
 
     public double[] getResidual()
@@ -35,12 +47,18 @@ public class LandmarkEdge implements Edge
         return residual;
     }
 
-    public CSRVec[] getJacobianRows(int stateVectorSize)
+    public Matrix getJacobian(int stateVectorSize)
     {
-        CSRVec[] vecs = new CSRVec[2];
-        vecs[0] = getRRow(stateVectorSize);
-        vecs[1] = getThetaRow(stateVectorSize);
-        return vecs;
+        Matrix J = new Matrix(getNumberJacobianRows(), stateVectorSize, Matrix.SPARSE);
+        J.setRow(0, getRRow(stateVectorSize));
+        J.setRow(1, getThetaRow(stateVectorSize));
+        return J;
+    }
+
+    public Matrix getCovarianceInverse()
+    {
+        return Matrix.identity(getNumberJacobianRows(), getNumberJacobianRows());
+        //return invSigma;
     }
 
     private CSRVec getThetaRow(int stateVectorSize)
