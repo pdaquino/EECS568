@@ -2,7 +2,7 @@ package team;
 
 public class LandmarkPose implements Node
 {
-    private double[] position = {0, 0};
+    private double[] position = {0, 0}; // (x,y)
     int index;
 
     public LandmarkPose(int index) {

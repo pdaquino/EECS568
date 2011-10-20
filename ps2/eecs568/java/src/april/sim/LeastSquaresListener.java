@@ -54,7 +54,7 @@ public class LeastSquaresListener implements Simulator.Listener {
 
         // Deal with landmarks
         ArrayList<LandmarkPose> recentLmarks = new ArrayList<LandmarkPose>();
-        for (Simulator.landmark_t landmark: dets) {
+        /*for (Simulator.landmark_t landmark: dets) {
             LandmarkPose lpose;
             if (lmarks.containsKey(landmark.id)) {
                 lpose = lmarks.get(landmark.id);
@@ -72,7 +72,7 @@ public class LeastSquaresListener implements Simulator.Listener {
             recentLmarks.add(lpose);
             LandmarkEdge ledge = new LandmarkEdge(landmark.obs[0], landmark.obs[1], newRobotPose, lpose);
             edges.add(ledge);
-        }
+        }*/
 
         Matrix J = buildJacobian();
         dumpMatrixDimensions("J",J);
@@ -97,6 +97,9 @@ public class LeastSquaresListener implements Simulator.Listener {
         LUDecomposition luSolver = new LUDecomposition(JTJ.plus(I));
         Matrix updatedState = luSolver.solve(JTr);
         Matrix deltaX = JTJ.plus(I).inverse().times(JT).times(r);*/
+
+        //XXX Debug
+        //addNoise(); // Noise up the state vector and see if we recover
 
         double MAX_ITERS = 100;
         for (int iter = 0; iter < MAX_ITERS; iter++) {
@@ -123,6 +126,24 @@ public class LeastSquaresListener implements Simulator.Listener {
         xyt = newRobotPose.getPosition();
         drawStuff(recentLmarks);
     }
+
+
+    // Debugging
+    private void addNoise()
+    {
+        double[] stateVector = getStateVector();
+
+        Random rand = new Random();
+        double mag = 0.05;
+        for (int i = 0; i < stateVector.length; i++) {
+            double delta = rand.nextDouble() - 0.5;
+            delta *= mag;
+            stateVector[i] += delta;
+        }
+
+        updateNodesPosition(stateVector);
+    }
+
 
     private void dumpMatrixDimensions(String name, Matrix J) {
         System.out.println(name+" is " + J.getRowDimension() + "x" + J.getColumnDimension());
