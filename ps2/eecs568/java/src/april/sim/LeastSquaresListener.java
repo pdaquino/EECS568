@@ -90,13 +90,13 @@ public class LeastSquaresListener implements Simulator.Listener {
 //        Matrix I = Matrix.identity(currentStateVectorSize, currentStateVectorSize).times(alpha);
 //        Matrix Tikhonov = matrices[0].plus(I);
         stopWatch.stop();
-        
+
         double alpha = 1000.0; // regularization constant...XXX choose wisely
         Matrix I = Matrix.identity(currentStateVectorSize, currentStateVectorSize).times(alpha);
-        
+
         long timeJTSigmar = 0, timeCholesky = 0, timeDeltaX = 0, timeChi2 = 0;
         double MAX_ITERS = 100;
-        final double kMinChi2Improvement = 0.002;
+        final double kMinChi2Improvement = 0.005;
         double lastChi2 = 500, chi2Diff = kMinChi2Improvement+1;
         int countIter = 0;
         while(chi2Diff > kMinChi2Improvement && countIter++ < MAX_ITERS) {

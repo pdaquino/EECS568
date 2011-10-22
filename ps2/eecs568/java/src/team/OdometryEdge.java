@@ -38,10 +38,10 @@ public class OdometryEdge implements Edge{
             invSigmas.set(0,2,(b/2.0)*(sigmas[0]-sigmas[1]));
             invSigmas.set(2,0,(b/2.0)*(sigmas[0]-sigmas[1]));
             invSigmas.set(1,1,lateralNoise);*/
-            
-            invSigmas.set(0,0,.5);
-            invSigmas.set(1,1,.5);
-            invSigmas.set(2,2,.5);
+
+            invSigmas.set(0,0,.1);
+            invSigmas.set(1,1,.01);
+            invSigmas.set(2,2,.1);
 
             invSigmas = invSigmas.inverse();
             //invSigma.print();
