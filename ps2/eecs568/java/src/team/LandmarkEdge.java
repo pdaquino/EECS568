@@ -2,6 +2,7 @@ package team;
 
 import april.jmat.*;
 import april.config.*;
+import java.util.ArrayList;
 
 public class LandmarkEdge implements Edge
 {
@@ -35,17 +36,22 @@ public class LandmarkEdge implements Edge
         double dy = lmark.getPosition()[1] - robot.getPosition()[1];
         double robotTheta = robot.getPosition()[2];
 
-        // Expected values
+        // Actual values
         double btheta = MathUtil.mod2pi(MathUtil.atan2(dy, dx) - robotTheta);
         double br = Math.sqrt(dx*dx + dy*dy);
 
         // Residual = observed values - expected values
+        // Observed means the sensor readings we got
+        // Expected means the sensor readings we should be getting if we were
+        // where we currently think we are.
         double[] residual = new double[2];
         residual[0] = r - br;
         residual[1] = theta - btheta;
 
         return residual;
     }
+    
+    
 
     public Matrix getJacobian(int stateVectorSize)
     {
@@ -53,6 +59,13 @@ public class LandmarkEdge implements Edge
         J.setRow(0, getRRow(stateVectorSize));
         J.setRow(1, getThetaRow(stateVectorSize));
         return J;
+    }
+    
+    public ArrayList<double[]> getEndpoints() {
+        ArrayList<double[]> endpoints = new ArrayList<double[]>(2);
+        endpoints.add(LinAlg.resize(robot.getPosition(), 2));
+        endpoints.add(lmark.getPosition());
+        return endpoints;
     }
 
     public Matrix getCovarianceInverse()

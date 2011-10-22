@@ -14,18 +14,13 @@ public class LeastSquaresListener implements Simulator.Listener {
     VisWorld vw;
     Config config;
     double baseline; // Robot baseline in [m]
-
     ArrayList<Node> nodes = new ArrayList<Node>();
     ArrayList<Edge> edges = new ArrayList<Edge>();
-
     HashMap<Integer, LandmarkPose> lmarks = new HashMap<Integer, LandmarkPose>();
-
     private RobotPose latestRobotPose;
     private int currentStateVectorSize = 0;
-
     private final int NOISE_WAIT = 25;
     private int noiseCount = 0;
-
     double xyt[] = new double[3]; // Best guess of our most recent pose
     ArrayList<double[]> trajectory = new ArrayList<double[]>();
 
@@ -36,7 +31,7 @@ public class LeastSquaresListener implements Simulator.Listener {
         baseline = config.requireDouble("robot.baseline_m");
 
         latestRobotPose = new RobotPose(0);
-        latestRobotPose.setPosition(new double[]{0,0,0});
+        latestRobotPose.setPosition(new double[]{0, 0, 0});
         nodes.add(latestRobotPose);
         currentStateVectorSize += latestRobotPose.getNumDimensions();
 
@@ -57,7 +52,7 @@ public class LeastSquaresListener implements Simulator.Listener {
 
         // Deal with landmarks
         ArrayList<LandmarkPose> recentLmarks = new ArrayList<LandmarkPose>();
-        /*for (Simulator.landmark_t landmark: dets) {
+        for (Simulator.landmark_t landmark : dets) {
             LandmarkPose lpose;
             if (lmarks.containsKey(landmark.id)) {
                 lpose = lmarks.get(landmark.id);
@@ -65,8 +60,8 @@ public class LeastSquaresListener implements Simulator.Listener {
                 lpose = new LandmarkPose(currentStateVectorSize);
                 currentStateVectorSize += lpose.getNumDimensions();
                 double[] robotPos = newRobotPose.getPosition();
-                double[] rel_xy = new double[] {landmark.obs[0] * Math.cos(landmark.obs[1]),
-                                                landmark.obs[0] * Math.sin(landmark.obs[1])};
+                double[] rel_xy = new double[]{landmark.obs[0] * Math.cos(landmark.obs[1]),
+                    landmark.obs[0] * Math.sin(landmark.obs[1])};
                 double[] lmarkPos = LinAlg.transform(robotPos, rel_xy);
                 lpose.setPosition(lmarkPos);
                 nodes.add(lpose);
@@ -75,7 +70,7 @@ public class LeastSquaresListener implements Simulator.Listener {
             recentLmarks.add(lpose);
             LandmarkEdge ledge = new LandmarkEdge(config, landmark.obs[0], landmark.obs[1], newRobotPose, lpose);
             edges.add(ledge);
-        }*/
+        }
 
         //Matrix J = buildJacobian();
         //dumpMatrixDimensions("J",J);
@@ -105,8 +100,8 @@ public class LeastSquaresListener implements Simulator.Listener {
 
         //XXX Debug
         /*if (noiseCount % NOISE_WAIT == 0) {
-            noiseCount = 0;
-            addNoise(); // Noise up the state vector and see if we recover
+        noiseCount = 0;
+        addNoise(); // Noise up the state vector and see if we recover
         }
         noiseCount++;*/
 
@@ -123,7 +118,7 @@ public class LeastSquaresListener implements Simulator.Listener {
 
             // Draw our trajectory and detections
             double[] stateVector = getStateVector();
-            for(int i = 0; i < stateVector.length; i++) {
+            for (int i = 0; i < stateVector.length; i++) {
                 //stateVector[i] += deltaX.get(i, 0);
                 stateVector[i] += deltaX[i];
             }
@@ -135,17 +130,16 @@ public class LeastSquaresListener implements Simulator.Listener {
         drawStuff(recentLmarks);
     }
 
-
     // Debugging...assumes no landmarks
-    private void addNoise()
-    {
+    private void addNoise() {
         double[] stateVector = getStateVector();
 
         Random rand = new Random();
         double mag = 0.5;
         for (int i = 0; i < stateVector.length; i++) {
-            if (i % 3 == 2)
+            if (i % 3 == 2) {
                 continue;
+            }
             double delta = rand.nextDouble() - 0.5;
             delta *= mag;
             stateVector[i] += delta;
@@ -154,9 +148,8 @@ public class LeastSquaresListener implements Simulator.Listener {
         updateNodesPosition(stateVector);
     }
 
-
     private void dumpMatrixDimensions(String name, Matrix J) {
-        System.out.println(name+" is " + J.getRowDimension() + "x" + J.getColumnDimension());
+        System.out.println(name + " is " + J.getRowDimension() + "x" + J.getColumnDimension());
     }
 
     public void drawStuff(ArrayList<LandmarkPose> recentLmarks) {
@@ -168,11 +161,14 @@ public class LeastSquaresListener implements Simulator.Listener {
         trajectory.clear();
 
         // Draw estimated trajectory based on our state
-        for(Node n : nodes) {
-            if(!(n instanceof RobotPose)) continue;
+        for (Node n : nodes) {
+            if (!(n instanceof RobotPose)) {
+                continue;
+            }
             trajectory.add(LinAlg.resize(n.getPosition(), 2));
         }
-        System.out.print("Predicted: ");dumpPose(xyt);
+        System.out.print("Predicted: ");
+        dumpPose(xyt);
 
         {
             VisWorld.Buffer vb = vw.getBuffer("trajectory-local");
@@ -186,9 +182,9 @@ public class LeastSquaresListener implements Simulator.Listener {
         {
             VisWorld.Buffer vb = vw.getBuffer("robot-local");
             VisObject robot = new VisLines(new VisVertexData(rpoints),
-                                           new VisConstantColor(Color.red),
-                                           3,
-                                           VisLines.TYPE.LINE_LOOP);
+                    new VisConstantColor(Color.red),
+                    3,
+                    VisLines.TYPE.LINE_LOOP);
             double xyzrpy[] = new double[]{xyt[0], xyt[1], 0,
                 0, 0, xyt[2]};
             vb.addBack(new VisChain(LinAlg.xyzrpyToMatrix(xyzrpy), robot));
@@ -205,7 +201,7 @@ public class LeastSquaresListener implements Simulator.Listener {
                 obsPoints.add(xy);
                 vb.addBack(new VisLines(new VisVertexData(obsPoints),
                         new VisConstantColor(Color.cyan), 2, VisLines.TYPE.LINE_STRIP));
-                        //new VisConstantColor(lmark.id == -1 ? Color.gray : Color.cyan), 2, VisLines.TYPE.LINE_STRIP));
+                //new VisConstantColor(lmark.id == -1 ? Color.gray : Color.cyan), 2, VisLines.TYPE.LINE_STRIP));
             }
             vb.swap();
         }
@@ -214,37 +210,70 @@ public class LeastSquaresListener implements Simulator.Listener {
         {
             VisWorld.Buffer vb = vw.getBuffer("estimated-landmarks");
             ArrayList<double[]> points = new ArrayList<double[]>();
-            for (LandmarkPose lmark: lmarks.values()) {
+            for (LandmarkPose lmark : lmarks.values()) {
                 points.add(lmark.getPosition());
             }
             vb.addBack(new VisPoints(new VisVertexData(points),
-                                     new VisConstantColor(Color.red),
-                                     5));
+                    new VisConstantColor(Color.red),
+                    5));
+            vb.swap();
+        }
+
+        // Draw the landmark edges
+        {
+            VisWorld.Buffer vb = vw.getBuffer("landmarks-edges");
+            ArrayList<double[]> robotPoints = new ArrayList<double[]>(edges.size());
+            for (Edge e : edges) {
+                if (!(e instanceof LandmarkEdge)) {
+                    continue;
+                }
+                LandmarkEdge ledge = (LandmarkEdge) e;
+                double[] residual = e.getResidual();
+                assert residual.length == 2;
+                double residualNorm = LinAlg.normF(residual);
+                //System.out.println(residualNorm);
+                float weightFactor = Math.min(
+                        (float) (residualNorm / 1.2 / 0.0015158025270275443),
+                        0.98f);
+                // yellow (>0): push
+                // pink (<0): pull
+                float r = 1 * weightFactor;
+                float g = residual[0] > 0 ? 1 * weightFactor : 0;
+                float b = residual[0] < 0 ? 1 * weightFactor : 0;
+                VisConstantColor lineColor = new VisConstantColor(new Color(
+                        r, g, b));
+                ArrayList<double[]> endpoints = ledge.getEndpoints();
+                // draw the edge
+                vb.addBack(new VisLines(new VisVertexData(endpoints),
+                        lineColor, 2, VisLines.TYPE.LINE_STRIP));
+                
+
+            }
+            vb.addBack(new VisPoints(new VisVertexData(robotPoints), new VisConstantColor(Color.yellow), 3) );
             vb.swap();
         }
     }
 
     private void dumpPose(double[] xyt) {
-        System.out.println("("+xyt[0]+","+xyt[1]+","+xyt[2]+")");
+        System.out.println("(" + xyt[0] + "," + xyt[1] + "," + xyt[2] + ")");
     }
 
     /*private Matrix buildJacobian() {
-        int numColumns = getStateVectorSize();
-        int numRows = getNumJacobianRows();
-        Matrix J = new Matrix(numRows, numColumns, Matrix.SPARSE);
-        int currentRow = 0;
-        for(Edge e : edges) {
-            CSRVec[] edgeRows = e.getJacobianRows(numColumns);
-            for(CSRVec row : edgeRows) {
-                J.setRow(currentRow, row);
-                currentRow++;
-            }
-        }
-        assert J.getColumnDimension() == numColumns;
-        assert J.getRowDimension() == numRows;
-        return J;
+    int numColumns = getStateVectorSize();
+    int numRows = getNumJacobianRows();
+    Matrix J = new Matrix(numRows, numColumns, Matrix.SPARSE);
+    int currentRow = 0;
+    for(Edge e : edges) {
+    CSRVec[] edgeRows = e.getJacobianRows(numColumns);
+    for(CSRVec row : edgeRows) {
+    J.setRow(currentRow, row);
+    currentRow++;
+    }
+    }
+    assert J.getColumnDimension() == numColumns;
+    assert J.getRowDimension() == numRows;
+    return J;
     }*/
-
     private Matrix[] buildJTSigmaJ() {
         int numStates = getStateVectorSize();
         int numRows = getNumJacobianRows();
@@ -252,7 +281,7 @@ public class LeastSquaresListener implements Simulator.Listener {
         Matrix sum1 = new Matrix(numStates, numRows, Matrix.SPARSE);    // JTSigma
 
         int columnCnt = 0;
-        for (Edge e: edges) {
+        for (Edge e : edges) {
             // Get J rows...(Ji) as a matrix
             Matrix J = e.getJacobian(numStates);
             //J.print();
@@ -268,7 +297,7 @@ public class LeastSquaresListener implements Simulator.Listener {
             columnCnt += e.getNumberJacobianRows();
         }
 
-        Matrix[] sums = new Matrix[] {sum0, sum1};
+        Matrix[] sums = new Matrix[]{sum0, sum1};
 
         return sums;
     }
@@ -279,7 +308,7 @@ public class LeastSquaresListener implements Simulator.Listener {
 
     private int getNumJacobianRows() {
         int size = 0;
-        for(Edge e : edges) {
+        for (Edge e : edges) {
             size += e.getNumberJacobianRows();
         }
         return size;
@@ -290,12 +319,12 @@ public class LeastSquaresListener implements Simulator.Listener {
         double[] residual = new double[getNumJacobianRows()];
         int currentRow = 0;
         double mse = 0;
-        for(Edge e : edges) {
+        for (Edge e : edges) {
             double[] edgeResidual = e.getResidual();
-            for(double r : edgeResidual) {
+            for (double r : edgeResidual) {
                 //residual.set(currentRow++, 0, r);
                 residual[currentRow++] = r;
-                mse += r*r;
+                mse += r * r;
             }
         }
         // Output mean square error
@@ -306,10 +335,10 @@ public class LeastSquaresListener implements Simulator.Listener {
 
     private double[] getStateVector() {
         double[] stateVector = new double[getStateVectorSize()];
-        for(Node n : nodes) {
+        for (Node n : nodes) {
             double[] position = n.getPosition();
             int idx = n.getIndex();
-            for(int i = 0; i < position.length; i++) {
+            for (int i = 0; i < position.length; i++) {
                 stateVector[idx + i] = position[i];
             }
         }
@@ -317,21 +346,21 @@ public class LeastSquaresListener implements Simulator.Listener {
     }
 
     private void updateNodesPosition(double[] updatedStateVector) {
-        for(Node n : nodes) {
+        for (Node n : nodes) {
             double[] position = new double[n.getNumDimensions()];
             int idx = n.getIndex();
-            for(int i = 0; i < position.length; i++) {
+            for (int i = 0; i < position.length; i++) {
                 position[i] = updatedStateVector[idx + i];
             }
             n.setPosition(position);
         }
     }
 
-    private void MSE(double[] r)
-    {
+    private void MSE(double[] r) {
         double mse = 0;
-        for (double err: r)
-            mse += err*err;
+        for (double err : r) {
+            mse += err * err;
+        }
         System.out.printf("MSE: %f\n", mse);
     }
 }
