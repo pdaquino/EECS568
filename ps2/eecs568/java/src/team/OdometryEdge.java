@@ -39,9 +39,9 @@ public class OdometryEdge implements Edge{
             invSigmas.set(2,0,(b/2.0)*(sigmas[0]-sigmas[1]));
             invSigmas.set(1,1,lateralNoise);*/
             
-            invSigmas.set(0,0,0.01);
-            invSigmas.set(1,1,0.01);
-            invSigmas.set(2,2,0.01);
+            invSigmas.set(0,0,.5);
+            invSigmas.set(1,1,.5);
+            invSigmas.set(2,2,.5);
 
             invSigmas = invSigmas.inverse();
             //invSigma.print();
@@ -89,14 +89,15 @@ public class OdometryEdge implements Edge{
         return J;
     }
 
-    public Matrix getCovarianceInverse(int nRowToFill, int nAllRows)
+    public Matrix getCovarianceInverse(int nColumnToFill, int nAllRows)
     {
         Matrix SigmaInv = new Matrix(invSigmas.getRowDimension(), nAllRows);
         for(int i = 0; i < invSigmas.getRowDimension(); i++) {
             for(int j = 0; j < invSigmas.getColumnDimension(); j++) {
-                SigmaInv.set(i, nRowToFill+j, invSigmas.get(i, j));
+                SigmaInv.set(i, nColumnToFill+j, invSigmas.get(i, j));
             }
         }
+        //SigmaInv.print();
         return SigmaInv;
     }
 

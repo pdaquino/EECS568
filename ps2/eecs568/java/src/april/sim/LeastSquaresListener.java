@@ -76,57 +76,45 @@ public class LeastSquaresListener implements Simulator.Listener {
         }
         stopWatch.stop();
 
-        //Matrix J = buildJacobian();
-        //dumpMatrixDimensions("J",J);
-        //J.print();
-        //Matrix JT = J.transpose();
-        //dumpMatrixDimensions("Jt",JT);
-        //Matrix JTJ = JT.times(J);
-        //JTJ.print();
         stopWatch.start("Building JTSigmaJ");
-        Matrix[] matrices = buildJTSigmaJ();
+        //Matrix[] matrices = buildJTSigmaJ();
         stopWatch.stop();
+
+        //System.out.println("Information matrix: ");
+        //matrices[0].print();
+
 
         stopWatch.start("Tikhonov regularization");
         // Tikhonov regularlization
+//        double alpha = 1000.0; // regularization constant...XXX choose wisely
+//        Matrix I = Matrix.identity(currentStateVectorSize, currentStateVectorSize).times(alpha);
+//        Matrix Tikhonov = matrices[0].plus(I);
+        stopWatch.stop();
+        
         double alpha = 1000.0; // regularization constant...XXX choose wisely
         Matrix I = Matrix.identity(currentStateVectorSize, currentStateVectorSize).times(alpha);
-        Matrix Tikhonov = matrices[0].plus(I);
-        stopWatch.stop();
-
-        //CholeskyDecomposition solver = new CholeskyDecomposition(JTJ);
-        //Matrix updatedState = solver.solve(JTr);
-        //LUDecomposition luSolver = new LUDecomposition(JTJ);
-        //Matrix updatedState = luSolver.solve(JTr);
-        //
-        // tikhonov stuff
-        /*Matrix I = Matrix.identity(currentStateVectorSize, currentStateVectorSize).times(100);
-        LUDecomposition luSolver = new LUDecomposition(JTJ.plus(I));
-        Matrix updatedState = luSolver.solve(JTr);
-        Matrix deltaX = JTJ.plus(I).inverse().times(JT).times(r);*/
-
-        //XXX Debug
-        /*if (noiseCount % NOISE_WAIT == 0) {
-        noiseCount = 0;
-        addNoise(); // Noise up the state vector and see if we recover
-        }
-        noiseCount++;*/
-        long timeJTSigmar = 0, timeCholesky = 0, timeDeltaX = 0;
+        
+        long timeJTSigmar = 0, timeCholesky = 0, timeDeltaX = 0, timeChi2 = 0;
         double MAX_ITERS = 100;
-        for (int iter = 0; iter < MAX_ITERS; iter++) {
+        final double kMinChi2Improvement = 0.002;
+        double lastChi2 = 500, chi2Diff = kMinChi2Improvement+1;
+        int countIter = 0;
+        while(chi2Diff > kMinChi2Improvement && countIter++ < MAX_ITERS) {
+            Matrix[] matrices = buildJTSigmaJ();
+            Matrix Sigma = matrices[2];
+            Matrix Tikhonov = matrices[0].plus(I);
+
             StopWatch iterStopWatch = new StopWatch();
 
             iterStopWatch.start();
-            double[] r = buildResidual();
-            //System.out.println(Arrays.toString(r));
-            //double[] JTr = JT.times(r); // XXX
-            double[] JTSigmar = matrices[1].times(r);
+            Matrix r = Matrix.columnMatrix(buildResidual());
+            Matrix JTSigmar = matrices[1].times(r);
             iterStopWatch.stop();
             timeJTSigmar += iterStopWatch.getLastTaskTimeMillis();
 
             iterStopWatch.start();
             CholeskyDecomposition solver = new CholeskyDecomposition(Tikhonov);
-            double[] deltaX = solver.solve(Matrix.columnMatrix(JTSigmar)).copyAsVector();
+            Matrix deltaX = solver.solve(JTSigmar);
             iterStopWatch.stop();
             timeCholesky += iterStopWatch.getLastTaskTimeMillis();
             //double[] deltaX = Tikhonov.inverse().times(JTr);
@@ -135,21 +123,41 @@ public class LeastSquaresListener implements Simulator.Listener {
             double[] stateVector = getStateVector();
             for (int i = 0; i < stateVector.length; i++) {
                 //stateVector[i] += deltaX.get(i, 0);
-                stateVector[i] += deltaX[i];
+                stateVector[i] += deltaX.get(i, 0);
             }
             updateNodesPosition(stateVector);
+            iterStopWatch.getLastTaskTimeMillis();
             iterStopWatch.stop();
             timeDeltaX += iterStopWatch.getLastTaskTimeMillis();
+
+            // chi2 error
+            iterStopWatch.start();
+            double chi2 = chi2(deltaX, Tikhonov, JTSigmar, Sigma, r);
+            chi2Diff = lastChi2 - chi2;
+            lastChi2 = chi2;
+            System.out.println(chi2 + "(" + chi2Diff + ")" );
+            iterStopWatch.stop();
+            timeChi2 += iterStopWatch.getLastTaskTimeMillis();
         }
         stopWatch.addTask(new StopWatch.TaskInfo("Doing JT*Sigma*R", timeJTSigmar));
         stopWatch.addTask(new StopWatch.TaskInfo("Solving the system", timeCholesky));
         stopWatch.addTask(new StopWatch.TaskInfo("Updating the state", timeDeltaX));
-        MSE(buildResidual());
+        stopWatch.addTask(new StopWatch.TaskInfo(("Calculating Chi2"), timeChi2));
+
+        System.out.printf("MSE: %f\n", MSE(buildResidual()));
         xyt = newRobotPose.getPosition();
         stopWatch.start("Drawing stuff on the screen");
         drawStuff(recentLmarks);
         stopWatch.stop();
         printTiming(stopWatch.prettyPrint());
+    }
+
+    private double chi2(Matrix deltaX, Matrix JTSigmaJ, Matrix JTSigmar, Matrix Sigma, Matrix r) {
+        Matrix deltaXT = deltaX.transpose();
+        double chi2 = deltaXT.times(JTSigmaJ).times(deltaX).get(0)
+                - 2 * deltaXT.times(JTSigmar).get(0)
+                + r.transpose().times(Sigma).times(r).get(0);
+        return chi2;
     }
 
     // Debugging...assumes no landmarks
@@ -281,22 +289,6 @@ public class LeastSquaresListener implements Simulator.Listener {
         System.out.println("(" + xyt[0] + "," + xyt[1] + "," + xyt[2] + ")");
     }
 
-    /*private Matrix buildJacobian() {
-    int numColumns = getStateVectorSize();
-    int numRows = getNumJacobianRows();
-    Matrix J = new Matrix(numRows, numColumns, Matrix.SPARSE);
-    int currentRow = 0;
-    for(Edge e : edges) {
-    CSRVec[] edgeRows = e.getJacobianRows(numColumns);
-    for(CSRVec row : edgeRows) {
-    J.setRow(currentRow, row);
-    currentRow++;
-    }
-    }
-    assert J.getColumnDimension() == numColumns;
-    assert J.getRowDimension() == numRows;
-    return J;
-    }*/
     private Matrix[] buildJTSigmaJ() {
         StopWatch stopWatch = new StopWatch("Building JTSigmaJ");
         int numStates = getStateVectorSize();
@@ -318,7 +310,7 @@ public class LeastSquaresListener implements Simulator.Listener {
             iterStopWatch.stop();
             timeGetJ += iterStopWatch.getLastTaskTimeMillis();
 
-            for(int i = 0; i < edgeJ.getRowDimension(); i++) {        // sum1 = JTSigma
+            for (int i = 0; i < edgeJ.getRowDimension(); i++) {        // sum1 = JTSigma
                 J.setRow(jRowCount, edgeJ.getRow(i));
                 jRowCount++;
             }
@@ -326,53 +318,37 @@ public class LeastSquaresListener implements Simulator.Listener {
             // Get covariance matrix
             iterStopWatch.start();
             Matrix edgeSigma = e.getCovarianceInverse(sigmaRowCount, numRows);
-            for(int i = 0; i < edgeSigma.getRowDimension(); i++) {
-                Sigma.setRow(sigmaRowCount++, edgeSigma.getRow(i));
+            for (int i = 0; i < edgeSigma.getRowDimension(); i++) {
+                // XXX test hack!
+                if(false && (e instanceof OdometryEdge)) {
+                    Sigma.set(sigmaRowCount, sigmaRowCount, 1);
+                    sigmaRowCount++;
+                } else {
+                    Sigma.setRow(sigmaRowCount++, edgeSigma.getRow(i));
+                }
             }
             iterStopWatch.stop();
             timeCovInv += iterStopWatch.getLastTaskTimeMillis();
-            /*
-            //Sigma.print();
-            // sum.plus(Ji'*sigma^-1*Ji)
-            iterStopWatch.start();
-            Matrix JTSigma = JT.times(Sigma);
-            iterStopWatch.stop();
-            timeJTTimesS += iterStopWatch.getLastTaskTimeMillis();
-
-            iterStopWatch.start();
-            Matrix JTSJ = JTSigma.times(J);
-            iterStopWatch.stop();
-            timeJTSJ += iterStopWatch.getLastTaskTimeMillis();
-            // XXX plusEquals is not optimized to handle sparse matrices
-
-            iterStopWatch.start();
-            sum0.plusEquals(JTSJ);
-            timeSum0 += iterStopWatch.getLastTaskTimeMillis();
-            iterStopWatch.stop();
-
-            iterStopWatch.start();
-            sum1.plusEquals(0, columnCnt, JTSigma);
-            timeSum1 += iterStopWatch.getLastTaskTimeMillis();
-            iterStopWatch.stop();
-
-            columnCnt += e.getNumberJacobianRows();*/
         }
 
         stopWatch.addTask(new StopWatch.TaskInfo("Building J", timeGetJ));
         stopWatch.addTask(new StopWatch.TaskInfo("Weight matrix", timeCovInv));
 
-
+        // XXX test hack! this kills the weight matrix
+        // Sigma = Matrix.identity(Sigma.getRowDimension(), Sigma.getColumnDimension());
         // sum0 = JTSigmaJ
         stopWatch.start("Doing JT");
         Matrix JT = J.transpose();
-        stopWatch.stop(); stopWatch.start("JT*Sigma");
+        stopWatch.stop();
+        stopWatch.start("JT*Sigma");
         Matrix JTSigma = JT.times(Sigma);
-        stopWatch.stop(); stopWatch.start("JT*Sigma*J");
+        stopWatch.stop();
+        stopWatch.start("JT*Sigma*J");
         Matrix JTSigmaJ = JTSigma.times(J);
         stopWatch.stop();
         printTiming(stopWatch.prettyPrint());
 
-        return new Matrix[] { JTSigmaJ, JTSigma };
+        return new Matrix[]{JTSigmaJ, JTSigma, Sigma};
         // return {JTSigmaJ, JTSigma}
     }
 
@@ -430,16 +406,16 @@ public class LeastSquaresListener implements Simulator.Listener {
         }
     }
 
-    private void MSE(double[] r) {
+    private double MSE(double[] r) {
         double mse = 0;
         for (double err : r) {
             mse += err * err;
         }
-        System.out.printf("MSE: %f\n", mse);
+        return mse;
     }
 
     private void printTiming(String timing) {
-        if(false) {
+        if (false) {
             System.out.println(timing);
         }
     }

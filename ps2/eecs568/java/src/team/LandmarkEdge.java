@@ -75,6 +75,7 @@ public class LandmarkEdge implements Edge
         for(int i = 0; i < invSigmas.length; i++) {
             SigmaInv.set(i, nColumnToFill+i, invSigmas[i]);
         }
+        //SigmaInv.print();
         return SigmaInv;
     }
 
