@@ -15,7 +15,7 @@ public class OdometryEdge implements Edge{
     // the rigid body transformation corresponding to this odometry reading
     private double[] zxyt;
 
-    static Matrix invSigma = null;
+    static Matrix invSigmas = null;
 
     public OdometryEdge(Config config, double dl, double dr, double b, RobotPose start,
             RobotPose end) {
@@ -27,19 +27,23 @@ public class OdometryEdge implements Edge{
         zxyt = new double[] {(dr+dl)/2, 0, Math.atan((dr-dl)/b)};
         end.setPosition(getPredictedEndPosition(start));
 
-        if (invSigma == null) {
+        if (invSigmas == null) {
             int rows = getNumberJacobianRows();
-            invSigma = new Matrix(rows, rows, Matrix.SPARSE);
-            double[] sigmas = config.requireDoubles("noisemodels.odometryDiag");
+            invSigmas = new Matrix(rows, rows, Matrix.DENSE);
+            /*double[] sigmas = config.requireDoubles("noisemodels.odometryDiag");
             double lateralNoise = .05; // XXX??????????
 
-            invSigma.set(0,0,(1.0/4.0)*(sigmas[0]+sigmas[1]));
-            invSigma.set(2,2,(b*b/4.0)*(sigmas[0]+sigmas[1]));
-            invSigma.set(0,2,(b/2.0)*(sigmas[0]-sigmas[1]));
-            invSigma.set(2,0,(b/2.0)*(sigmas[0]-sigmas[1]));
-            invSigma.set(1,1,lateralNoise);
+            invSigmas.set(0,0,(1.0/4.0)*(sigmas[0]+sigmas[1]));
+            invSigmas.set(2,2,(b*b/4.0)*(sigmas[0]+sigmas[1]));
+            invSigmas.set(0,2,(b/2.0)*(sigmas[0]-sigmas[1]));
+            invSigmas.set(2,0,(b/2.0)*(sigmas[0]-sigmas[1]));
+            invSigmas.set(1,1,lateralNoise);*/
+            
+            invSigmas.set(0,0,0.01);
+            invSigmas.set(1,1,0.01);
+            invSigmas.set(2,2,0.01);
 
-            invSigma = invSigma.inverse();
+            invSigmas = invSigmas.inverse();
             //invSigma.print();
         }
     }
@@ -85,10 +89,15 @@ public class OdometryEdge implements Edge{
         return J;
     }
 
-    public Matrix getCovarianceInverse()
+    public Matrix getCovarianceInverse(int nRowToFill, int nAllRows)
     {
-        return Matrix.identity(getNumberJacobianRows(), getNumberJacobianRows());
-        //return invSigma;
+        Matrix SigmaInv = new Matrix(invSigmas.getRowDimension(), nAllRows);
+        for(int i = 0; i < invSigmas.getRowDimension(); i++) {
+            for(int j = 0; j < invSigmas.getColumnDimension(); j++) {
+                SigmaInv.set(i, nRowToFill+j, invSigmas.get(i, j));
+            }
+        }
+        return SigmaInv;
     }
 
     private CSRVec getDlRow(int stateVectorSize) {
@@ -187,7 +196,6 @@ public class OdometryEdge implements Edge{
 
     @Override
     public int getNumberJacobianRows() {
-        //return 2;
         return 3;
     }
 

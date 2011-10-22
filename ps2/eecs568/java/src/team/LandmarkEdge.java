@@ -11,7 +11,8 @@ public class LandmarkEdge implements Edge
 
     private double r, theta;
 
-    static Matrix invSigma = null;
+    //static Matrix invSigma = null;
+    static double invSigmas[] = null;
 
     public LandmarkEdge(Config config, double r, double theta, RobotPose robot, LandmarkPose lmark)
     {
@@ -20,12 +21,12 @@ public class LandmarkEdge implements Edge
         this.robot = robot;
         this.lmark = lmark;
 
-        if (invSigma == null) {
+        if (invSigmas == null) {
             int rows = getNumberJacobianRows();
-            invSigma = new Matrix(rows, rows, Matrix.SPARSE);
+            invSigmas = new double[rows];
             double[] sigmas = config.requireDoubles("noisemodels.landmarkDiag");
-            invSigma.set(0,0,1.0/sigmas[0]);
-            invSigma.set(1,1,1.0/sigmas[1]);
+            invSigmas[0] = 1.0/sigmas[0];
+            invSigmas[1] = 1.0/sigmas[1];
             //invSigma.print();
         }
     }
@@ -68,10 +69,13 @@ public class LandmarkEdge implements Edge
         return endpoints;
     }
 
-    public Matrix getCovarianceInverse()
+    public Matrix getCovarianceInverse(int nColumnToFill, int nAllRows)
     {
-        return Matrix.identity(getNumberJacobianRows(), getNumberJacobianRows());
-        //return invSigma;
+        Matrix SigmaInv = new Matrix(invSigmas.length, nAllRows);
+        for(int i = 0; i < invSigmas.length; i++) {
+            SigmaInv.set(i, nColumnToFill+i, invSigmas[i]);
+        }
+        return SigmaInv;
     }
 
     private CSRVec getThetaRow(int stateVectorSize)

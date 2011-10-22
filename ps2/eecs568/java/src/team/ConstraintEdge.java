@@ -11,18 +11,18 @@ public class ConstraintEdge implements Edge {
     Node pose;
     double[] pin;
 
-    static Matrix invSigma = null;
+    static double[] invSigmas = null;
 
     public ConstraintEdge(Node pose, double[] pin)
     {
         this.pose = pose;
         this.pin = pin;
 
-        if (invSigma == null) {
+        if (invSigmas == null) {
             int size = getNumberJacobianRows();
-            invSigma = new Matrix(size, size, Matrix.SPARSE);
+            invSigmas = new double[size];
             for (int i = 0; i < size; i++) {
-                invSigma.set(i, i, 100000);
+                invSigmas[i] = 100000;
             }
         }
     }
@@ -56,10 +56,13 @@ public class ConstraintEdge implements Edge {
         return J;
     }
 
-    public Matrix getCovarianceInverse()
+    public Matrix getCovarianceInverse(int nColumnToFill, int nAllRows)
     {
-        return Matrix.identity(getNumberJacobianRows(), getNumberJacobianRows());
-        //return invSigma;
+        Matrix SigmaInv = new Matrix(invSigmas.length, nAllRows);
+        for(int i = 0; i < invSigmas.length; i++) {
+            SigmaInv.set(i, nColumnToFill+i, invSigmas[i]);
+        }
+        return SigmaInv;
     }
 
 }

@@ -10,5 +10,5 @@ public interface Edge {
     double[] getResidual();
     int getNumberJacobianRows();
     Matrix getJacobian(int stateVectorSize);
-    Matrix getCovarianceInverse();
+    Matrix getCovarianceInverse(int nColumnToFill, int nAllRows);
 }
