@@ -298,27 +298,67 @@ public class LeastSquaresListener implements Simulator.Listener {
     return J;
     }*/
     private Matrix[] buildJTSigmaJ() {
+        StopWatch stopWatch = new StopWatch("Building JTSigmaJ");
         int numStates = getStateVectorSize();
         int numRows = getNumJacobianRows();
         Matrix sum0 = new Matrix(numStates, numStates, Matrix.SPARSE);  // JTSigmaJ
         Matrix sum1 = new Matrix(numStates, numRows, Matrix.SPARSE);    // JTSigma
-
+        long timeGetJ = 0, timeTranspose = 0, timeCovInv = 0, timeJTTimesS = 0, timeJTSJ = 0, timeSum0 = 0, timeSum1 = 0;
         int columnCnt = 0;
         for (Edge e : edges) {
+            StopWatch iterStopWatch = new StopWatch();
             // Get J rows...(Ji) as a matrix
+            iterStopWatch.start();
             Matrix J = e.getJacobian(numStates);
+            iterStopWatch.stop();
+            timeGetJ += iterStopWatch.getLastTaskTimeMillis();
+            
             //J.print();
+            iterStopWatch.start();
             // Transpose it
             Matrix JT = J.transpose();
+            iterStopWatch.stop();
+            timeTranspose += iterStopWatch.getLastTaskTimeMillis();
+            
             // Get covariance matrix
+            iterStopWatch.start();
             Matrix Sigma = e.getCovarianceInverse();
+            iterStopWatch.stop();
+            timeCovInv += iterStopWatch.getLastTaskTimeMillis();
+            
             //Sigma.print();
             // sum.plus(Ji'*sigma^-1*Ji)
+            iterStopWatch.start();
             Matrix JTSigma = JT.times(Sigma);
-            sum0.plusEquals(JTSigma.times(J));
+            iterStopWatch.stop();
+            timeJTTimesS += iterStopWatch.getLastTaskTimeMillis();
+            
+            iterStopWatch.start();
+            Matrix JTSJ = JTSigma.times(J);
+            iterStopWatch.stop();
+            timeJTSJ += iterStopWatch.getLastTaskTimeMillis();
+            // XXX plusEquals is not optimized to handle sparse matrices
+            
+            iterStopWatch.start();
+            sum0.plusEquals(JTSJ);          
+            timeSum0 += iterStopWatch.getLastTaskTimeMillis();
+            iterStopWatch.stop();
+            
+            iterStopWatch.start();
             sum1.plusEquals(0, columnCnt, JTSigma);
+            timeSum1 += iterStopWatch.getLastTaskTimeMillis();
+            iterStopWatch.stop();
+            
             columnCnt += e.getNumberJacobianRows();
         }
+        stopWatch.addTask(new StopWatch.TaskInfo("Building J", timeGetJ));
+        stopWatch.addTask(new StopWatch.TaskInfo("Doing JT", timeTranspose));
+        stopWatch.addTask(new StopWatch.TaskInfo("Weight matrix", timeCovInv));
+        stopWatch.addTask(new StopWatch.TaskInfo("Multiplying JTSigma", timeJTTimesS));
+        stopWatch.addTask(new StopWatch.TaskInfo("JTS*J", timeJTSJ));
+        stopWatch.addTask(new StopWatch.TaskInfo("sum0", timeSum0));
+        stopWatch.addTask(new StopWatch.TaskInfo("sum1", timeSum1));
+        System.out.println(stopWatch.prettyPrint());
 
         Matrix[] sums = new Matrix[]{sum0, sum1};
 
