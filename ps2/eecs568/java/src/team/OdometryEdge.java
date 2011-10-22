@@ -12,6 +12,7 @@ public class OdometryEdge implements Edge{
     // stores references to the nodes before and after the robot moved
     private RobotPose start, end;
     private double dl, dr, b;
+    // the rigid body transformation corresponding to this odometry reading
     private double[] zxyt;
 
     static Matrix invSigma = null;
