@@ -42,6 +42,8 @@ public class LeastSquaresListener implements Simulator.Listener {
         // Magic stuff here
         // build J
         // newRobotPose will be updated by the constructor of OdometryEdge
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start("Adding odometry edge");
         RobotPose newRobotPose = new RobotPose(currentStateVectorSize);
         OdometryEdge odomEdge = new OdometryEdge(config, odom.obs[0], odom.obs[1],
                 baseline, latestRobotPose, newRobotPose);
@@ -49,8 +51,9 @@ public class LeastSquaresListener implements Simulator.Listener {
         currentStateVectorSize += newRobotPose.getNumDimensions();
         edges.add(odomEdge);
         this.latestRobotPose = newRobotPose;
-
+        stopWatch.stop();
         // Deal with landmarks
+        stopWatch.start("Adding landmark detections");
         ArrayList<LandmarkPose> recentLmarks = new ArrayList<LandmarkPose>();
         for (Simulator.landmark_t landmark : dets) {
             LandmarkPose lpose;
@@ -71,6 +74,7 @@ public class LeastSquaresListener implements Simulator.Listener {
             LandmarkEdge ledge = new LandmarkEdge(config, landmark.obs[0], landmark.obs[1], newRobotPose, lpose);
             edges.add(ledge);
         }
+        stopWatch.stop();
 
         //Matrix J = buildJacobian();
         //dumpMatrixDimensions("J",J);
@@ -79,13 +83,16 @@ public class LeastSquaresListener implements Simulator.Listener {
         //dumpMatrixDimensions("Jt",JT);
         //Matrix JTJ = JT.times(J);
         //JTJ.print();
-
+        stopWatch.start("Building JTSigmaJ");
         Matrix[] matrices = buildJTSigmaJ();
+        stopWatch.stop();
 
+        stopWatch.start("Tikhonov regularization");
         // Tikhonov regularlization
         double alpha = 5.0; // regularization constant...XXX choose wisely
         Matrix I = Matrix.identity(currentStateVectorSize, currentStateVectorSize).times(alpha);
         Matrix Tikhonov = matrices[0].plus(I);
+        stopWatch.stop();
 
         //CholeskyDecomposition solver = new CholeskyDecomposition(JTJ);
         //Matrix updatedState = solver.solve(JTr);
@@ -104,18 +111,26 @@ public class LeastSquaresListener implements Simulator.Listener {
         addNoise(); // Noise up the state vector and see if we recover
         }
         noiseCount++;*/
-
+        long timeJTSigmar = 0, timeCholesky = 0, timeDeltaX = 0;
         double MAX_ITERS = 100;
         for (int iter = 0; iter < MAX_ITERS; iter++) {
+            StopWatch iterStopWatch = new StopWatch();
+
+            iterStopWatch.start();
             double[] r = buildResidual();
             //System.out.println(Arrays.toString(r));
             //double[] JTr = JT.times(r); // XXX
             double[] JTSigmar = matrices[1].times(r);
+            iterStopWatch.stop();
+            timeJTSigmar += iterStopWatch.getLastTaskTimeMillis();
 
+            iterStopWatch.start();
             CholeskyDecomposition solver = new CholeskyDecomposition(Tikhonov);
             double[] deltaX = solver.solve(Matrix.columnMatrix(JTSigmar)).copyAsVector();
+            iterStopWatch.stop();
+            timeCholesky += iterStopWatch.getLastTaskTimeMillis();
             //double[] deltaX = Tikhonov.inverse().times(JTr);
-
+            iterStopWatch.start();
             // Draw our trajectory and detections
             double[] stateVector = getStateVector();
             for (int i = 0; i < stateVector.length; i++) {
@@ -123,11 +138,19 @@ public class LeastSquaresListener implements Simulator.Listener {
                 stateVector[i] += deltaX[i];
             }
             updateNodesPosition(stateVector);
+            iterStopWatch.stop();
+            timeDeltaX += iterStopWatch.getLastTaskTimeMillis();
         }
+        stopWatch.addTask(new StopWatch.TaskInfo("Doing JT*Sigma*R", timeJTSigmar));
+        stopWatch.addTask(new StopWatch.TaskInfo("Solving the system", timeCholesky));
+        stopWatch.addTask(new StopWatch.TaskInfo("Updating the state", timeDeltaX));
         MSE(buildResidual());
 
         xyt = newRobotPose.getPosition();
+        stopWatch.start("Drawing stuff on the screen");
         drawStuff(recentLmarks);
+        stopWatch.stop();
+        System.out.println(stopWatch.prettyPrint());
     }
 
     // Debugging...assumes no landmarks
@@ -246,10 +269,10 @@ public class LeastSquaresListener implements Simulator.Listener {
                 // draw the edge
                 vb.addBack(new VisLines(new VisVertexData(endpoints),
                         lineColor, 2, VisLines.TYPE.LINE_STRIP));
-                
+
 
             }
-            vb.addBack(new VisPoints(new VisVertexData(robotPoints), new VisConstantColor(Color.yellow), 3) );
+            vb.addBack(new VisPoints(new VisVertexData(robotPoints), new VisConstantColor(Color.yellow), 3));
             vb.swap();
         }
     }
