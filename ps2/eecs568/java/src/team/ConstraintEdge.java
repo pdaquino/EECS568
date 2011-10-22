@@ -34,7 +34,7 @@ public class ConstraintEdge implements Edge {
 
         assert(pin.length == pos.length);
         for (int i = 0; i < residual.length; i++) {
-            residual[i] = pin[i] - pin[i];
+            residual[i] = pin[i] - pos[i];
         }
 
         return residual;
