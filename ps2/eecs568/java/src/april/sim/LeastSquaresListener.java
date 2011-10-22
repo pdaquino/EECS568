@@ -244,6 +244,7 @@ public class LeastSquaresListener implements Simulator.Listener {
         // Draw the landmark edges
         {
             VisWorld.Buffer vb = vw.getBuffer("landmarks-edges");
+            vb.setDrawOrder(-10);
             ArrayList<double[]> robotPoints = new ArrayList<double[]>(edges.size());
             for (Edge e : edges) {
                 if (!(e instanceof LandmarkEdge)) {
@@ -303,10 +304,10 @@ public class LeastSquaresListener implements Simulator.Listener {
         Matrix J = new Matrix(numRows, numStates, Matrix.SPARSE);
         Matrix Sigma = new Matrix(numRows, numRows);
         int jRowCount = 0;
-        
+
         //Matrix sum0 = new Matrix(numStates, numStates, Matrix.SPARSE);  // JTSigmaJ
         //Matrix sum1 = new Matrix(numStates, numRows, Matrix.SPARSE);    // JTSigma
-        
+
         long timeGetJ = 0, timeCovInv = 0;
         int sigmaRowCount = 0;
         for (Edge e : edges) {
@@ -316,12 +317,12 @@ public class LeastSquaresListener implements Simulator.Listener {
             Matrix edgeJ = e.getJacobian(numStates);
             iterStopWatch.stop();
             timeGetJ += iterStopWatch.getLastTaskTimeMillis();
-            
+
             for(int i = 0; i < edgeJ.getRowDimension(); i++) {        // sum1 = JTSigma
                 J.setRow(jRowCount, edgeJ.getRow(i));
                 jRowCount++;
             }
-            
+
             // Get covariance matrix
             iterStopWatch.start();
             Matrix edgeSigma = e.getCovarianceInverse(sigmaRowCount, numRows);
@@ -337,30 +338,30 @@ public class LeastSquaresListener implements Simulator.Listener {
             Matrix JTSigma = JT.times(Sigma);
             iterStopWatch.stop();
             timeJTTimesS += iterStopWatch.getLastTaskTimeMillis();
-            
+
             iterStopWatch.start();
             Matrix JTSJ = JTSigma.times(J);
             iterStopWatch.stop();
             timeJTSJ += iterStopWatch.getLastTaskTimeMillis();
             // XXX plusEquals is not optimized to handle sparse matrices
-            
+
             iterStopWatch.start();
-            sum0.plusEquals(JTSJ);          
+            sum0.plusEquals(JTSJ);
             timeSum0 += iterStopWatch.getLastTaskTimeMillis();
             iterStopWatch.stop();
-            
+
             iterStopWatch.start();
             sum1.plusEquals(0, columnCnt, JTSigma);
             timeSum1 += iterStopWatch.getLastTaskTimeMillis();
             iterStopWatch.stop();
-            
+
             columnCnt += e.getNumberJacobianRows();*/
         }
-        
+
         stopWatch.addTask(new StopWatch.TaskInfo("Building J", timeGetJ));
         stopWatch.addTask(new StopWatch.TaskInfo("Weight matrix", timeCovInv));
-        
-        
+
+
         // sum0 = JTSigmaJ
         stopWatch.start("Doing JT");
         Matrix JT = J.transpose();
@@ -370,7 +371,7 @@ public class LeastSquaresListener implements Simulator.Listener {
         Matrix JTSigmaJ = JTSigma.times(J);
         stopWatch.stop();
         printTiming(stopWatch.prettyPrint());
-        
+
         return new Matrix[] { JTSigmaJ, JTSigma };
         // return {JTSigmaJ, JTSigma}
     }
@@ -436,7 +437,7 @@ public class LeastSquaresListener implements Simulator.Listener {
         }
         System.out.printf("MSE: %f\n", mse);
     }
-    
+
     private void printTiming(String timing) {
         if(false) {
             System.out.println(timing);
