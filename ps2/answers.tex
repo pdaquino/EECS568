@@ -1,14 +1,13 @@
 \documentclass[12pt]{article}
 \usepackage{graphicx}
-\usepackage{amsmath}
-\usepackage{algorithmic}
+\usepackage{amsmath, algorithmic, color}
 
 
 \title{Answers to Problem Set 1}
 \author{
-				Lauren Hinkle (lhinkle)\\
+	Lauren Hinkle (lhinkle)\\
         Pedro d'Aquino  (pdaquino)\\
-				Robert Goeddel (rgoeddel)}
+	Robert Goeddel (rgoeddel)}
 
 \begin{document}
 \maketitle
@@ -178,15 +177,40 @@ time to marginalize the graph is still $\mathcal{O}(n^3)$.
 \pagebreak
 \section{SLAM}
 
-\paragraph{A}
+\subsection*{A}
 
-\paragraph{B}
+\subsubsection*{Observation and Motion Models}
+\textcolor{red}{observation and motion models and the analytic Jacobians for them}
 
-For this part, the robot was not given the ID for each landmark and therefore had to associate landmark observations on its own, using $\chi^2$ nearest neighbors.  We implemented $\chi^2$ nearest neighbor using both Euclidean distance and by considering the effect on the $\chi^2$ value of the system caused when associating each new landmark observation with each previous landmark observed.  
+\subsubsection*{Rank Deficiency}
+The information matrix is inevitably rank deficient.  To deal with this rank deficiency, we employed two methods.  We used a constraint edge to pin the initial the first observation.  Additionally, we used Tikhonov regularization on the information matrix to calculate 
+$$\Delta x = (J^T \Sigma^{-1}J + \Gamma^T \Gamma)^{-1}J^T \Sigma^{-1} r$$
+where $\Gamma = \alpha I$ with a scaling value $\alpha = 1000$.  The value for $\alpha$ was chosen to be a small percentage of the size of the values in our weight matrix, which varied between several and a hundred thousand.
 
-Euclidean distance was used to minimize the number of possible landmark associations that would be considered.  In addition to not needing to consider other landmarks seen at the same observation time as possible associates, any landmark that was outside a threshold radius of the suspected landmark location was ignored.  Since the $\chi^2$ nearest neighbor is more complex than calculating Euclidean distance, this is intended to shorten the total computation time.  The threshold $XXXXXXXX$ was chosen to still allow a large area around the suspected location of the landmark to increase the likelihood of finding the correct association, should the robot's perceived self-location deviate greatly from its actual location.
 
-Each previously observed landmark within the given area is considered for association using $\chi^2$ nearest neighbor.  Each association is considered to be correct, and ten iterations of the Least-Squares Optimization loop (created in part A) are performed.  The resulting $\chi^2$ values are calculated.  We chose to do ten iterations because even very large initial $\chi^2$ begin to converge within ten iterations, although they may not reach their minimum.  Iterating further, however, would lead to time-consuming steps.  If none of the resulting $\chi^2$ fall within a given difference threshold of the current $\chi^2$ of the system, then the new landmark observation is turned into a new landmark.  Otherwise, it is associated with the landmark that results in the lowest $\chi^2$ value.  The threshold we chose for change in $\chi^2$ is $20\%$ of the previous $\chi^2$ value.
+\subsubsection*{Visualizing Least Squares SLAM}
+\textcolor{red}{Provide screen shots for the trajectory versus ground truth.}
+
+\subsubsection*{Considering $\chi^2$}
+$$\chi^2 = \Delta x^TJ^T\Sigma^{-1}J\Delta x - 2\Delta x^T\Sigma^{-1}r + r^T\Sigma^{-1}r$$
+When the least squares optimization has a set number of iterations at every time stamp it is unnecessarily slow.  When no new landmark observations have been made the $\chi^2$ error barely changes, and so performing many iterations has very little change in the quality of the line.  To help mitigate this, we use the $\chi^2$ error to help determine how many iterations of least squares optimization to run at each time stamp.  When the change in $\chi^2$ from one iteration to the next is less than a given threshold, the solution is accepted.  After testing various threshold, we settled on $0.005$, which seemed to provide a reasonable compromise between allowing the program to run until it is not changing very much, and not being too slow.  Additionally, to help speed up the runtime, we used a maximum of 100 iterations.
+
+\textcolor{red}{Plot of chi2 error as function of the number of iterations performed}
+
+
+\subsection*{B}
+
+For this part, the robot was not given the ID for each landmark and therefore had to associate landmark observations on its own, using $\chi^2$ nearest neighbors.  
+
+\subsubsection*{Optimization Proposals}
+\textcolor{red}{propose several different approaches to mitigate the slowness problem . For example, you might consider how and when to skip some computations, or how to approximate the posterior computation (and determine when such an approximation is acceptable.}
+
+\subsubsection*{Our $\chi^2$ Nearest Neighbor Algorithm}
+We implemented $\chi^2$ nearest neighbor using both Euclidean distance and by considering the effect on the $\chi^2$ value of the system caused when associating each new landmark observation with each previous landmark observed.  
+
+Euclidean distance was used to minimize the number of possible landmark associations that would be considered.  In addition to not needing to consider other landmarks seen at the same observation time as possible associates, any landmark that was outside a threshold radius of the suspected landmark location was ignored.  Since the $\chi^2$ nearest neighbor is more complex than calculating Euclidean distance, this is intended to shorten the total computation time.  The threshold \textcolor{red}{$XXX$} was chosen to still allow a large area around the suspected location of the landmark to increase the likelihood of finding the correct association, should the robot's perceived self-location deviate greatly from its actual location.
+
+Each previously observed landmark within the given area is considered for association using $\chi^2$ nearest neighbor.  Each association is considered to be correct, and ten iterations of the Least-Squares Optimization loop (created in part A) are performed.  The resulting $\chi^2$ values are calculated.  We chose to do ten iterations because even very large initial $\chi^2$ begin to converge within ten iterations, although they may not reach their minimum.  Iterating further, however, would lead to time-consuming steps.  If none of the resulting $\chi^2$ fall within a given difference threshold of the current $\chi^2$ of the system, then the new landmark observation is turned into a new landmark.  Otherwise, it is associated with the landmark that results in the lowest $\chi^2$ value.  The threshold we chose for change in $\chi^2$ is \textcolor{red}{$20\%$} of the previous $\chi^2$ value.
 
 
 %\begin{algorithmic}
@@ -210,6 +234,12 @@ Each previously observed landmark within the given area is considered for associ
 %	\ENDIF
 %\ENDFOR
 %\end{algorithmic}
+
+\subsubsection*{Error Analysis}
+
+\textcolor{red}{Put both errors in landmark associations and surface plot showing the number of data association errors as a function of odometry and measurement noise here.}
+
+
 
 
 \end{document}
