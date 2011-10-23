@@ -26,6 +26,7 @@ public abstract class AbstractLeastSquaresListener implements Simulator.Listener
     protected double xyt[] = new double[3]; // Best guess of our most recent pose
     protected ArrayList<double[]> trajectory = new ArrayList<double[]>();
     protected double chi2 = 500;
+    private ArrayList<double[]> true_landmarks = new ArrayList<double[]>();
 
     public void init(Config config_, VisWorld vw_) {
         config = config_;
@@ -38,13 +39,22 @@ public abstract class AbstractLeastSquaresListener implements Simulator.Listener
         nodes.add(latestRobotPose);
         currentStateVectorSize += latestRobotPose.getNumDimensions();
 
-        edges.add(new ConstraintEdge(latestRobotPose, new double[3]));
+        // Initialize robot position & landmarks
+        for (int i = 0;; i++) {
+            double[] li = config.getDoubles("landmarks.l" + i, null);
+            if (li == null) {
+                break;
+            }
+            true_landmarks.add(LinAlg.resize(li, 3));
+        }
+
+        //edges.add(new ConstraintEdge(latestRobotPose, new double[3]));
     }
 
     public double getChi2() {
         return chi2;
     }
-    
+
     private double chi2(Matrix deltaX, Matrix JTSigmaJ, Matrix JTSigmar, Matrix Sigma, Matrix r) {
         Matrix deltaXT = deltaX.transpose();
         double chi2 = deltaXT.times(JTSigmaJ).times(deltaX).get(0)
@@ -195,7 +205,7 @@ public abstract class AbstractLeastSquaresListener implements Simulator.Listener
             //System.out.println(chi2 + "(" + chi2Diff + ")");
             iterStopWatch.stop();
             timeChi2 += iterStopWatch.getLastTaskTimeMillis();
-            if(recentLmarks != null) {
+            if (recentLmarks != null) {
                 drawStuff(recentLmarks);
             }
         }
@@ -206,7 +216,7 @@ public abstract class AbstractLeastSquaresListener implements Simulator.Listener
         this.chi2 = lastChi2;
         xyt = this.latestRobotPose.getPosition();
         stopWatch.start("Drawing stuff on the screen");
-        if(recentLmarks != null) {
+        if (recentLmarks != null) {
             drawStuff(recentLmarks);
         }
         stopWatch.stop();
@@ -275,31 +285,54 @@ public abstract class AbstractLeastSquaresListener implements Simulator.Listener
 
         // Draw landmark observations from this run
        /* {
-            VisWorld.Buffer vb = vw.getBuffer("landmarks-noisy");
-            for (LandmarkPose lmark : recentLmarks) {
-                double[] xy = lmark.getPosition();
-                ArrayList<double[]> obsPoints = new ArrayList<double[]>();
-                obsPoints.add(LinAlg.resize(xyt, 2));
-                obsPoints.add(xy);
-                vb.addBack(new VisLines(new VisVertexData(obsPoints),
-                        new VisConstantColor(Color.cyan), 2, VisLines.TYPE.LINE_STRIP));
-                //new VisConstantColor(lmark.id == -1 ? Color.gray : Color.cyan), 2, VisLines.TYPE.LINE_STRIP));
-            }
-            vb.swap();
+        VisWorld.Buffer vb = vw.getBuffer("landmarks-noisy");
+        for (LandmarkPose lmark : recentLmarks) {
+        double[] xy = lmark.getPosition();
+        ArrayList<double[]> obsPoints = new ArrayList<double[]>();
+        obsPoints.add(LinAlg.resize(xyt, 2));
+        obsPoints.add(xy);
+        vb.addBack(new VisLines(new VisVertexData(obsPoints),
+        new VisConstantColor(Color.cyan), 2, VisLines.TYPE.LINE_STRIP));
+        //new VisConstantColor(lmark.id == -1 ? Color.gray : Color.cyan), 2, VisLines.TYPE.LINE_STRIP));
         }
-*/
+        vb.swap();
+        }
+         */
         // Draw current esimated landmark positions
         {
             VisWorld.Buffer vb = vw.getBuffer("estimated-landmarks");
             ArrayList<double[]> points = new ArrayList<double[]>();
+            // lines between the estimated position and the actual landmark
+
             for (Node node : this.nodes) {
                 if (node instanceof LandmarkPose) {
-                    points.add(node.getPosition());
+                    double[] nodePos = node.getPosition();
+                    points.add(nodePos);
                 }
             }
             vb.addBack(new VisPoints(new VisVertexData(points),
                     new VisConstantColor(Color.red),
                     5));
+            vb.swap();
+        }
+
+        // Draw lines between the estimated position and the actual landmark
+        {
+            VisWorld.Buffer vb = vw.getBuffer("landmarks-errors");
+            vb.setDrawOrder(-3);
+            ArrayList<ArrayList<double[]>> lmarkErrorLines = new ArrayList<ArrayList<double[]>>();
+            for (Node node : this.nodes) {
+                if (node instanceof LandmarkPose) {
+                    ArrayList<double[]> lineEndpoints = new ArrayList<double[]>();
+                    lineEndpoints.add(node.getPosition());
+                    lineEndpoints.add(true_landmarks.get(((LandmarkPose) node).getId()));
+                    lmarkErrorLines.add(lineEndpoints);
+                }
+            }
+            for (ArrayList<double[]> line : lmarkErrorLines) {
+                vb.addBack(new VisLines(new VisVertexData(line),
+                        new VisConstantColor(Color.white), 2, VisLines.TYPE.LINE_STRIP));
+            }
             vb.swap();
         }
 
