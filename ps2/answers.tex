@@ -1,5 +1,6 @@
 \documentclass[12pt]{article}
-\usepackage{graphicx}
+\usepackage[pdftex]{graphicx}
+\usepackage{epstopdf}
 \usepackage{amsmath, algorithmic, color}
 
 
@@ -199,9 +200,18 @@ When the least squares optimization has a set number of iterations at every time
 $$\chi^2 = \Delta x^TJ^T\Sigma^{-1}J\Delta x - 2\Delta x^T\Sigma^{-1}r + r^T\Sigma^{-1}r$$
 barely changes, and so performing many iterations has very little change in the quality of the line.
 
-To help mitigate excessively iterating, we use the $\chi^2$ error to help determine how many iterations of least squares optimization to run at each time stamp.  When the change in $\chi^2$ from one iteration to the next is less than a given threshold, the solution is accepted.  After testing various threshold, we settled on $0.005$, which seemed to provide a reasonable compromise between allowing the program to run until it is not changing very much, and not being too slow.  Additionally, to help speed up the runtime, we used a maximum of 100 iterations.
+To help mitigate excessively iterating, we use the $\chi^2$ error to help determine how many iterations of least squares optimization to run at each time stamp.  When the change in $\chi^2$ from one iteration to the next is less than a given threshold, the solution is accepted.  After testing various threshold, we settled on $0.005$ (see Figure \ref{fig:chi2_iters}), which seemed to provide a reasonable compromise between allowing the program to run until it is not changing very much, and not being too slow.  Additionally, to help speed up the runtime, we used a maximum of 100 iterations.
 
-\textcolor{red}{Plot of chi2 error as function of the number of iterations performed}
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/chi2_iters.eps}
+\label{fig:chi2_iters}
+\caption{The normalized $\chi^2$ error plotted against the number of minimization iterations.
+    There is an exponential dropoff in improvement in $\chi^2$ as the number of iterations is
+    increased. Based on this data set, we determined that gains of less than 0.005 were
+    negligible (this is about where the slope begins to truly flatten out) and thus we stop
+    iteration when the $\chi^2$ error does not decrease by more than 0.005.}
+\end{figure}
 
 
 \subsection*{B. $\chi^2$ Nearest Neighbor}
@@ -250,8 +260,8 @@ Each previously observed landmark within the given area is considered for associ
 
 \textcolor{red}{Put both errors in landmark associations and surface plot showing the number of data association errors as a function of odometry and measurement noise here.}
 
-The four cases that can occur when trying to associate a landmark are: 
-\begin{itemize} 
+The four cases that can occur when trying to associate a landmark are:
+\begin{itemize}
 \item Incorrectly creating a new landmark (False Negative)
 \item Incorrectly associating two landmarks (False Positive)
 \item Correctly associating two landmarks (True Positive)
