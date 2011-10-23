@@ -138,7 +138,6 @@ h & X & & & & X & X & \\
 g, b, a, d, c, e, f, h
 
 \paragraph{(iv)}
-\emph{XXX Ask about this...we must be answering what they MEANT to say}
 Given graph $G = (V, E)$, let the number of vertices $|V| = n$ and number of
 edges $|E| = m$.
 
@@ -250,7 +249,15 @@ Each previously observed landmark within the given area is considered for associ
 
 \textcolor{red}{Put both errors in landmark associations and surface plot showing the number of data association errors as a function of odometry and measurement noise here.}
 
+The four cases that can occur when trying to associate a landmark are: 
+\begin{itemize} 
+\item Incorrectly creating a new landmark (False Negative)
+\item Incorrectly associating two landmarks (False Positive)
+\item Correctly associating two landmarks (True Positive)
+\item Correctly creating a new landmark (True Negative)
+\end{itemize}
 
+The surface plot showing the number of data association errors as a function of odometry and measurement noise is centered around the parameters given by Joho.  False negatives and false positives were combined for error.
 
 
 \end{document}
