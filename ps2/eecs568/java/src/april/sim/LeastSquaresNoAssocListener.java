@@ -15,7 +15,7 @@ import team.Node;
 public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
 
     private Map<Integer, Integer> seenLandmarks = new HashMap<Integer, Integer>();
-    
+
     @Override
     public void update(odometry_t odom, ArrayList<landmark_t> landmarks) {
         addOdometryEdge(odom);
@@ -55,9 +55,9 @@ public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
         }
         calculateChi2(possibleMatches);
         if (possibleMatches.isEmpty()) {
-            for (landmark_t lmark: landmarks) {
+            for (landmark_t lmark : landmarks) {
                 LandmarkPose lpose = new LandmarkPose(currentStateVectorSize, latestRobotPose,
-                                                      lmark.obs[0], lmark.obs[1]);
+                        lmark.obs[0], lmark.obs[1]);
                 lpose.setId(lmark.id);
                 currentStateVectorSize += lpose.getNumDimensions();
                 nodes.add(lpose);
@@ -73,7 +73,7 @@ public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
             // If our best match isn't very good, create a new landmark,
             // else use the one we're trying
             double chi2 = this.getChi2();
-            double cutoff = Math.max(1.2*chi2, chi2+1);
+            double cutoff = Math.max(1.2 * chi2, chi2 + .5);
             String debug = ("Chi2 = " + bestMatch.chi2 + "/" + cutoff);
             if (bestMatch.chi2 < cutoff) {
                 System.out.println("match (" + debug + ")");
@@ -88,7 +88,7 @@ public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
             }
 
             printDebugMatchingInformation(bestMatch);
-            
+
             // Add the edge
             LandmarkEdge ledge = new LandmarkEdge(config, bestMatch.lmark.obs[0],
                     bestMatch.lmark.obs[1], latestRobotPose, bestMatch.pose);
@@ -99,7 +99,7 @@ public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
 
             // Prune out entries with same landmark id as match
             ArrayList<PossibleMatch> removals = new ArrayList<PossibleMatch>();
-            for (PossibleMatch pm: possibleMatches) {
+            for (PossibleMatch pm : possibleMatches) {
                 if (pm.lmark.id == bestMatch.lmark.id) {
                     removals.add(pm);
                     continue;
@@ -113,9 +113,8 @@ public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
         return recentLmarks;
     }
 
-    private void calculateChi2(ArrayList<PossibleMatch> possibleMatches)
-    {
-        for (PossibleMatch pm: possibleMatches) {
+    private void calculateChi2(ArrayList<PossibleMatch> possibleMatches) {
+        for (PossibleMatch pm : possibleMatches) {
             double[] originalStateVector = this.getStateVector();
             double originalChi2 = this.getChi2();
             double[] originalXyt = this.xyt;
@@ -134,6 +133,7 @@ public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
         }
         Collections.sort(possibleMatches);
     }
+    static int missedAssocs = 0, incorrectAssocs = 0, correctAssocs = 0, correctNewLm = 0;
 
     private void printDebugMatchingInformation(PossibleMatch bestMatch) {
         boolean okMatch = false;
@@ -141,114 +141,122 @@ public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
         Integer trueLmarkId = new Integer(bestMatch.lmark.id);
         Integer bestMatchUniqId = new Integer(bestMatch.pose.uniqueId());
         Integer bestMatchActualLmarkId = new Integer(bestMatch.pose.getId());
-        if(!seenLandmarks.containsKey(trueLmarkId)) {
-            if(!bestMatch.newPose) {
+        if (!seenLandmarks.containsKey(trueLmarkId)) {
+            if (!bestMatch.newPose) {
                 okMatch = false;
                 typeOfMatch = "new landmark matched to existing LandmarkPose";
+                missedAssocs++;
             } else {
+                correctNewLm++;
                 okMatch = true;
                 typeOfMatch = "new landmark matched to new LandmarkPose";
                 seenLandmarks.put(trueLmarkId, bestMatchUniqId);
             }
         } else {
-            if(seenLandmarks.get(trueLmarkId).equals(bestMatchUniqId)) {
+            if (seenLandmarks.get(trueLmarkId).equals(bestMatchUniqId)) {
+                correctAssocs++;
                 okMatch = true;
                 typeOfMatch = "previously seen landmark matched with correct existing LandmarkPose";
             } else {
                 okMatch = false;
-                if(bestMatch.newPose) {
+                if (bestMatch.newPose) {
+                    missedAssocs++;
                     typeOfMatch = "previously seen landmark matched with new LandmarkPose (should have matched with uniqid " + seenLandmarks.get(new Integer(bestMatch.lmark.id)).toString() + ")";
-                } else if(trueLmarkId.equals(bestMatchActualLmarkId)) {
+                } else if (trueLmarkId.equals(bestMatchActualLmarkId)) {
+                    correctAssocs++;
                     typeOfMatch = "previously seen landmark matched with a duplicate LandmarkPose (should have matched with uniqid " + seenLandmarks.get(new Integer(bestMatch.lmark.id)).toString() + ")";
                 } else {
+                    incorrectAssocs++;
                     typeOfMatch = "WRONG CLOSURE! matched with trueId = " + bestMatchActualLmarkId.toString();
                 }
             }
         }
-        System.out.println("Observation of " + bestMatch.lmark.id +
-                " matched with uniqid " + bestMatch.pose.uniqueId());
-        System.out.println("\tMatch was " + (okMatch ? "OK" : "NOT OK"));
-        System.out.println("\t"+typeOfMatch);
-        
+        if (!okMatch) {
+            System.out.println("Observation of " + bestMatch.lmark.id
+                    + " matched with uniqid " + bestMatch.pose.uniqueId());
+            System.out.println("\tMatch was " + (okMatch ? "OK" : "NOT OK"));
+            System.out.println("\t" + typeOfMatch);
+        }
+        System.out.println("Missed: " + missedAssocs + "; Incorrect: " + incorrectAssocs + "; Correct: " + correctNewLm +"; Correct new: " + correctAssocs);
+
     }
 
     /*private LandmarkPose handleLandmark(landmark_t lmark) {
-        LandmarkPose match = getBestMatch(lmark);
-        if (match == null) {
-            match = new LandmarkPose(currentStateVectorSize, latestRobotPose,
-                    lmark.obs[0], lmark.obs[1]);
-            match.setId(lmark.id);
-            currentStateVectorSize += match.getNumDimensions();
-            nodes.add(match);
-            // reset state
-            this.chi2 = originalChi2;
-            updateNodesPosition(originalStateVector);
-            edges.remove(edges.size() - 1);
-            assert LinAlg.equals(originalStateVector, this.getStateVector(), 0.000001);
-        }
-        LandmarkEdge matchingEdge = new LandmarkEdge(config, lmark.obs[0],
-                lmark.obs[1], latestRobotPose, match);
-        edges.add(matchingEdge);
-        return match;
+    LandmarkPose match = getBestMatch(lmark);
+    if (match == null) {
+    match = new LandmarkPose(currentStateVectorSize, latestRobotPose,
+    lmark.obs[0], lmark.obs[1]);
+    match.setId(lmark.id);
+    currentStateVectorSize += match.getNumDimensions();
+    nodes.add(match);
+    // reset state
+    this.chi2 = originalChi2;
+    updateNodesPosition(originalStateVector);
+    edges.remove(edges.size() - 1);
+    assert LinAlg.equals(originalStateVector, this.getStateVector(), 0.000001);
     }
-
+    LandmarkEdge matchingEdge = new LandmarkEdge(config, lmark.obs[0],
+    lmark.obs[1], latestRobotPose, match);
+    edges.add(matchingEdge);
+    return match;
+    }
+    
     private LandmarkPose getBestMatch(landmark_t lmark) {
-        // we are going to do some update iterations, which are messing up
-        // potentially all nodes. we need to keep a back up
-        // (call updateNodesPosition later!)
-        double[] originalStateVector = this.getStateVector();
-        double originalChi2 = this.getChi2();
-
-        LandmarkPose bestOneSoFar = null;
-        double lowestChi2 = 0;
-        ArrayList<LandmarkPose> possibleMatches = getPossibleMatches(lmark);
-        System.out.println("Testing " + possibleMatches.size() + " posisble matches");
-        for (LandmarkPose candidate : possibleMatches) {
-            System.out.print("\tLandmark " + candidate.getId() + " is a matching candidate... ");
-            LandmarkEdge tentativeEdge = new LandmarkEdge(config, lmark.obs[0],
-                    lmark.obs[1], latestRobotPose, candidate);
-            edges.add(tentativeEdge);
-            doLeastSquaresUpdate(10, null);
-            if (bestOneSoFar != null) {
-                String debug = ("Chi2 = " + this.getChi2() + "/" + lowestChi2);
-                if (this.getChi2() < lowestChi2) {
-                    bestOneSoFar = candidate;
-                    lowestChi2 = this.getChi2();
-                    System.out.println("match (" + debug + ")");
-                } else {
-                    System.out.println("fail (" + debug + ")");
-                }
-            } else {
-                double cutoff = Math.max(1.2*originalChi2, originalChi2+1);
-                String debug = ("Chi2 = " + this.getChi2() + "/" + cutoff);
-                if (this.getChi2() < cutoff) {
-                    bestOneSoFar = candidate;
-                    lowestChi2 = this.getChi2();
-                    System.out.println("match (" + debug + ")");
-                } else {
-                    System.out.println("fail (" + debug + ")");
-                }
-            }
-            // reset state
-            this.chi2 = originalChi2;
-            updateNodesPosition(originalStateVector);
-            edges.remove(edges.size() - 1);
-            assert LinAlg.equals(originalStateVector, this.getStateVector(), 0.000001);
-        }
-        if (bestOneSoFar == null) {
-            System.out.println("Could not match observation with any LandmarkPose.");
-        } else {
-            if(bestOneSoFar.getId() == lmark.id) {
-                System.out.println("CORRECT association with landmark " + bestOneSoFar.getId());
-            } else {
-                System.out.println("WRONG association with landmark " + bestOneSoFar.getId() + " - should be " + lmark.id);
-            }
-        }
-        return bestOneSoFar;
+    // we are going to do some update iterations, which are messing up
+    // potentially all nodes. we need to keep a back up
+    // (call updateNodesPosition later!)
+    double[] originalStateVector = this.getStateVector();
+    double originalChi2 = this.getChi2();
+    
+    LandmarkPose bestOneSoFar = null;
+    double lowestChi2 = 0;
+    ArrayList<LandmarkPose> possibleMatches = getPossibleMatches(lmark);
+    System.out.println("Testing " + possibleMatches.size() + " posisble matches");
+    for (LandmarkPose candidate : possibleMatches) {
+    System.out.print("\tLandmark " + candidate.getId() + " is a matching candidate... ");
+    LandmarkEdge tentativeEdge = new LandmarkEdge(config, lmark.obs[0],
+    lmark.obs[1], latestRobotPose, candidate);
+    edges.add(tentativeEdge);
+    doLeastSquaresUpdate(10, null);
+    if (bestOneSoFar != null) {
+    String debug = ("Chi2 = " + this.getChi2() + "/" + lowestChi2);
+    if (this.getChi2() < lowestChi2) {
+    bestOneSoFar = candidate;
+    lowestChi2 = this.getChi2();
+    System.out.println("match (" + debug + ")");
+    } else {
+    System.out.println("fail (" + debug + ")");
+    }
+    } else {
+    double cutoff = Math.max(1.2*originalChi2, originalChi2+1);
+    String debug = ("Chi2 = " + this.getChi2() + "/" + cutoff);
+    if (this.getChi2() < cutoff) {
+    bestOneSoFar = candidate;
+    lowestChi2 = this.getChi2();
+    System.out.println("match (" + debug + ")");
+    } else {
+    System.out.println("fail (" + debug + ")");
+    }
+    }
+    // reset state
+    this.chi2 = originalChi2;
+    updateNodesPosition(originalStateVector);
+    edges.remove(edges.size() - 1);
+    assert LinAlg.equals(originalStateVector, this.getStateVector(), 0.000001);
+    }
+    if (bestOneSoFar == null) {
+    System.out.println("Could not match observation with any LandmarkPose.");
+    } else {
+    if(bestOneSoFar.getId() == lmark.id) {
+    System.out.println("CORRECT association with landmark " + bestOneSoFar.getId());
+    } else {
+    System.out.println("WRONG association with landmark " + bestOneSoFar.getId() + " - should be " + lmark.id);
+    }
+    }
+    return bestOneSoFar;
     }*/
+    class PossibleMatch implements Comparable<PossibleMatch> {
 
-    class PossibleMatch implements Comparable<PossibleMatch>
-    {
         public landmark_t lmark;
         public LandmarkPose pose;
         public double chi2;
@@ -260,8 +268,7 @@ public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
             chi2 = -1;
         }
 
-        public int compareTo(PossibleMatch o)
-        {
+        public int compareTo(PossibleMatch o) {
             return Double.compare(chi2, o.chi2);
         }
     }
