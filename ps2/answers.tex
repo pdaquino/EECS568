@@ -1,6 +1,8 @@
 \documentclass[12pt]{article}
 \usepackage{graphicx}
 \usepackage{amsmath}
+\usepackage{algorithmic}
+
 
 \title{Answers to Problem Set 1}
 \author{
@@ -34,17 +36,23 @@
 						&= \frac{p(z_1|a)p(a)}{p(z_1|a)p(a) + p(z_1|b)(1-p(a))}
 	\end{align*}
 	% Part B2 XXX - not sure about p(z_1|z_2), also doesn't align with results in B3
-	\item  The correct expression for the probability of $x$ after two Bayes updates is derived as follows:
+	\item  First we show $p(z_1,z_2|a) = p(z_2|a,z_1)p(z_1|a)p(a)$:
 	\begin{align*}
-	p(a|z_1,z_2) &= \frac{p(a,z_1|z_2)}{p(z_1,z_2)} \\
-			     &= \frac{p(z_2|a,z_1)p(a,z_1)}{p(z_1,z_2)p(z_2)} \\
-			     &= \frac{p(z_2|a,z_1)p(z_1|a)p(a)}{p(z_1|z_2)p(z_2)^2} \\
-			     &= \frac{p(z_2|a,z_1)p(z_1|a)p(a)}{p(z_2|z_1)p(z_1)p(z_2)}
+	p(z_1,z_2|a) &= \frac{p(z_1,z_2,a)}{p(a)} \\
+			     &= \frac{p(z_2|a,z_1)p(a,z_1)}{p(a)} \\ 
+			     &= \frac{p(z_2|a,z_1)p(z_1|a)p(a)}{p(a)}\\
+			     &=p(z_2|a,z_1)p(z_1|a)p(a)
 	\end{align*}
-	David's mistake occurred in the first line of the derivation, when he assumed $p(a|z_1,z_2) = \frac{p(a,z_1|z_2)}{p(z_1)}$.  This mistake led to his incorrect derivation:
+	Then the correct expression for the probability of $x$ after two Bayes updates is derived as follows:
 	\begin{align*}
-	p(a|z_1,z_2) &= \frac{p(a,z_1|z_2)}{p(z_1)} \\
-			     &= \frac{p(z_2|a,z_1)p(a,z_1)}{p(z_1)} \\
+	p(a|z_1,z_2) &= \frac{p(z_1,z_2|a)p(a)}{p(z_1,z_2)} \\
+			     &= \frac{p(z_2|a,z_1)p(z_1|a)}{p(z_1,z_2)} \\ 
+			     &= \frac{p(z_2|a,z_1)p(z_1|a)p(a)}{p(z_1)p(z_2)}\\
+			     &= \frac{p(z_2|a,z_1)p(z_1|a)p(a)}{(p(z_1|a)p(a)+p(z_1|b)p(b))\cdot(p(z_2|a)p(a)+p(z_2|b)p(b))}
+	\end{align*}
+	This last step can be done because $z_1$ and $z_2$ are independent.  David's mistake occurs when he assumes the independent observations $z_1$ and $z_2$ have equal probability:
+	\begin{align*}
+	p(a|z_1,z_2) &= \frac{p(z_2|a,z_1)p(z_1|a)p(a)}{p(z_1)p(z_2)} \\
 			     &= \frac{p(z_2|a,z_1)p(z_1|a)p(a)}{p(z_1)^2} \\
 			     &= \frac{p(z_2|a,z_1)p(z_1|a)p(a)}{(p(z_1|a)p(a)+p(z_1|b)p(b))^2}
 	\end{align*}
@@ -169,6 +177,39 @@ time to marginalize the graph is still $\mathcal{O}(n^3)$.
 
 \pagebreak
 \section{SLAM}
+
+\paragraph{A}
+
+\paragraph{B}
+
+For this part, the robot was not given the ID for each landmark and therefore had to associate landmark observations on its own, using $\chi^2$ nearest neighbors.  We implemented $\chi^2$ nearest neighbor using both Euclidean distance and by considering the effect on the $\chi^2$ value of the system caused when associating each new landmark observation with each previous landmark observed.  
+
+Euclidean distance was used to minimize the number of possible landmark associations that would be considered.  In addition to not needing to consider other landmarks seen at the same observation time as possible associates, any landmark that was outside a threshold radius of the suspected landmark location was ignored.  Since the $\chi^2$ nearest neighbor is more complex than calculating Euclidean distance, this is intended to shorten the total computation time.  The threshold $XXXXXXXX$ was chosen to still allow a large area around the suspected location of the landmark to increase the likelihood of finding the correct association, should the robot's perceived self-location deviate greatly from its actual location.
+
+Each previously observed landmark within the given area is considered for association using $\chi^2$ nearest neighbor.  Each association is considered to be correct, and ten iterations of the Least-Squares Optimization loop (created in part A) are performed.  The resulting $\chi^2$ values are calculated.  We chose to do ten iterations because even very large initial $\chi^2$ begin to converge within ten iterations, although they may not reach their minimum.  Iterating further, however, would lead to time-consuming steps.  If none of the resulting $\chi^2$ fall within a given difference threshold of the current $\chi^2$ of the system, then the new landmark observation is turned into a new landmark.  Otherwise, it is associated with the landmark that results in the lowest $\chi^2$ value.  The threshold we chose for change in $\chi^2$ is $20\%$ of the previous $\chi^2$ value.
+
+
+%\begin{algorithmic}
+%\STATE{\bf Associate Landmarks}
+%\STATE{\bf input:} list $newLandmarksObservations$
+%\STATE{\bf output:} list $landmarksObserved$
+%\FOR {every landmark in $newLandmarksObservations$}
+%	\FOR{every  landmark in $previousLandmarksObservations$}
+%		\IF{$distance(newLandmark, oldLandmark) < DIST\_THRESHOLD$}
+%			\STATE Associate landmark and new landmark observation
+%			\STATE Do 10 least-squares optimization iterations
+%			\IF{$new\_chi^2 < max(CHI\_THRESHOLD*old\_chi^2, old\_ch1^2 + 1)$}
+%				\STATE add $oldLandmark$ to $matchedList$
+%			\ENDIF
+%		\ENDIF
+%	\ENDFOR
+%	\IF{$matchedList$ is empty}
+%		\STATE add $newLandmark$ to $landmarksObserved$
+%	\ELSE
+%		\STATE add $minChi^2(matchedList)$ to $landmarksObserved$
+%	\ENDIF
+%\ENDFOR
+%\end{algorithmic}
 
 
 \end{document}
