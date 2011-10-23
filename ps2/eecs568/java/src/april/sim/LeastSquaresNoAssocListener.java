@@ -14,6 +14,8 @@ import team.Node;
  */
 public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
 
+    private Map<Integer, Integer> seenLandmarks = new HashMap<Integer, Integer>();
+    
     @Override
     public void update(odometry_t odom, ArrayList<landmark_t> landmarks) {
         addOdometryEdge(odom);
@@ -38,7 +40,7 @@ public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
             LandmarkPose lmarkPose = (LandmarkPose) node;
             double distance = LinAlg.distance(tentativeLmark.getPosition(),
                     lmarkPose.getPosition());
-            if (distance < 5) {
+            if (distance < 50000) {
                 possibleMatches.add(new PossibleMatch(obs, lmarkPose));
             }
         }
@@ -52,7 +54,7 @@ public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
             possibleMatches.addAll(getPossibleMatches(lmark));
         }
         calculateChi2(possibleMatches);
-        if (possibleMatches.size() == 0) {
+        if (possibleMatches.isEmpty()) {
             for (landmark_t lmark: landmarks) {
                 LandmarkPose lpose = new LandmarkPose(currentStateVectorSize, latestRobotPose,
                                                       lmark.obs[0], lmark.obs[1]);
@@ -60,6 +62,7 @@ public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
                 currentStateVectorSize += lpose.getNumDimensions();
                 nodes.add(lpose);
                 PossibleMatch pm = new PossibleMatch(lmark, lpose);
+                pm.newPose = true;
                 possibleMatches.add(pm);
             }
         }
@@ -80,9 +83,12 @@ public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
                 bestMatch.pose.setId(bestMatch.lmark.id);
                 currentStateVectorSize += bestMatch.pose.getNumDimensions();
                 nodes.add(bestMatch.pose);
+                bestMatch.newPose = true;
                 System.out.println("fail (" + debug + ")");
             }
 
+            printDebugMatchingInformation(bestMatch);
+            
             // Add the edge
             LandmarkEdge ledge = new LandmarkEdge(config, bestMatch.lmark.obs[0],
                     bestMatch.lmark.obs[1], latestRobotPose, bestMatch.pose);
@@ -112,6 +118,7 @@ public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
         for (PossibleMatch pm: possibleMatches) {
             double[] originalStateVector = this.getStateVector();
             double originalChi2 = this.getChi2();
+            double[] originalXyt = this.xyt;
             LandmarkEdge tentativeEdge = new LandmarkEdge(config, pm.lmark.obs[0],
                     pm.lmark.obs[1], latestRobotPose, pm.pose);
             edges.add(tentativeEdge);
@@ -119,12 +126,50 @@ public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
             pm.chi2 = this.getChi2();
 
             // reset state
+            this.xyt = originalXyt;
             this.chi2 = originalChi2;
             updateNodesPosition(originalStateVector);
             edges.remove(edges.size() - 1);
             assert LinAlg.equals(originalStateVector, this.getStateVector(), 0.000001);
         }
         Collections.sort(possibleMatches);
+    }
+
+    private void printDebugMatchingInformation(PossibleMatch bestMatch) {
+        boolean okMatch = false;
+        String typeOfMatch = "";
+        Integer trueLmarkId = new Integer(bestMatch.lmark.id);
+        Integer bestMatchUniqId = new Integer(bestMatch.pose.uniqueId());
+        Integer bestMatchActualLmarkId = new Integer(bestMatch.pose.getId());
+        if(!seenLandmarks.containsKey(trueLmarkId)) {
+            if(!bestMatch.newPose) {
+                okMatch = false;
+                typeOfMatch = "new landmark matched to existing LandmarkPose";
+            } else {
+                okMatch = true;
+                typeOfMatch = "new landmark matched to new LandmarkPose";
+                seenLandmarks.put(trueLmarkId, bestMatchUniqId);
+            }
+        } else {
+            if(seenLandmarks.get(trueLmarkId).equals(bestMatchUniqId)) {
+                okMatch = true;
+                typeOfMatch = "previously seen landmark matched with correct existing LandmarkPose";
+            } else {
+                okMatch = false;
+                if(bestMatch.newPose) {
+                    typeOfMatch = "previously seen landmark matched with new LandmarkPose (should have matched with uniqid " + seenLandmarks.get(new Integer(bestMatch.lmark.id)).toString() + ")";
+                } else if(trueLmarkId.equals(bestMatchActualLmarkId)) {
+                    typeOfMatch = "previously seen landmark matched with a duplicate LandmarkPose (should have matched with uniqid " + seenLandmarks.get(new Integer(bestMatch.lmark.id)).toString() + ")";
+                } else {
+                    typeOfMatch = "WRONG CLOSURE! matched with trueId = " + bestMatchActualLmarkId.toString();
+                }
+            }
+        }
+        System.out.println("Observation of " + bestMatch.lmark.id +
+                " matched with uniqid " + bestMatch.pose.uniqueId());
+        System.out.println("\tMatch was " + (okMatch ? "OK" : "NOT OK"));
+        System.out.println("\t"+typeOfMatch);
+        
     }
 
     /*private LandmarkPose handleLandmark(landmark_t lmark) {
@@ -207,6 +252,7 @@ public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
         public landmark_t lmark;
         public LandmarkPose pose;
         public double chi2;
+        public boolean newPose = false;
 
         public PossibleMatch(landmark_t lmark, LandmarkPose pose) {
             this.lmark = lmark;
