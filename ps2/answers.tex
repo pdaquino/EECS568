@@ -18,13 +18,16 @@
 \begin{enumerate}
 	\item $u_i$ and $u_{i+1}$ are unconditionally independent, but are dependent given the robot trajectory.
 	\item $z_i$ and $z_{i+1}$ are dependent, even given all the positions, because the dependence flows through $L_0$.
-	\item ???
+	\item If the trajectory of the robot is known, the our posterior estimate of the locations of the
+    landmarks is only dependent on the landmark observation noise. For example, if the noise is Gaussian,
+    we'd expect the mean of our observations of a particular landmark to converge on the actual location
+    of the landmark as we gain more observations. % XXX
 \end{enumerate}
 
 \paragraph{B}
 \begin{enumerate}
 	% Part B1
-	\item  Given a binary variable $x\in\{a,b\}$, after one observation $z_1: p(x = a | z_1)$, the probability that $x=a$ in terms of only $p(a)$, $p(z_1| a)$ and $p(z_1 | b)$ is 
+	\item  Given a binary variable $x\in\{a,b\}$, after one observation $z_1: p(x = a | z_1)$, the probability that $x=a$ in terms of only $p(a)$, $p(z_1| a)$ and $p(z_1 | b)$ is
 	\begin{align*}
 	p(a|z_1) &= \frac{p(z_1|a)p(a)}{p(z_1)} \\
 						&= \frac{p(z_1|a)p(a)}{p(z_1|a)p(a) + p(z_1|b)p(b)} \\
@@ -53,8 +56,22 @@
 					  &=  p(a,z_1|z_2,z_3,z_4)p(z_2|z_3,z_4)p(z_3|z_4)p(z_4) \\
 					  &=  p(a|z_1,z_2,z_3,z_4)p(z_1|z_2,z_3,z_4)p(z_2|z_3,z_4)p(z_3|z_4)p(z_4) \\
 	p(a|z_1,z_2,z_3,z_4) &=	\frac{p(a,z_1,z_2,z_3,z_4)}{p(z_1|z_2,z_3,z_4)p(z_2|z_3,z_4)p(z_3|z_4)p(z_4)} \\
-	 				  &=  \frac{p(z_4|a,z_1,z_2,z_3)p(z_3|a,z_1,z_2)p(z_2|a,z_1)p(z_1|a)p(a)}{p(z_1|z_2,z_3,z_4)p(z_2|z_3,z_4)p(z_3|z_4)p(z_4)} 
+	 				  &=  \frac{p(z_4|a,z_1,z_2,z_3)p(z_3|a,z_1,z_2)p(z_2|a,z_1)p(z_1|a)p(a)}{p(z_1|z_2,z_3,z_4)p(z_2|z_3,z_4)p(z_3|z_4)p(z_4)}
 	\end{align*}
+
+    \begin{align*}
+    p(z) &= p(z|a)p(a) + p(z|b)p(b) \\
+        &= p(z|a)(p(a) + p(b)) \\
+        &= p(z|a) \\
+    p(a|z) &= \frac{p(z|a)p(a)}{p(z)} \\
+        &= \frac{p(z|a)p(a)}{p(z|a)} \\
+        &= p(a) \\
+    \end{align*}
+
+    From this we claim that $a$ is independent of observations $z$. Thus, given
+    any number of observations $z$, we learn no more about $a$, so:
+
+    $p(a|z_1,z_2,z_3,z_4) = p(a)$
 \end{enumerate}
 
 \pagebreak
