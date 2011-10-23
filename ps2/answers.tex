@@ -211,6 +211,8 @@ For this part, the robot was not given the ID for each landmark and therefore ha
 \subsubsection*{Optimization Proposals}
 Nearest neighbors could be optimized by decreasing the number of computations required.  This could be done by decreasing the number of previously seen landmarks each new observations is compared to.  Additionally, the $\chi^2$ resulting from an association could be estimated by performing less Least-Squares iterations. We employed both of these methods in our code.
 
+Another method to decrease computation would be to make assumptions about landmarks seen in sequential observations.  At each time stamp one could consider the landmarks observed in each of the last several odometry positions.  For each of those landmarks, an edge between that landmark and the current position could be created.  If the resulting $\chi^2$ is small, then it could be assumed that the current new observation is the same as the this one.  As with the prev
+
 Another technique would be to use a variant of RANSAC to choose which observations are most likely to be the same landmark using $\chi^2$ estimate.
 
 \subsubsection*{Our $\chi^2$ Nearest Neighbor Algorithm}
