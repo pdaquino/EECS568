@@ -61,8 +61,11 @@ public abstract class AbstractLeastSquaresListener implements Simulator.Listener
                 - 2 * deltaXT.times(JTSigmar).get(0)
                 + r.transpose().times(Sigma).times(r).get(0);
         // Normalize
-        int normalizationFactor = getNumJacobianRows() - currentStateVectorSize;
-        chi2 /= Math.max(1, normalizationFactor);
+        //System.out.printf("%d==%d\n", getNumJacobianRows(), currentStateVectorSize);
+        int DOF = getNumJacobianRows() - currentStateVectorSize;    // # degrees of freedom
+        //System.out.printf("%f--%d\n", chi2, DOF);
+        if (DOF > 0)
+            chi2 /= DOF;
         return chi2;
     }
 
@@ -283,6 +286,7 @@ public abstract class AbstractLeastSquaresListener implements Simulator.Listener
                     new VisConstantColor(Color.red),
                     3,
                     VisLines.TYPE.LINE_LOOP);
+            xyt = this.latestRobotPose.getPosition();
             double xyzrpy[] = new double[]{xyt[0], xyt[1], 0,
                 0, 0, xyt[2]};
             vb.addBack(new VisChain(LinAlg.xyzrpyToMatrix(xyzrpy), robot));
