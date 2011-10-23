@@ -288,7 +288,7 @@ private void dumpPose(double[] xyt) {
 
 
         truthTrajectory.add(LinAlg.resize(truth_xyt,2));
-        System.out.print("Truth: "); dumpPose(truth_xyt);
+        //System.out.print("Truth: "); dumpPose(truth_xyt);
 
         // Draw the robot
         {
