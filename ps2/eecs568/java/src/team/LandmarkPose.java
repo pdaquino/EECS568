@@ -7,6 +7,8 @@ public class LandmarkPose implements Node {
     private double[] position = {0, 0}; // (x,y)
     int index;
     int id = -1;
+    int uniqueId;
+    static int idcnt = 0;
 
     public LandmarkPose(int index) {
         this.index = index;
@@ -17,6 +19,7 @@ public class LandmarkPose implements Node {
         double[] rel_xy = new double[]{r * Math.cos(theta),
             r * Math.sin(theta)};
         this.position = LinAlg.transform(latestPose.getPosition(), rel_xy);
+        uniqueId = idcnt++;
     }
 
     public double[] getPosition() {
@@ -37,6 +40,10 @@ public class LandmarkPose implements Node {
 
     public int getId() {
         return id;
+    }
+
+    public int uniqueId() {
+        return uniqueId;
     }
 
     public void setId(int id) {
