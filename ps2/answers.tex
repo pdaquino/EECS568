@@ -22,7 +22,8 @@
 	\item If the trajectory of the robot is known, the our posterior estimate of the locations of the
     landmarks is only dependent on the landmark observation noise. For example, if the noise is Gaussian,
     we'd expect the mean of our observations of a particular landmark to converge on the actual location
-    of the landmark as we gain more observations. % XXX
+    of the landmark as we gain more observations. Since our SLAM estimates of these positions would've
+    been affected by odometry noise without a known trajectory, we expect our estimates to improve.
 \end{enumerate}
 
 \paragraph{B}
@@ -38,14 +39,14 @@
 	\item  First we show $p(z_1,z_2|a) = p(z_2|a,z_1)p(z_1|a)p(a)$:
 	\begin{align*}
 	p(z_1,z_2|a) &= \frac{p(z_1,z_2,a)}{p(a)} \\
-			     &= \frac{p(z_2|a,z_1)p(a,z_1)}{p(a)} \\ 
+			     &= \frac{p(z_2|a,z_1)p(a,z_1)}{p(a)} \\
 			     &= \frac{p(z_2|a,z_1)p(z_1|a)p(a)}{p(a)}\\
 			     &=p(z_2|a,z_1)p(z_1|a)p(a)
 	\end{align*}
 	Then the correct expression for the probability of $x$ after two Bayes updates is derived as follows:
 	\begin{align*}
 	p(a|z_1,z_2) &= \frac{p(z_1,z_2|a)p(a)}{p(z_1,z_2)} \\
-			     &= \frac{p(z_2|a,z_1)p(z_1|a)}{p(z_1,z_2)} \\ 
+			     &= \frac{p(z_2|a,z_1)p(z_1|a)}{p(z_1,z_2)} \\
 			     &= \frac{p(z_2|a,z_1)p(z_1|a)p(a)}{p(z_1)p(z_2)}\\
 			     &= \frac{p(z_2|a,z_1)p(z_1|a)p(a)}{(p(z_1|a)p(a)+p(z_1|b)p(b))\cdot(p(z_2|a)p(a)+p(z_2|b)p(b))}
 	\end{align*}
@@ -184,7 +185,7 @@ time to marginalize the graph is still $\mathcal{O}(n^3)$.
 \textcolor{red}{observation and motion models and the analytic Jacobians for them}
 
 \subsubsection*{Rank Deficiency}
-The information matrix is inevitably rank deficient.  To deal with this rank deficiency, we used Tikhonov regularization on the information matrix to calculate 
+The information matrix is inevitably rank deficient.  To deal with this rank deficiency, we used Tikhonov regularization on the information matrix to calculate
 $$\Delta x = (J^T \Sigma^{-1}J + \Gamma^T \Gamma)^{-1}J^T \Sigma^{-1} r$$
 where $\Gamma = \alpha I$ with a scaling value $\alpha = 1000$.  The value for $\alpha$ was chosen to be a small percentage of the size of the values in our weight matrix, which range into the tens of thousands.
 
@@ -195,7 +196,7 @@ where $\Gamma = \alpha I$ with a scaling value $\alpha = 1000$.  The value for $
 Our implementation of Least Squares SLAM draws each of the landmark observation edges and the estimated position of the landmark at each iteration of least squares.  This allows the viewer to watch least squares working. The edges are drawn in different colors that depend on how ``good" they are.  The closer the edge color is to black, the closer the corresponding residual is to 0.  The edge becomes more purple as the residual becomes increasingly negative and more yellow as it becomes increasingly positive.
 
 \subsubsection*{Considering $\chi^2$}
-When the least squares optimization has a set number of iterations at every time stamp it is unnecessarily slow.  When no new landmark observations have been made the $\chi^2$ error, which is calculated as  
+When the least squares optimization has a set number of iterations at every time stamp it is unnecessarily slow.  When no new landmark observations have been made the $\chi^2$ error, which is calculated as
 $$\chi^2 = \Delta x^TJ^T\Sigma^{-1}J\Delta x - 2\Delta x^T\Sigma^{-1}r + r^T\Sigma^{-1}r$$
 barely changes, and so performing many iterations has very little change in the quality of the line.
 
@@ -218,7 +219,7 @@ Another technique would be to use a variant of RANSAC to choose which observatio
 \subsubsection*{Our $\chi^2$ Nearest Neighbor Algorithm}
 In our discussions about associating two landmarks, we determined that making false associations was a greater failure than not making a correct observation.  A few simple tests showed that a single incorrect association could result in a very large error (\textcolor{red}{Do we have an image of this we could reference?}).  As a result, our implementation seeks to be conservative about associating two landmarks.
 
-We implemented $\chi^2$ nearest neighbor using both Euclidean distance and by considering the effect on the $\chi^2$ value of the system caused when associating each new landmark observation with each previous landmark observed.  
+We implemented $\chi^2$ nearest neighbor using both Euclidean distance and by considering the effect on the $\chi^2$ value of the system caused when associating each new landmark observation with each previous landmark observed.
 
 Euclidean distance was used to minimize the number of possible landmark associations that would be considered.  Any landmark that was outside a threshold radius of the suspected landmark location was ignored.  Since the $\chi^2$ nearest neighbor is more complex than calculating Euclidean distance, this is intended to decrease the computation time.  The threshold \textcolor{red}{$XXX$} was chosen to still allow a large area around the suspected location of the landmark to increase the likelihood of finding the correct association, should the robot's perceived self-location deviate greatly from its actual location.
 
