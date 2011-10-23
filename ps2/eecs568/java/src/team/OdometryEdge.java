@@ -30,18 +30,18 @@ public class OdometryEdge implements Edge{
         if (invSigmas == null) {
             int rows = getNumberJacobianRows();
             invSigmas = new Matrix(rows, rows, Matrix.DENSE);
-            /*double[] sigmas = config.requireDoubles("noisemodels.odometryDiag");
-            double lateralNoise = .05; // XXX??????????
+            double[] sigmas = config.requireDoubles("noisemodels.odometryDiag");
+            double lateralNoise = (sigmas[0] + sigmas[1])/2;
 
             invSigmas.set(0,0,(1.0/4.0)*(sigmas[0]+sigmas[1]));
             invSigmas.set(2,2,(b*b/4.0)*(sigmas[0]+sigmas[1]));
             invSigmas.set(0,2,(b/2.0)*(sigmas[0]-sigmas[1]));
             invSigmas.set(2,0,(b/2.0)*(sigmas[0]-sigmas[1]));
-            invSigmas.set(1,1,lateralNoise);*/
+            invSigmas.set(1,1,lateralNoise);
 
-            invSigmas.set(0,0,.1);
-            invSigmas.set(1,1,.01);
-            invSigmas.set(2,2,.1);
+            //invSigmas.set(0,0,.1);
+            //invSigmas.set(1,1,.01);
+            //invSigmas.set(2,2,.1);
 
             invSigmas = invSigmas.inverse();
             //invSigma.print();

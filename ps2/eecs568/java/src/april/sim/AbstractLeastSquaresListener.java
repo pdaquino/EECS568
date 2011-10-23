@@ -44,12 +44,15 @@ public abstract class AbstractLeastSquaresListener implements Simulator.Listener
     public double getChi2() {
         return chi2;
     }
-    
+
     private double chi2(Matrix deltaX, Matrix JTSigmaJ, Matrix JTSigmar, Matrix Sigma, Matrix r) {
         Matrix deltaXT = deltaX.transpose();
         double chi2 = deltaXT.times(JTSigmaJ).times(deltaX).get(0)
                 - 2 * deltaXT.times(JTSigmar).get(0)
                 + r.transpose().times(Sigma).times(r).get(0);
+        // Normalize
+        int normalizationFactor = getNumJacobianRows() - currentStateVectorSize;
+        chi2 /= Math.max(1, normalizationFactor);
         return chi2;
     }
 
@@ -157,7 +160,9 @@ public abstract class AbstractLeastSquaresListener implements Simulator.Listener
         double lastChi2 = 500, chi2Diff = kMinChi2Improvement + 1;
         int countIter = 0;
 
-        while (chi2Diff > kMinChi2Improvement && countIter++ < maxIterations) {
+        //while (chi2Diff > kMinChi2Improvement && countIter++ < maxIterations) {
+        int ITERS = config.requireInt("iters.iters");;
+        for (int iter = 0; iter < ITERS; iter++) {
             Matrix[] matrices = buildJTSigmaJ();
             Matrix Sigma = matrices[2];
             Matrix Tikhonov = matrices[0].plus(I);
@@ -211,6 +216,7 @@ public abstract class AbstractLeastSquaresListener implements Simulator.Listener
         }
         stopWatch.stop();
         printTiming(stopWatch.prettyPrint());
+        System.out.println(getChi2());
     }
 
     protected double[] getStateVector() {
