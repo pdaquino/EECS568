@@ -101,40 +101,6 @@ public class OdometryEdge implements Edge{
         return SigmaInv;
     }
 
-    private CSRVec getDlRow(int stateVectorSize) {
-        CSRVec vec = new CSRVec(stateVectorSize);
-        double cosTa = Math.cos(start.getPosition()[2]);
-        double sinTa = Math.sin(start.getPosition()[2]);
-        double dx = end.getPosition()[0] - start.getPosition()[0];
-        double dy = end.getPosition()[1] - start.getPosition()[1];
-        int startIdx = start.getIndex();
-        vec.set(startIdx, -cosTa);    // x0
-        vec.set(startIdx+1, -sinTa);  // y0
-        vec.set(startIdx+2, cosTa*dy - sinTa*dx + b/2); // T0
-        int endIdx = end.getIndex();
-        vec.set(endIdx, cosTa);       // x1
-        vec.set(endIdx+1, sinTa);     // y1
-        vec.set(endIdx+2, -b/2);    // T1
-        return vec;
-    }
-
-    private CSRVec getDrRow(int stateVectorSize) {
-        CSRVec vec = new CSRVec(stateVectorSize);
-        double cosTa = Math.cos(start.getPosition()[2]);
-        double sinTa = Math.sin(start.getPosition()[2]);
-        double dx = end.getPosition()[0] - start.getPosition()[0];
-        double dy = end.getPosition()[1] - start.getPosition()[1];
-        int startIdx = start.getIndex();
-        vec.set(startIdx, -cosTa);    // x0
-        vec.set(startIdx+1, -sinTa);  // y0
-        vec.set(startIdx+2, cosTa*dy - sinTa*dx - b/2); // T0
-        int endIdx = end.getIndex();
-        vec.set(endIdx, cosTa);       // x1
-        vec.set(endIdx+1, sinTa);     // y1
-        vec.set(endIdx+2, b/2);     // T1
-        return vec;
-    }
-
     private CSRVec getXRow(int stateVectorSize) {
         CSRVec vec = new CSRVec(stateVectorSize);
         double cosTa = Math.cos(start.getPosition()[2]);
@@ -165,7 +131,7 @@ public class OdometryEdge implements Edge{
         int startIdx = start.getIndex();
         vec.set(startIdx, sinTa);       // x0
         vec.set(startIdx+1, -cosTa);    // y0
-        vec.set(startIdx+2, sinTa*dy - cosTa*dx);  // T0
+        vec.set(startIdx+2, -sinTa*dy - cosTa*dx);  // T0
 
         int endIdx = end.getIndex();
         vec.set(endIdx, -sinTa);       // x1

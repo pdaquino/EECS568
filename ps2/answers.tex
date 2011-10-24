@@ -1,7 +1,7 @@
 \documentclass[12pt]{article}
 \usepackage[pdftex]{graphicx}
 \usepackage{epstopdf}
-\usepackage{amsmath, algorithmic, color}
+\usepackage{amsmath, algorithmic, color, multicol}
 
 
 \title{Answers to Problem Set 2}
@@ -83,7 +83,7 @@
     $p(a|z_1,z_2,z_3,z_4) = p(a)$
 \end{enumerate}
 
-%\pagebreak
+\pagebreak
 
 \section{Matrix Sparsity}
 
@@ -183,6 +183,39 @@ time to marginalize the graph is still $\mathcal{O}(n^3)$.
 \subsubsection*{Observation and Motion Models}
 \textcolor{red}{observation and motion models and the analytic Jacobians for them}
 
+\[ \left[ \begin{array}{c}
+x_T \\
+y_T \\
+\theta_T \end{array} \right]  = 
+ \left[ \begin{array}{c}
+cos\theta_0\Delta x + sin\theta_0\Delta y \\
+cos\theta_0\Delta x - sin\theta_0\Delta y \\
+\Delta \theta_T \end{array} \right]\] 
+where $\Delta x = x_1 - x_0$, $\Delta y = y_1 - y_0$, and $\Delta \theta = \theta_1 - \theta_0$.\\
+
+Parital derivatives for Jacobian: 
+\begin{multicols}{2}
+\begin{itemize}
+	\item $\frac{\delta x_T}{\delta x_0} = -cos\theta_0$
+	\item $\frac{\delta x_T}{\delta x_1} = cos\theta_0$
+	\item $\frac{\delta x_T}{\delta y_0} = -sin\theta_0$
+	\item $\frac{\delta x_T}{\delta y_1} = sin\theta_0$
+	\item $\frac{\delta x_T}{\delta \theta_0} = -sin\theta_0\Delta x + cos\theta_0\Delta y$
+	\item $\frac{\delta x_T}{\delta \theta_1} = 0$
+	\item $\frac{\delta y_T}{\delta x_0} = sin\theta_0$
+	\item $\frac{\delta y_T}{\delta x_1} = -sin\theta_0$
+	\item $\frac{\delta y_T}{\delta y_0} = -cos\theta_0$
+	\item $\frac{\delta y_T}{\delta y_1} = cos\theta_0$
+	\item $\frac{\delta y_T}{\delta \theta_0} = -sin\theta_0\Delta x - cos\theta_0\Delta y$
+	\item $\frac{\delta y_T}{\delta \theta_1} = 0$
+	\item $\frac{\delta \theta_T}{\delta \theta_0} = -1$
+	\item $\frac{\delta \theta_T}{\delta \theta_1} = 1$
+	\item $\frac{\delta \theta_T}{\delta x_0} = \frac{\delta \theta_T}{\delta x_1} = \frac{\delta \theta_T}{\delta y_0} = \frac{\delta \theta_T}{\delta y_1} = 0$
+\end{itemize}
+\end{multicols}
+
+The Jacobian is built with three new rows for every new odometry edge and two new rows for every new landmark observation.  Each type of new edge results in the addition of three columns to the Jacobian.
+
 \subsubsection*{Rank Deficiency}
 The information matrix is inevitably rank deficient.  To deal with this rank deficiency, we used Tikhonov regularization on the information matrix to calculate
 $$\Delta x = (J^T \Sigma^{-1}J + \Gamma^T \Gamma)^{-1}J^T \Sigma^{-1} r$$
@@ -260,6 +293,13 @@ Each previously observed landmark within the given area is considered for associ
 \subsubsection*{Error Analysis}
 
 \textcolor{red}{Put both errors in landmark associations and surface plot showing the number of data association errors as a function of odometry and measurement noise here.}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/error_plot.eps}
+\label{fig:assoc_err}
+\caption{}%XXX}
+\end{figure}
 
 The four cases that can occur when trying to associate a landmark are:
 \begin{itemize}
