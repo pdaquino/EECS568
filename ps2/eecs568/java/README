@@ -1,0 +1,7 @@
+Our listener for normal Least Sqaures SLAM with perfect data association is called the april.sim.LeastSqauresListener.
+Our listener for normal Least Sqaures SLAM with our own data association is called the april.sim.LeastSqauresNoAssocListener.
+
+Invoke both normally as per the pattern of the simulator calls from the java directory:
+
+java -cp april.jar april.sim.Simulator --config ../config/sim.config -l [listener]
+

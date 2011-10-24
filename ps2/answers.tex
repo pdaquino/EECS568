@@ -2,6 +2,7 @@
 \usepackage[pdftex]{graphicx}
 \usepackage{epstopdf}
 \usepackage{amsmath, algorithmic, color, multicol}
+\usepackage{subfigure}
 
 
 \title{Answers to Problem Set 2}
@@ -251,7 +252,42 @@ where $\Gamma = \alpha I$ with a scaling value $\alpha = 1000$.  The value for $
 
 
 \subsubsection*{Visualizing Least Squares SLAM}
-\textcolor{red}{Provide screen shots for the trajectory versus ground truth.}
+\begin{figure}[htb]
+\subfigure[Odometry Only]{
+    \includegraphics[width=0.45\textwidth]{eecs568/java/figures/normal_baseline.png}
+}
+\subfigure[Least Squares SLAM - Perfect Data Association]{
+    \includegraphics[width=0.45\textwidth]{eecs568/java/figures/normal_slam.png}
+}
+\label{fig:LSSLAM}
+\caption{Odometry only trajectory vs. trajectory after performing Least Squares optimization.
+The addition of landmark constraints pulls the path back on track, resulting in a relatively
+accurate trajectory.}
+\end{figure}
+
+\begin{figure}[htb]
+\subfigure[Odometry Only]{
+    \includegraphics[width=0.45\textwidth]{eecs568/java/figures/normal_baseline_2.png}
+}
+\subfigure[Least Squares SLAM - Perfect Data Association]{
+    \includegraphics[width=0.45\textwidth]{eecs568/java/figures/normal_slam_2.png}
+}
+\label{fig:LSSLAM2}
+\caption{An additional example of SLAM vs. baseline with default noise values.}
+\end{figure}
+
+\begin{figure}[htb]
+\subfigure[Odometry Only]{
+    \includegraphics[width=0.45\textwidth]{eecs568/java/figures/motion_noise_baseline.png}
+}
+\subfigure[Least Squares SLAM - Perfect Data Association]{
+    \includegraphics[width=0.45\textwidth]{eecs568/java/figures/motion_noise_slam.png}
+}
+\label{fig:LSSLAM_noise}
+\caption{Odometry only trajectory vs. trajectory after performing Least Squares optimization
+on an example with significantly higher odometry noise. While SLAM was able to bring the
+estimated trajectory much closer to the actual, it is hard to recover from such bad odometry.}
+\end{figure}
 
 Our implementation of Least Squares SLAM draws each of the landmark observation edges and the estimated position of the landmark at each iteration of least squares.  This allows the viewer to watch least squares working. The edges are drawn in different colors that depend on how ``good" they are.  The closer the edge color is to black, the closer the norm of the corresponding residual is to 0.  The edge becomes more purple as the radius residual becomes increasingly negative and more yellow as it becomes increasingly positive. That means that purple edges that are ``attracting" the robot and the landmark, while yellow edges try to push them away.
 
