@@ -40,7 +40,7 @@ public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
             LandmarkPose lmarkPose = (LandmarkPose) node;
             double distance = LinAlg.distance(tentativeLmark.getPosition(),
                     lmarkPose.getPosition());
-            if (distance < 50000) {
+            if (distance < 5) {
                 possibleMatches.add(new PossibleMatch(obs, lmarkPose));
             }
         }
@@ -73,7 +73,7 @@ public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
             // If our best match isn't very good, create a new landmark,
             // else use the one we're trying
             double chi2 = this.getChi2();
-            double cutoff = Math.max(1.2 * chi2, chi2 + .5);
+            double cutoff = Math.max(1.5 * chi2, chi2 + .25);
             String debug = ("Chi2 = " + bestMatch.chi2 + "/" + cutoff);
             if (bestMatch.chi2 < cutoff) {
                 System.out.println("match (" + debug + ")");
@@ -200,14 +200,14 @@ public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
     edges.add(matchingEdge);
     return match;
     }
-    
+
     private LandmarkPose getBestMatch(landmark_t lmark) {
     // we are going to do some update iterations, which are messing up
     // potentially all nodes. we need to keep a back up
     // (call updateNodesPosition later!)
     double[] originalStateVector = this.getStateVector();
     double originalChi2 = this.getChi2();
-    
+
     LandmarkPose bestOneSoFar = null;
     double lowestChi2 = 0;
     ArrayList<LandmarkPose> possibleMatches = getPossibleMatches(lmark);

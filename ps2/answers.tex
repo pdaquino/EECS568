@@ -7,7 +7,7 @@
 \title{Answers to Problem Set 2}
 \author{
 	Lauren Hinkle (lhinkle)\\
-	Pedro d'Aquino  (pdaquino)\\
+	Pedro d'Aquino (pdaquino)\\
 	Robert Goeddel (rgoeddel)}
 
 \begin{document}
@@ -20,11 +20,10 @@
 \begin{enumerate}
 	\item $u_i$ and $u_{i+1}$ are unconditionally independent, but are dependent given the robot trajectory.
 	\item $z_i$ and $z_{i+1}$ are dependent, even given all the positions, because the dependence flows through $L_0$.
-	\item If the trajectory of the robot is known, the our posterior estimate of the locations of the
-    landmarks is only dependent on the landmark observation noise. For example, if the noise is Gaussian,
-    we'd expect the mean of our observations of a particular landmark to converge on the actual location
-    of the landmark as we gain more observations. Since our SLAM estimates of these positions would've
-    been affected by odometry noise without a known trajectory, we expect our estimates to improve.
+	\item If the trajectory of the robot is known, the our posterior estimates of the locations of the landmarks
+    are altered. This is because the landmark nodes ($L_i$) are dependent on the trajectory nodes ($x_i$). This
+    dependency arises from the fact that, in a SLAM problem, we are \emph{given} observations ($u_i$ and $z_i$).
+    The $z_i$ introduce the trajectory to landmark dependency.
 \end{enumerate}
 
 \paragraph{B}
@@ -36,7 +35,7 @@
 						&= \frac{p(z_1|a)p(a)}{p(z_1|a)p(a) + p(z_1|b)p(b)} \\
 						&= \frac{p(z_1|a)p(a)}{p(z_1|a)p(a) + p(z_1|b)(1-p(a))}
 	\end{align*}
-	% Part B2 XXX - not sure about p(z_1|z_2), also doesn't align with results in B3
+	% Part B2
 	\item  First we show $p(z_1,z_2|a) = p(z_2|a,z_1)p(z_1|a)p(a)$:
 	\begin{align*}
 	p(z_1,z_2|a) &= \frac{p(z_1,z_2,a)}{p(a)} \\
@@ -87,7 +86,7 @@
 
 \section{Matrix Sparsity}
 
-% XXX Assumed reflexive edges? YES / NO?
+Note: We are assuming \emph{no} reflexive edges unless otherwise specified.
 \paragraph{(i)}
 The adjaceny matrix for the given graph looks like:
 
@@ -181,19 +180,19 @@ time to marginalize the graph is still $\mathcal{O}(n^3)$.
 \subsection*{A. Least-Squares-style SLAM}
 
 \subsubsection*{Observation and Motion Models}
-\textcolor{red}{observation and motion models and the analytic Jacobians for them}
 
+\paragraph{Motion Model}
 \[ \left[ \begin{array}{c}
 x_T \\
 y_T \\
-\theta_T \end{array} \right]  = 
+\theta_T \end{array} \right]  =
  \left[ \begin{array}{c}
 cos\theta_0\Delta x + sin\theta_0\Delta y \\
 cos\theta_0\Delta x - sin\theta_0\Delta y \\
-\Delta \theta_T \end{array} \right]\] 
+\Delta \theta_T \end{array} \right]\]
 where $\Delta x = x_1 - x_0$, $\Delta y = y_1 - y_0$, and $\Delta \theta = \theta_1 - \theta_0$.\\
 
-Parital derivatives for Jacobian: 
+Partial derivatives for Jacobian:
 \begin{multicols}{2}
 \begin{itemize}
 	\item $\frac{\delta x_T}{\delta x_0} = -cos\theta_0$
@@ -214,7 +213,36 @@ Parital derivatives for Jacobian:
 \end{itemize}
 \end{multicols}
 
-The Jacobian is built with three new rows for every new odometry edge and two new rows for every new landmark observation.  Each type of new edge results in the addition of three columns to the Jacobian.
+\paragraph{Observation Model}
+\[ \left[ \begin{array}{c}
+r \\
+\theta \\
+\end{array} \right] =
+\left[ \begin{array}{c}
+\sqrt{\Delta x^2 + \Delta y^2} \\
+\arctan \frac{\Delta y}{\Delta x} - \theta_0 \\
+\end{array} \right]
+\]
+where $x_1 = $ landmark position and $x_0 = $ robot position, $\Delta x = x_1 - x_0$, etc.\\
+
+Partial derivatives for Jacobian:
+\begin{multicols}{2}
+\begin{itemize}
+	\item $\frac{\delta r}{\delta x_0} = \frac{- \Delta x}{\sqrt{\Delta x^2 + \Delta y^2}}$
+	\item $\frac{\delta r}{\delta x_1} = \frac{\Delta x}{\sqrt{\Delta x^2 + \Delta y^2}}$
+	\item $\frac{\delta r}{\delta y_0} = \frac{-\Delta y}{\sqrt{\Delta x^2 + \Delta y^2}}$
+	\item $\frac{\delta r}{\delta y_1} = \frac{\Delta y}{\sqrt{\Delta x^2 + \Delta y^2}}$
+	\item $\frac{\delta r}{\delta \theta_0} = 0$
+	\item $\frac{\delta \theta}{\delta x_0} = \frac{1}{1 + (\frac{\Delta y}{\Delta x})^2}\frac{\Delta y}{\Delta x^2}$
+	\item $\frac{\delta \theta}{\delta x_1} = \frac{1}{1 + (\frac{\Delta y}{\Delta x})^2}\frac{\Delta y}{\Delta x^2}$
+	\item $\frac{\delta \theta}{\delta y_0} = \frac{1}{1 + (\frac{\Delta y}{\Delta x})^2}\frac{-1}{\Delta x}$
+	\item $\frac{\delta \theta}{\delta y_1} = \frac{1}{1 + (\frac{\Delta y}{\Delta x})^2}\frac{1}{\Delta x}$
+	\item $\frac{\delta \theta}{\delta \theta_0} = -1$
+\end{itemize}
+\end{multicols}
+
+The Jacobian is built with three new rows for every new odometry edge and two new rows for every new landmark observation.
+A new odometry node adds three columns to the Jacobian and a new landmark node adds two columns.
 
 \subsubsection*{Rank Deficiency}
 The information matrix is inevitably rank deficient.  To deal with this rank deficiency, we used Tikhonov regularization on the information matrix to calculate
@@ -232,7 +260,7 @@ When the least squares optimization has a set number of iterations at every time
 $$\chi^2 = \Delta x^TJ^T\Sigma^{-1}J\Delta x - 2\Delta x^T\Sigma^{-1}r + r^T\Sigma^{-1}r$$
 barely changes, and so performing many iterations has very little change in the quality of the solution.
 
-To help mitigate excessively iterating, we use the $\chi^2$ error to help determine how many iterations of least squares optimization to run at each timestep.  When the change in $\chi^2$ from one iteration to the next is less than a given threshold, the solution is accepted.  After testing various threshold, we settled on $0.005$ (see Figure \ref{fig:chi2_iters}), which seemed to provide a reasonable compromise between allowing the program to run until it is not changing very much, and not being too slow.  Additionally, to help speed up the runtime, we used a maximum of 100 iterations.
+To help mitigate excessively iterating, we use the $\chi^2$ error to help determine how many iterations of least squares optimization to run at each timestep.  When the change in $\chi^2$ from one iteration to the next is less than a given threshold, the solution is accepted.  After testing various thresholds, we settled on $0.005$ (see Figure \ref{fig:chi2_iters}), which seemed to provide a reasonable compromise between allowing the program to run until it is not changing very much and not being excessively slow.  Additionally, to help limit the runtime, we used a maximum of 100 iterations.
 
 This optimization has very significant effects when the robot has not closed any landmark loops during the current timestep. This means that nodes and edges are added, but this has no impact on the rest of the system. In that case, only two iterations are needed (one to compute the new state vector, and another to realize that the $\chi^2$ error won't change).
 
@@ -252,7 +280,7 @@ This optimization has very significant effects when the robot has not closed any
 
 For this part, the robot was not given the ID for each landmark and therefore had to associate landmark observations on its own, using $\chi^2$ nearest neighbors.  In order to truly test the best associations for each of the new landmark observations, it would be necessary to create a set for every possible set of associations and find the set of associations that produced the lowest $\chi^2$.  A single association between one new observation and a previously seen landmark may have a positive increase in the $\chi^2$ value, but it may cause the other new observations to have such poor associations (or to become new landmarks), and therefore the overall system is worse than if a poorer first $\chi^2$ choice is made.  However, doing this many calculations would be very slow.  We therefore propose methods for mitigating this and share the changes we use in our code.
 
-\subsubsection*{Optimization Proposals}
+\subsubsection*{Optimization Proposal (i)}
 Nearest neighbors could be optimized by decreasing the number of computations required.  This could be done by decreasing the number of previously seen landmarks each new observations is compared to.  Additionally, the $\chi^2$ resulting from an association could be estimated by performing less Least-Squares iterations. We employed both of these methods in our code.
 
 Another method to decrease computation would be to make assumptions about landmarks seen in sequential observations.  At each timestep one could consider the landmarks observed in each of the last several odometry positions.  For each of those landmarks, if the new observation approximately matches the position of that landmark, we can assume that it is the one being observed. In that case, the $\chi^2$ computation is skipped completely.
@@ -266,7 +294,7 @@ We implemented $\chi^2$ nearest neighbor using both Euclidean distance and by co
 
 Euclidean distance was used to minimize the number of possible landmark associations that would be considered.  Any landmark that was outside a threshold radius of the observed landmark location was ignored.  Since the $\chi^2$ nearest neighbor is more complex than calculating Euclidean distance, this is intended to decrease the computation time.  The threshold 5 was chosen to still allow a large area around the suspected location of the landmark to increase the likelihood of finding the correct association, should the robot's perceived self-location deviate greatly from its actual location.
 
-Each previously observed landmark within the given area is considered for association using $\chi^2$ nearest neighbor.  Each association pair between a previous landmark and new observations is tested by assuming the association is correct and performing ten iterations of the Least-Squares Optimization loop. The resulting $\chi^2$ values are calculated.  We chose to do ten iterations because even very large initial $\chi^2$ begin to converge within ten iterations, although they may not reach their minimum, and iterating as much as in part A would lead to time-consuming steps.  The pair with the best resulting $\chi^2$ that falls within a given threshold change from the current $\chi^2$ is a associated.  The next best pair which does not include either of the already used landmarks is then associated (if it falls within the threshold).  This process is continued until all the new observations have either been associated with a previous landmark or there are no landmarks left within the threshold.  Any remaining new observations become new landmark poses.  The threshold we used was $max(1.2*old\chi^2, old\chi^2 + .5$).  This allowed $\chi^2$ increments proportional to the current $\chi^2$ value, which grows as more observations are made.
+Each previously observed landmark within the given area is considered for association using $\chi^2$ nearest neighbor.  Each association pair between a previous landmark and new observations is tested by assuming the association is correct and performing ten iterations of the Least-Squares Optimization loop. The resulting $\chi^2$ values are calculated.  We chose to do ten iterations because even very large initial $\chi^2$ begin to converge within ten iterations, although they may not reach their minimum, and iterating as much as in part A would lead to time-consuming steps.  The pair with the best resulting $\chi^2$ that falls within a given threshold change from the current $\chi^2$ is a associated.  The next best pair which does not include either of the already used landmarks is then associated (if it falls within the threshold).  This process is continued until all the new observations have either been associated with a previous landmark or there are no landmarks left within the threshold.  Any remaining new observations become new landmark poses.  The threshold we used was $max(1.5*old\chi^2, old\chi^2 + .25$).
 
 %\begin{algorithmic}   %%This was the old method.  Not sure that we want it anyway.
 %\STATE{\bf Associate Landmarks}
@@ -292,15 +320,6 @@ Each previously observed landmark within the given area is considered for associ
 
 \subsubsection*{Error Analysis}
 
-\textcolor{red}{Put both errors in landmark associations and surface plot showing the number of data association errors as a function of odometry and measurement noise here.}
-
-\begin{figure}[h!]
-\centering
-\includegraphics[width=0.9\textwidth]{figures/error_plot.eps}
-\label{fig:assoc_err}
-\caption{}%XXX}
-\end{figure}
-
 The four cases that can occur when trying to associate a landmark are:
 \begin{itemize}
 \item Incorrectly creating a new landmark (False Negative)
@@ -309,7 +328,30 @@ The four cases that can occur when trying to associate a landmark are:
 \item Correctly creating a new landmark (True Negative)
 \end{itemize}
 
-The surface plot showing the number of data association errors as a function of odometry and measurement noise is centered around the parameters given by Joho.  False negatives and false positives were combined for error.
+\paragraph{ii}
+We attempted to minimize the occurence of false positives at the cost of potentially increasing the number of false negatives.
+A false positive incorrectly closes a loop, generally pulling the robot off course and leading to further localization errors.
+Significant mistakes in landmark matching lead to our solution diverging from the actual solution. It is thus preferable to be
+conservative when matching landmarks since saying no match exists means we just continue to trust out odometry and naively
+plod ahead. However, in practice, certain situations arise (particularly with the default settings for the simulator) where
+we can still be fairly confident in a bad matching. Given the default parameters, we end up making several bad associations on
+landmarks that are very close together as well as on pairs of landmarks that are positioned roughly the same to each other.
+The former associations cause small stutters in our estimated trajectory while the bad pair associations drag us off track
+from the true path. The bad pair associations were significantly more damaging since they change the heading significantly,
+whereas the nearby obstacles tend to affect (x,y) more.
+
+\paragraph{iii}
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/error_plot.eps}
+\label{fig:assoc_err}
+\caption{Data association errors tend to be more frequent in high noise situations. Starting with
+the default noise parameters, we increased and decreased noise, respectively, by set scale factors
+and tallied the ratio of false positives and negatives to total landmark observations for a small
+trial. }
+\end{figure}
+
+The surface plot (see Figure \ref{fig:assoc_err}) showing the number of data association errors as a function of odometry and measurement noise is centered around the parameters given by Joho.  False negatives and false positives were combined for error.
 
 
 \end{document}
