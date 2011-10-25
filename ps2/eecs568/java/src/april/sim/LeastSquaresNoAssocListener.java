@@ -73,7 +73,7 @@ public class LeastSquaresNoAssocListener extends AbstractLeastSquaresListener {
             // If our best match isn't very good, create a new landmark,
             // else use the one we're trying
             double chi2 = this.getChi2();
-            double cutoff = Math.max(1.5 * chi2, chi2 + .25);
+            double cutoff = Math.max(1.25 * chi2, chi2 + .1);
             String debug = ("Chi2 = " + bestMatch.chi2 + "/" + cutoff);
             if (bestMatch.chi2 < cutoff) {
                 System.out.println("match (" + debug + ")");
