@@ -48,7 +48,7 @@ public abstract class AbstractLeastSquaresListener implements Simulator.Listener
             true_landmarks.add(LinAlg.resize(li, 3));
         }
 
-        //edges.add(new ConstraintEdge(latestRobotPose, new double[3]));
+        edges.add(new ConstraintEdge(latestRobotPose, new double[3]));
     }
 
     public double getChi2() {
@@ -166,7 +166,7 @@ public abstract class AbstractLeastSquaresListener implements Simulator.Listener
 
     protected void doLeastSquaresUpdate(int maxIterations, ArrayList<LandmarkPose> recentLmarks) {
         StopWatch stopWatch = new StopWatch();
-        final double alpha = 1000;
+        final double alpha = 0;
         Matrix I = Matrix.identity(currentStateVectorSize, currentStateVectorSize).times(alpha);
         final double kMinChi2Improvement = 0.005;
         long timeJTSigmar = 0, timeCholesky = 0, timeDeltaX = 0, timeChi2 = 0;

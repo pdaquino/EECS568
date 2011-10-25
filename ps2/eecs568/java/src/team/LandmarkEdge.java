@@ -51,8 +51,8 @@ public class LandmarkEdge implements Edge
 
         return residual;
     }
-    
-    
+
+
 
     public Matrix getJacobian(int stateVectorSize)
     {
@@ -61,7 +61,7 @@ public class LandmarkEdge implements Edge
         J.setRow(1, getThetaRow(stateVectorSize));
         return J;
     }
-    
+
     public ArrayList<double[]> getEndpoints() {
         ArrayList<double[]> endpoints = new ArrayList<double[]>(2);
         endpoints.add(LinAlg.resize(robot.getPosition(), 2));
@@ -85,6 +85,7 @@ public class LandmarkEdge implements Edge
         double dx = lmark.getPosition()[0] - robot.getPosition()[0];
         double dy = lmark.getPosition()[1] - robot.getPosition()[1];
         double dydx2 = (dy/dx)*(dy/dx);
+        double mag2 = dx*dx + dy*dy;
 
         int robotIdx = robot.getIndex();
         vec.set(robotIdx, (1.0/(1.0 + dydx2)) * dy/(dx*dx));    // x0
