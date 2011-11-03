@@ -18,7 +18,9 @@
 \section{FastSLAM}
 
 \paragraph{A}
+Starting with an existing EKF...
 \subparagraph{i}
+After first observation update.
 
 $K = \Sigma_x J_x^T(J_x \Sigma_x J_x^T + \Sigma_z)^{-1} $ \\
 $\Sigma_z = \left[ \begin{array}{c c}
@@ -27,5 +29,12 @@ $\Sigma_z = \left[ \begin{array}{c c}
 \end{array} \right]$ \\
 $x' = x + Kr$ \\
 $\Sigma_x' = (I - KJ_x) \Sigma_x$ \\
+
+\subparagraph{ii}
+After second observation update (\emph{Note: additional primes denote
+    later state}).
+$K' = \Sigma_x' J_{x'}^T(J_{x'} \Sigma_x' J_{x'}^T + \Sigma_z)^{-1} $ \\
+$x'' = x' + K'r'$ \\
+$\Sigma_x'' = (I - K'J_{x'}) \Sigma_x'$ \\
 
 \end{document}
