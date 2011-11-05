@@ -3,10 +3,10 @@
 <project name="april" default="build" basedir=".">
 
   <!-- Build everything -->
-  <target name="build" depends="generate-lcmtypes,build-java,build-jar,build-jni"/>
+  <target name="build" depends="build-java,build-jar,build-jni"/>
 
   <!-- Clean everything -->
-  <target name="clean" depends="clean-lcmtypes,clean-java,clean-jni"/>
+  <target name="clean" depends="clean-java,clean-jni"/>
 
   <!-- Dist Clean everyting -->
   <target name="distclean" depends="clean">
