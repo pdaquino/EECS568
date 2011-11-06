@@ -249,8 +249,8 @@ public class MultiGaussian
 
         // Test 4: Plotting contours and points
         mu = new double[2];
-        Sigma = new double[][] { {1, 0},
-                                 {0, 1} };
+        Sigma = new double[][] { {0.0424, 0},
+                                 {0, 0.0424} };
         final MultiGaussian fmg = new MultiGaussian(Sigma, mu);
 
         final double CHI2 = 1.0;
