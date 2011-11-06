@@ -24,13 +24,12 @@ public class GL
     private static native int gl_read_pixels2(int width, int height, byte data[]);
     private static native int gl_ops(double toks[], int toklen);
 
-    public static final int VBO_TYPE_VERTEX=1, VBO_TYPE_NORMAL=2, VBO_TYPE_COLOR=3, VBO_TYPE_TEX_COORD=4, VBO_TYPE_ELEMENT_ARRAY=5;
+    public static final int VBO_TYPE_VERTEX=1, VBO_TYPE_NORMAL=2, VBO_TYPE_COLOR=3, VBO_TYPE_TEX_COORD=4, VBO_TYPE_VERTEX_IDX=5;
 
     // bind and unbind vertex data
     private static native int gldata_bind(int vbo_type, long id, int nvertices, int vertdim, float data[]);
     private static native int gldata_bind(int vbo_type, long id, int nvertices, int vertdim, double data[]);
     private static native int gldata_bind(int vbo_type, long id, int nvertices, int vertdim, int data[]);
-    private static native int gldata_bind(int vbo_type, long id, int nvertices, int vertdim, short data[]);
     private static native int gldata_unbind(int vbo_type, long id);
 
     private static native int gldata_tex_bind(long id, int internalfmt, int width, int height, int fmt, int type, int data[]);
@@ -58,8 +57,7 @@ public class GL
         OP_MATERIALFV = 19, OP_DEPTHFUNC = 20, OP_BLENDFUNC = 21, OP_POLYGONMODE = 22, OP_HINT = 23,
         OP_SHADEMODEL = 24, OP_BEGIN = 25, OP_END = 26, OP_VERTEX2D = 27, OP_VERTEX3D = 28,
         OP_VIEWPORT = 29, OP_DRAWARRAYS = 30, OP_POLYGONOFFSET = 31, OP_LINEWIDTH = 32,
-        OP_PUSHATTRIB = 33, OP_POPATTRIB = 34, OP_POINTSIZE = 35, OP_TEXCOORD2D = 36, OP_NORMAL3F = 37,
-        OP_ALPHA_FUNC = 38, OP_ROTATED = 39, OP_DRAWRANGEELEMENTS = 40;
+        OP_PUSHATTRIB = 33, OP_POPATTRIB = 34, OP_POINTSIZE = 35, OP_TEXCOORD2D = 36, OP_NORMAL3F = 37;
 
     public static final int GL_TRUE = 1, GL_FALSE = 0;
 
@@ -96,14 +94,9 @@ public class GL
 
     public static final int GL_LINE_SMOOTH = 0x0b20, GL_LINE_STIPPLE = 0x0b24;
 
-    public static final int GL_CULL_FACE = 0x0b44, GL_CULL_FACE_MODE = 0x0b45;
-
     public static final int GL_POINTS = 0x0000, GL_LINES = 0x0001, GL_LINE_LOOP = 0x0002, GL_LINE_STRIP = 0x0003, GL_TRIANGLES = 0x0004, GL_TRIANGLE_STRIP = 0x0005, GL_TRIANGLE_FAN = 0x0006, GL_QUADS=0x0007, GL_QUAD_STRIP = 0x0008, GL_POLYGON = 0x0009;
 
     public static final int GL_RGBA8 = 0x8058, GL_ALPHA8=0x803c, GL_LUMINANCE8 = 0x8040, GL_BGRA = 0x80e1, GL_UNSIGNED_INT_8_8_8_8_REV = 0x8367, GL_ABGR_EXT = 0x8000, GL_RGB8=0x8051, GL_LUMINANCE = 0x1909, GL_ALPHA = 0x1906, GL_UNSIGNED_BYTE = 0x1401;
-
-    public static final int GL_ALPHA_TEST = 0x0BC0;
-    public static final int GL_GREATER = 0x0204, GL_GEQUAL = 0x0206, GL_ALWAYS = 0x0207;
 
     /** While "public", this method should only be called once and
      * only called on the thread that will do all subsequent GL
@@ -192,31 +185,6 @@ public class GL
         cmd.add(x);
         cmd.add(y);
         cmd.add(z);
-    }
-
-    public void glRotated(double angle, double x, double y, double z)
-    {
-        cmd.add(OP_ROTATED);
-        cmd.add(angle);
-        cmd.add(x);
-        cmd.add(y);
-        cmd.add(z);
-    }
-
-    /** Assumes that an ELEMENT_ARRAY has been bound.
-     * @param start  The minimum vertex index referenced
-     * @param end  The maximum vertex index referenced
-     * @param count The number of vertices to render
-     * @param indexOffsetBytes The offset in the index buffer object to fetch indices from
-    **/
-    public void glDrawRangeElements(int mode, int start, int end, int count, int indexOffsetBytes)
-    {
-        cmd.add(OP_DRAWRANGEELEMENTS);
-        cmd.add(mode);
-        cmd.add(start);
-        cmd.add(end);
-        cmd.add(count);
-        cmd.add(indexOffsetBytes);
     }
 
     public void glPushMatrix()
@@ -478,13 +446,6 @@ public class GL
         cmd.add(y);
     }
 
-    public void glAlphaFunc(int func, double r)
-    {
-        cmd.add(OP_ALPHA_FUNC);
-        cmd.add(func);
-        cmd.add(r);
-    }
-
     //////////////////////////////////////////
     // Functions below manage our C-side VBO cache
 
@@ -521,12 +482,6 @@ public class GL
     }
 
     public void gldBind(int vbo_type, long id, int nverts, int vertdim, int data[])
-    {
-        flush();
-        gldata_bind(vbo_type, id, nverts, vertdim, data);
-    }
-
-    public void gldBind(int vbo_type, long id, int nverts, int vertdim, short data[])
     {
         flush();
         gldata_bind(vbo_type, id, nverts, vertdim, data);

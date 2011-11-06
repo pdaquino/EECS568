@@ -1,7 +1,5 @@
 package april.vis;
 
-import java.io.*;
-
 public class VisLighting extends VisChain
 {
     boolean enabled;
@@ -25,21 +23,5 @@ public class VisLighting extends VisChain
         super.render(vc, layer, rinfo, gl);
 
         gl.glPopAttrib();
-    }
-
-    public VisLighting(ObjectReader r)
-    {
-    }
-
-    public void writeObject(ObjectWriter outs) throws IOException
-    {
-        super.writeObject(outs);
-        outs.writeBoolean(enabled);
-    }
-
-    public void readObject(ObjectReader ins) throws IOException
-    {
-        super.readObject(ins);
-        enabled = ins.readBoolean();
     }
 }

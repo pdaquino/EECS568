@@ -23,4 +23,4 @@ april_vis_GL.h: ../src/april/vis/GL.java
 	javah -classpath ../april.jar  april.vis.GL
 
 clean:
-	rm -rf *.o *~ gltest *.so
+	rm -rf *.o *~

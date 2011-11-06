@@ -15,8 +15,8 @@ extern "C" {
 #define april_vis_GL_VBO_TYPE_COLOR 3L
 #undef april_vis_GL_VBO_TYPE_TEX_COORD
 #define april_vis_GL_VBO_TYPE_TEX_COORD 4L
-#undef april_vis_GL_VBO_TYPE_ELEMENT_ARRAY
-#define april_vis_GL_VBO_TYPE_ELEMENT_ARRAY 5L
+#undef april_vis_GL_VBO_TYPE_VERTEX_IDX
+#define april_vis_GL_VBO_TYPE_VERTEX_IDX 5L
 #undef april_vis_GL_OP_TRANSLATED
 #define april_vis_GL_OP_TRANSLATED 1L
 #undef april_vis_GL_OP_PUSHMATRIX
@@ -91,12 +91,6 @@ extern "C" {
 #define april_vis_GL_OP_TEXCOORD2D 36L
 #undef april_vis_GL_OP_NORMAL3F
 #define april_vis_GL_OP_NORMAL3F 37L
-#undef april_vis_GL_OP_ALPHA_FUNC
-#define april_vis_GL_OP_ALPHA_FUNC 38L
-#undef april_vis_GL_OP_ROTATED
-#define april_vis_GL_OP_ROTATED 39L
-#undef april_vis_GL_OP_DRAWRANGEELEMENTS
-#define april_vis_GL_OP_DRAWRANGEELEMENTS 40L
 #undef april_vis_GL_GL_TRUE
 #define april_vis_GL_GL_TRUE 1L
 #undef april_vis_GL_GL_FALSE
@@ -223,10 +217,6 @@ extern "C" {
 #define april_vis_GL_GL_LINE_SMOOTH 2848L
 #undef april_vis_GL_GL_LINE_STIPPLE
 #define april_vis_GL_GL_LINE_STIPPLE 2852L
-#undef april_vis_GL_GL_CULL_FACE
-#define april_vis_GL_GL_CULL_FACE 2884L
-#undef april_vis_GL_GL_CULL_FACE_MODE
-#define april_vis_GL_GL_CULL_FACE_MODE 2885L
 #undef april_vis_GL_GL_POINTS
 #define april_vis_GL_GL_POINTS 0L
 #undef april_vis_GL_GL_LINES
@@ -267,14 +257,6 @@ extern "C" {
 #define april_vis_GL_GL_ALPHA 6406L
 #undef april_vis_GL_GL_UNSIGNED_BYTE
 #define april_vis_GL_GL_UNSIGNED_BYTE 5121L
-#undef april_vis_GL_GL_ALPHA_TEST
-#define april_vis_GL_GL_ALPHA_TEST 3008L
-#undef april_vis_GL_GL_GREATER
-#define april_vis_GL_GL_GREATER 516L
-#undef april_vis_GL_GL_GEQUAL
-#define april_vis_GL_GL_GEQUAL 518L
-#undef april_vis_GL_GL_ALWAYS
-#define april_vis_GL_GL_ALWAYS 519L
 /*
  * Class:     april_vis_GL
  * Method:    gl_initialize
@@ -362,14 +344,6 @@ JNIEXPORT jint JNICALL Java_april_vis_GL_gldata_1bind__IJII_3D
  */
 JNIEXPORT jint JNICALL Java_april_vis_GL_gldata_1bind__IJII_3I
   (JNIEnv *, jclass, jint, jlong, jint, jint, jintArray);
-
-/*
- * Class:     april_vis_GL
- * Method:    gldata_bind
- * Signature: (IJII[S)I
- */
-JNIEXPORT jint JNICALL Java_april_vis_GL_gldata_1bind__IJII_3S
-  (JNIEnv *, jclass, jint, jlong, jint, jint, jshortArray);
 
 /*
  * Class:     april_vis_GL

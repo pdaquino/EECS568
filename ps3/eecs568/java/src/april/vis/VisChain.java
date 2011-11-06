@@ -1,9 +1,8 @@
 package april.vis;
 
-import java.io.*;
 import java.util.*;
 
-public class VisChain implements VisObject, VisSerializable
+public class VisChain implements VisObject
 {
     ArrayList<Object> ops = new ArrayList<Object>();
 
@@ -73,44 +72,5 @@ public class VisChain implements VisObject, VisSerializable
         gl.glPopMatrix();
     }
 
-    /** for serialization only **/
-    public VisChain(ObjectReader r)
-    {
-    }
 
-    public void writeObject(ObjectWriter outs) throws IOException
-    {
-        outs.writeInt(ops.size());
-
-        for (Object o : ops) {
-            if (o == null) {
-                outs.writeByte(0);
-                outs.writeObject(null);
-            } else if (o instanceof VisObject) {
-                outs.writeByte(1);
-                outs.writeObject(o);
-            } else if (o instanceof double[][]) {
-                outs.writeByte(2);
-                outs.writeDoubleMatrix((double[][]) o);
-            }
-        }
-    }
-
-    public void readObject(ObjectReader ins) throws IOException
-    {
-        int sz = ins.readInt();
-
-        for (int i = 0; i < sz; i++) {
-            int type = ins.readByte();
-
-            if (type == 0)
-                add(null);
-            else if (type == 1)
-                add(ins.readObject());
-            else if (type == 2)
-                add(ins.readDoubleMatrix());
-            else
-                assert(false);
-        }
-    }
 }

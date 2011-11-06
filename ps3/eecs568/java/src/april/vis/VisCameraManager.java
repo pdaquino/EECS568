@@ -5,11 +5,10 @@ import april.jmat.geom.*;
 
 import java.awt.event.*;
 import javax.swing.*;
-import java.io.*;
 
 public interface VisCameraManager
 {
-    public static class CameraPosition implements VisSerializable
+    public static class CameraPosition
     {
         public double eye[], lookat[], up[];
         public int layerViewport[];
@@ -21,10 +20,6 @@ public interface VisCameraManager
         public double zclip_far = 5000;
 
         public double scalex = 1.0, scaley = 1.0;
-
-        public CameraPosition()
-        {
-        }
 
         public double[][] getProjectionMatrix()
         {
@@ -79,40 +74,6 @@ public interface VisCameraManager
 
             return new GRay3D(rayStart, LinAlg.subtract(rayEnd, rayStart));
         }
-
-        public CameraPosition(ObjectReader r)
-        {
-        }
-
-        public void writeObject(ObjectWriter outs) throws IOException
-        {
-            outs.writeDoubles(eye);
-            outs.writeDoubles(lookat);
-            outs.writeDoubles(up);
-            outs.writeInts(layerViewport);
-
-            outs.writeDouble(perspectiveness);
-            outs.writeDouble(perspective_fovy_degrees);
-            outs.writeDouble(zclip_near);
-            outs.writeDouble(zclip_far);
-            outs.writeDouble(scalex);
-            outs.writeDouble(scaley);
-        }
-
-        public void readObject(ObjectReader ins) throws IOException
-        {
-            eye = ins.readDoubles();
-            lookat = ins.readDoubles();
-            up = ins.readDoubles();
-            layerViewport = ins.readInts();
-
-            perspectiveness = ins.readDouble();
-            perspective_fovy_degrees = ins.readDouble();
-            zclip_near = ins.readDouble();
-            zclip_far = ins.readDouble();
-            scalex = ins.readDouble();
-            scaley = ins.readDouble();
-        }
     }
 
     /** Should only be called by VisCanvas **/
@@ -131,8 +92,6 @@ public interface VisCameraManager
     **/
     public void uiRotate(double q[]);
 
-    public void goBookmark(CameraPosition pos);
-
     // Default the camera position to the default position
     public void uiDefault();
 
@@ -141,6 +100,4 @@ public interface VisCameraManager
     public void fit2D(double xy0[], double xy1[], boolean setDefault);
 
     public void populatePopupMenu(JPopupMenu jmenu);
-
-
 }

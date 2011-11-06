@@ -115,8 +115,7 @@ JNIEXPORT jintArray JNICALL Java_april_vis_GL_gl_1read_1pixels
     int32_t *tmp = malloc(sz * sizeof(int32_t));
 
 //    glFlush();
-    printf("*1*\n");
-    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_INT_8_8_8_8, tmp);
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, tmp);
 
     (*jenv)->SetIntArrayRegion(jenv, jdata, 0, sz, (jint*) tmp);
 
@@ -159,8 +158,7 @@ JNIEXPORT jint JNICALL Java_april_vis_GL_gl_1read_1pixels2__II_3B
         printf("gl_jni.c: got a copy when accessing image buffer; probably slower.\n");
     }
 
-    printf("*2*\n");
-    glReadPixels(0, 0, width, height, GL_BGR, GL_UNSIGNED_INT_8_8_8_8_REV, data);
+    glReadPixels(0, 0, width, height, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, data);
 
     (*jenv)->ReleasePrimitiveArrayCritical(jenv, jdata, data, 0);
     return 0;
@@ -211,7 +209,7 @@ JNIEXPORT jint JNICALL Java_april_vis_GL_gl_1ops
             pos++;
             break;
         case april_vis_GL_OP_SCALED:
-            glScaled(buf[pos], buf[pos+1], buf[pos+2]);
+            glTranslated(buf[pos], buf[pos+1], buf[pos+2]);
             pos+=3;
             break;
         case april_vis_GL_OP_CLEAR:
@@ -347,18 +345,6 @@ JNIEXPORT jint JNICALL Java_april_vis_GL_gl_1ops
             glNormal3f((float) buf[pos], (float) buf[pos+1], (float) buf[pos+2]);
             pos+=3;
             break;
-        case april_vis_GL_OP_ALPHA_FUNC:
-            glAlphaFunc((GLenum) buf[pos], (GLclampf) buf[pos+1]);
-            pos+=2;
-            break;
-        case april_vis_GL_OP_ROTATED:
-            glRotated(buf[pos], buf[pos+1], buf[pos+2], buf[pos+3]);
-            buf+=4;
-            break;
-        case april_vis_GL_OP_DRAWRANGEELEMENTS:
-            glDrawRangeElements((int) buf[pos], (int) buf[pos+1], (int) buf[pos+2], (int) buf[pos+3], GL_UNSIGNED_INT, (void*) ((int) buf[pos+4]));
-            pos += 5;
-            break;
         default:
             printf("Warning: unknown opcode %d (0x%04x)... giving up.\n", cmd, cmd);
             pos = dlen;
@@ -404,6 +390,7 @@ JNIEXPORT jint JNICALL Java_april_vis_GL_gldata_1end_1frame_1and_1collect
         vbo_info->frames_since_referenced ++;
 
         if (vbo_info->frames_since_referenced == 2) {
+//            printf("collecting %d\n", vbo_info->id);
             glDeleteBuffers(1, &vbo_info->vbo_id);
             lphash_remove(vbo_info_map, vbo_info->id);
             parray_remove_shuffle(vbo_info_array, i);
@@ -420,6 +407,7 @@ JNIEXPORT jint JNICALL Java_april_vis_GL_gldata_1end_1frame_1and_1collect
         texture_info->frames_since_referenced ++;
 
         if (texture_info->frames_since_referenced == 2) {
+//            printf("collecting %d\n", texture_info->id);
             glDeleteTextures(1, &texture_info->texture_id);
             lphash_remove(texture_info_map, texture_info->id);
             parray_remove_shuffle(texture_info_array, i);
@@ -440,9 +428,6 @@ static int gldata_bind(JNIEnv *jenv, jclass jcls, jint vbo_type, jlong id, jint 
 
     switch (gltype)
     {
-    case GL_SHORT:
-        gltype_size = 2;
-        break;
     case GL_INT:
     case GL_FLOAT:
         gltype_size = 4;
@@ -455,20 +440,16 @@ static int gldata_bind(JNIEnv *jenv, jclass jcls, jint vbo_type, jlong id, jint 
         break;
     }
 
-    GLenum target = GL_ARRAY_BUFFER;
-    if (vbo_type == april_vis_GL_VBO_TYPE_ELEMENT_ARRAY)
-        target = GL_ELEMENT_ARRAY_BUFFER;
-
     vbo_info_t *vbo_info = lphash_get(vbo_info_map, id);
 
     if (vbo_info == NULL) {
         glGenBuffers(1, &vbo_id);
 
-        glBindBuffer(target, vbo_id);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_id);
         float *data = (*jenv)->GetPrimitiveArrayCritical(jenv, jdata, 0);
         uint32_t sz = vertdim*gltype_size*nverts;
 
-        glBufferData(target, sz, data, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sz, data, GL_STATIC_DRAW);
         (*jenv)->ReleasePrimitiveArrayCritical(jenv, jdata, data, 0);
 
         vbo_info = (vbo_info_t*) calloc(1, sizeof(vbo_info_t));
@@ -479,7 +460,7 @@ static int gldata_bind(JNIEnv *jenv, jclass jcls, jint vbo_type, jlong id, jint 
         lphash_put(vbo_info_map, id, vbo_info);
         parray_add(vbo_info_array, vbo_info);
     } else {
-        glBindBuffer(target, vbo_info->vbo_id);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_info->vbo_id);
     }
 
     switch (vbo_type)
@@ -491,7 +472,7 @@ static int gldata_bind(JNIEnv *jenv, jclass jcls, jint vbo_type, jlong id, jint 
     case april_vis_GL_VBO_TYPE_NORMAL:
         glEnableClientState(GL_NORMAL_ARRAY);
         assert(vertdim == 3);
-        glNormalPointer(gltype, vertdim*gltype_size, 0);
+        glNormalPointer(vertdim, gltype, 0);
         break;
     case april_vis_GL_VBO_TYPE_COLOR:
         gltype = GL_UNSIGNED_BYTE;
@@ -503,11 +484,14 @@ static int gldata_bind(JNIEnv *jenv, jclass jcls, jint vbo_type, jlong id, jint 
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         glTexCoordPointer(vertdim, gltype, vertdim*gltype_size, 0);
         break;
-    case april_vis_GL_VBO_TYPE_ELEMENT_ARRAY:
-        // nothing to do for element arrays; the bind is enough.
+    case april_vis_GL_VBO_TYPE_VERTEX_IDX:
+        glEnableClientState(GL_INDEX_ARRAY);
         assert(vertdim == 1);
+        glIndexPointer(gltype, vertdim*gltype_size, 0);
         break;
     }
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     vbo_info->frames_since_referenced = 0;
     vbo_info->canvas_id = current_canvas_id;
@@ -532,8 +516,8 @@ JNIEXPORT jint JNICALL Java_april_vis_GL_gldata_1unbind
     case april_vis_GL_VBO_TYPE_TEX_COORD:
         glDisableClientState(GL_TEXTURE_COORD_ARRAY);
         break;
-    case april_vis_GL_VBO_TYPE_ELEMENT_ARRAY:
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    case april_vis_GL_VBO_TYPE_VERTEX_IDX:
+        glDisableClientState(GL_INDEX_ARRAY);
         break;
     }
 
@@ -558,12 +542,6 @@ JNIEXPORT jint JNICALL Java_april_vis_GL_gldata_1bind__IJII_3I
     return gldata_bind(jenv, jcls, vbo_type, id, nverts, vertdim, jdata, GL_INT);
 }
 
-JNIEXPORT jint JNICALL Java_april_vis_GL_gldata_1bind__IJII_3S
-  (JNIEnv *jenv, jclass jcls, jint vbo_type, jlong id, jint nverts, jint vertdim, jshortArray jdata)
-{
-    return gldata_bind(jenv, jcls, vbo_type, id, nverts, vertdim, jdata, GL_SHORT);
-}
-
 ////////////////////////////////////////////////////////////////////
 
 static int gldata_tex_bind(JNIEnv *jenv, jclass jcls, jlong id, jint internalfmt, jint width, jint height, jint fmt, jint type, jarray jdata, int bytes_per_element)
@@ -576,13 +554,22 @@ static int gldata_tex_bind(JNIEnv *jenv, jclass jcls, jlong id, jint internalfmt
 
     glEnable(GL_TEXTURE_2D);
 
+    // XXX Move to VisCanvas
+//    glTexEnvi ( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    glDisable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_GREATER, 0);
+
+    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
     if (texture_info == NULL) {
         int min_filter = 1;
         int mag_filter = 1; // aka mipmap
         int repeat = 1; // or clamp?
 
         glGenTextures(1, &texture_id);
+
         glBindTexture(GL_TEXTURE_2D, texture_id);
+
 
         int *data = (*jenv)->GetPrimitiveArrayCritical(jenv, jdata, 0);
         uint32_t sz = bytes_per_element*(*jenv)->GetArrayLength(jenv, jdata);

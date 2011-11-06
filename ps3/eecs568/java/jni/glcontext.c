@@ -56,7 +56,7 @@ gl_fbo_t *gl_fbo_create(glcontext_t *glc, int width, int height)
 
     glGenRenderbuffers(1, &fbo->color_id);
     glBindRenderbuffer(GL_RENDERBUFFER, fbo->color_id);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGB8, width, height);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, width, height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, fbo->color_id);
 
     GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER); //fbo->fbo_id);

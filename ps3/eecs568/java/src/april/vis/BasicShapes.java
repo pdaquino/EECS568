@@ -31,26 +31,7 @@ public class BasicShapes
         this.v = v;
     }
 
-    public void bind(GL gl)
-    {
-        gl.gldBind(GL.VBO_TYPE_VERTEX, vid, vsz, vdim, v);
-        if (n != null)
-            gl.gldBind(GL.VBO_TYPE_NORMAL, nid, nsz, ndim, n);
-    }
-
-    public void draw(GL gl, int mode)
-    {
-        gl.glDrawArrays(mode, 0, vsz);
-    }
-
-    public void unbind(GL gl)
-    {
-        gl.gldUnbind(GL.VBO_TYPE_VERTEX, vid);
-        if (n != null)
-            gl.gldUnbind(GL.VBO_TYPE_NORMAL, nid);
-    }
-
-    // Can use either GL_LINE_STRIP or GL_QUADS.
+    // Can use either GL_LINE_LOOP or GL_QUADS
     public static BasicShapes square = new BasicShapes(GL.GL_QUADS,
                                                        2,
                                                        new float[] { -1, -1,

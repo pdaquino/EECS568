@@ -3,7 +3,6 @@ package april.vis;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
-import java.io.*;
 
 import april.jmat.*;
 import april.jmat.geom.*;
@@ -11,7 +10,7 @@ import april.jmat.geom.*;
 /** We re-create a jmenu with every right click; this makes it easier
  * for us to set checkbox menu items appropriately without requiring
  * every change of camera settings to fiddle with the popup menu. **/
-public class DefaultPopupMenu extends VisEventAdapter implements VisSerializable
+public class DefaultPopupMenu extends VisEventAdapter
 {
     VisLayer layer;
 
@@ -72,19 +71,5 @@ public class DefaultPopupMenu extends VisEventAdapter implements VisSerializable
         vc.populatePopupMenu(jmenu);
 
         return jmenu;
-    }
-
-    public DefaultPopupMenu(ObjectReader r)
-    {
-    }
-
-    public void writeObject(ObjectWriter outs) throws IOException
-    {
-        outs.writeObject(layer);
-    }
-
-    public void readObject(ObjectReader ins) throws IOException
-    {
-        layer = (VisLayer) ins.readObject();
     }
 }
