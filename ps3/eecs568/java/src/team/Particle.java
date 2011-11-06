@@ -19,12 +19,20 @@ public class Particle
     {
         trajectory.add(LinAlg.xytMultiply(trajectory.getLast(), local_xyt));
     }
+    
+    public double[] getPose() {
+        return trajectory.getLast();
+    }
 
     // Given an (r,theta), do data association and add appropriate landmark
     // XXX Using known data association for now...get rid of it later
     public void updateLandmark(double[] obs, int id)
     {
-
+        if(observations.containsKey(id)) {
+            observations.get(id).update(obs[0], obs[1], getPose());
+        } else {
+            observations.put(id, new LandmarkEKF(obs[0], obs[1], getPose()));
+        }
     }
 
     // XXX Some way to get landmark position estimates back
@@ -61,7 +69,7 @@ public class Particle
         }
 
         for (Integer key: observations.keySet()) {
-            //p.observations.put(key, observations.get(key).copy());  // XXX Copy of those EKFs!
+            p.observations.put(key, observations.get(key).copy());
         }
 
         p.chi2 = chi2;

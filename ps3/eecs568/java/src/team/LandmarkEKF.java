@@ -33,6 +33,12 @@ public class LandmarkEKF {
         }
         this.covariance = Jw.times(measurementNoise).times(Jw.transpose());
     }
+    
+    // private copy constructor
+    private LandmarkEKF(double[] position, Matrix covariance) {
+        this.position = position;
+        this.covariance = covariance;
+    }
 
     public Matrix getCovariance() {
         return covariance;
@@ -71,6 +77,10 @@ public class LandmarkEKF {
         // XXX shouldnt we use atan2?
         h[1] = MathUtil.mod2pi(Math.atan2(dy, dx) - robotPose[2]);
         return h;
+    }
+    
+    public LandmarkEKF copy() {
+        return new LandmarkEKF(LinAlg.copy(position), covariance.copy());
     }
     
     public static void main(String[] args) {
