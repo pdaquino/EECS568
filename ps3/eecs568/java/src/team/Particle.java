@@ -10,7 +10,7 @@ public class Particle
     LinkedList<double[]> trajectory = new LinkedList<double[]>();
 
     // List of EKFs for landmark observations. Map landmark IDs to EKFs
-    HashMap<Integer, EKF> observations = new HashMap<Integer, EKF>();   // XXX Create those EKFs
+    HashMap<Integer, LandmarkEKF> observations = new HashMap<Integer, LandmarkEKF>();   // XXX Create those EKFs
 
     double weight = 1.0;  // Particle weight for resampling
     double chi2;    // Chi^2 value for this particle
@@ -61,7 +61,7 @@ public class Particle
         }
 
         for (Integer key: observations.keySet()) {
-            p.observations.put(key, observations.get(key).copy());  // XXX Copy of those EKFs!
+            //p.observations.put(key, observations.get(key).copy());  // XXX Copy of those EKFs!
         }
 
         p.chi2 = chi2;
