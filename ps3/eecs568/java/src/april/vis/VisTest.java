@@ -4,8 +4,6 @@ import java.awt.*;
 import java.awt.image.*;
 import javax.swing.*;
 import java.util.*;
-import java.io.*;
-
 import april.jmat.*;
 
 public class VisTest
@@ -15,7 +13,7 @@ public class VisTest
     VisLayer vl = new VisLayer(vw);
     VisCanvas vc = new VisCanvas(vl);
 
-    VisFont vfont = VisFont.getFont(new Font("Sans Serif", Font.PLAIN, 128));
+    VisFont vfont = new VisFont(new Font("Sans Serif", Font.PLAIN, 128));
 
     static class MyLayer
     {
@@ -24,8 +22,6 @@ public class VisTest
 
         MyLayer(double pos[], Color c)
         {
-            VisGrid.addGrid(vw);
-
             vl.backgroundColor = c;
             vl.layerManager = new DefaultLayerManager(vl, pos);
 
@@ -49,7 +45,7 @@ public class VisTest
             vl.layerManager = new DefaultLayerManager(vl, pos);
 //            ((DefaultCameraManager) vl.cameraManager).perspective_fovy_degrees = 30;
 //            ((DefaultCameraManager) vl.cameraManager).perspectiveness = 0;
-            ((DefaultCameraManager) vl.cameraManager).scaley1 = 10;
+            ((DefaultCameraManager) vl.cameraManager).scaley = 10;
             ((DefaultCameraManager) vl.cameraManager).interfaceMode = 2.5;
             ((DefaultCameraManager) vl.cameraManager).fit2D(new double[] { 0, -1, 0},
                                                             new double[] { 30, 1, 0 },
@@ -57,26 +53,27 @@ public class VisTest
             vl.backgroundColor = Color.red;
 
 
-            VisGrid vg = VisGrid.addGrid(vw);
+            VisGrid vg = new VisGrid(new Color(50,50,50), new Color(70,70,70));
+            vg.spacing = new double[] { Math.PI/2, 1 };
+
             VisWorld.Buffer vb = vw.getBuffer("plot");
+            vb.setDrawOrder(-100);
+            vb.addBack(new VisDepthTest(false, vg));
 
             VisColorData cd = new VisColorData();
             VisVertexData vd = new VisVertexData();
             for (double x = 0; x < 30; x += 0.01) {
                 float p[] = new float[] { (float) x, (float) Math.sin(x) };
                 vd.add(p);
-                cd.add(0xff7f0000 + (int) (255*(.5+p[1]/2)));
+                cd.add(0x1f0000 + (int) (255*(.5+p[1]/2)));
             }
             vb.addBack(new VisLighting(false, new VisPoints(vd, cd, 2.0)));
-//            vb.addBack(new VisLighting(false, new VisPoints(vd, new VisConstantColor(Color.yellow), 2.0)));
             vb.swap();
         }
     }
 
     public VisTest()
     {
-        VisGrid.addGrid(vw);
-
         jf = new JFrame("VisTest");
         jf.setLayout(new BorderLayout());
         jf.add(vc, BorderLayout.CENTER);
@@ -85,43 +82,63 @@ public class VisTest
         jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         if (true) {
+            VisWorld.Buffer vb = vw.getBuffer("grid");
+            vb.addBack(new VisDepthTest(false, new VisGrid()));
+            vb.swap();
+        }
+
+        if (true) {
             VisWorld.Buffer vb = vw.getBuffer("foo");
             vb.addBack(new VisChain(LinAlg.scale(10, 10, 10),
-                                    new Square(Color.blue),
-                                    LinAlg.translate(-0.1, -0.1, 1),
-                                    new Square(Color.green)
-                           ));
+                                        new Square(Color.blue),
+                                        LinAlg.translate(-0.1, -0.1, 1),
+                                        new Square(Color.green)
+                               ));
 
             vb.swap();
         }
 
         if (true) {
-            VisWorld.Buffer vb = vw.getBuffer("vistext");
+            VisWorld.Buffer vb = vw.getBuffer("visfont");
+            vb.addBack(new VisChain(LinAlg.translate(0,0,1),
+                                        LinAlg.scale(0.1, 0.1, 0.1),
+                                        vfont.makeText("blueberry sunday", Color.cyan)));
 
-            vb.addBack(new VisChain(LinAlg.scale(.1, .1, 1),
-                                    new VisText(VisText.ANCHOR.BOTTOM_LEFT,
-                                                "<<dropshadow=#33330088>>"+
-                                                "<<sansserif-bold-16,green,right>>right\n" +
-                                                "<<center>><<red>>R<<green>>G<<blue>>B\n" +
-                                                "<<blue,left>>left\n" +
-                                                "<<white,serif-italic-16>>serif\n" +
-                                                "<<monospaced-16>>monospaced\n" +
-                                                "<<sansserif-32,left>>long line\n" +
-                                                "<<cyan,serif-italic-bold-20>>serif-bold-italic")));
+            vb.swap();
+        }
 
-            vb.addBack(new VisDepthTest(false,
-                                        new VisPixelCoordinates(VisPixelCoordinates.ORIGIN.BOTTOM_RIGHT,
-                                                                new VisText(VisText.ANCHOR.BOTTOM_RIGHT,
-                                                                            "<<margin=15>>" +
-                                                                            "<<cyan,serif-italic-32>>cyan 32\n"))));
+        if (true) {
+            int width = 100;
+            int height = 50;
+            BufferedImage im = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 
+            if (false) {
+                Graphics2D g = im.createGraphics();
+                g.setColor(Color.black);
+                g.fillRect(0,0, width, height);
+                g.setColor(Color.yellow);
+                g.fillOval(0,0,width,height);
+                g.dispose();
+            } else {
+                for (int y = 0; y < height; y++)
+                    for (int x = 0; x < width; x++)
+                        im.setRGB(x, y, ((x&1)^(y&1))==0 ? 0xff000000 : 0xffffffff);
+            }
 
-            vb.addBack(new VisDepthTest(false,
-                                        new VisPixelCoordinates(VisPixelCoordinates.ORIGIN.TOP_LEFT,
-                                                                new VisText(VisText.ANCHOR.TOP_LEFT,
-                                                                            "<<margin=15>>" +
-                                                                            "<<white,sansserif-bold-16,width=100>>abc<<yellow>>42\n"+
-                                                                            "<<cyan,sansserif-bold-16,width=100>>leftie<<yellow>>1.35\n"))));
+//            VisTexture vt = new VisTexture(im, true);
+            VisWorld.Buffer vb = vw.getBuffer("image");
+            vb.setDrawOrder(100);
+            vb.addBack(new VisChain(LinAlg.translate(15, 0, 0.5),
+                                        new VisImage(vfont.texture,
+                                                     new double[][] { { 0, 0, 0 },
+                                                                      { 10, 0, 0 },
+                                                                      { 10, 10, 0 },
+                                                                      { 0, 10, 0 } },
+                                                     new double[][] { { 0, 0 },
+                                                                      { 1, 0 },
+                                                                      { 1, 1 },
+                                                                      { 0, 1 } },
+                                                     new Color(255,0,0,255))));
             vb.swap();
         }
 
@@ -164,15 +181,15 @@ public class VisTest
         }
     }
 
-    static class Square implements VisObject, VisSerializable
+    static class Square implements VisObject
     {
-        static long  vid, cid;
+        static long id,id2;
         static float vertices[];
         static int colors[];
 
         static {
-            vid = VisUtil.allocateID();
-            cid = VisUtil.allocateID();
+            id = VisUtil.allocateID();
+            id2 = VisUtil.allocateID();
 
             vertices = new float[] { -.5f, -.5f,
                                      .5f, -.5f,
@@ -196,26 +213,11 @@ public class VisTest
         public void render(VisCanvas vc, VisLayer layer, VisCanvas.RenderInfo rinfo, GL gl)
         {
             gl.glColor(c);
-            gl.gldBind(GL.VBO_TYPE_VERTEX, vid, 4, 2, vertices);
-            gl.gldBind(GL.VBO_TYPE_COLOR, cid, 4, 4, colors);
+            gl.gldBind(GL.VBO_TYPE_VERTEX, id, 4, 2, vertices);
+            gl.gldBind(GL.VBO_TYPE_COLOR, id2, 4, 4, colors);
             gl.glDrawArrays(GL.GL_QUADS, 0, 4);
-            gl.gldUnbind(GL.VBO_TYPE_VERTEX, vid);
-            gl.gldUnbind(GL.VBO_TYPE_COLOR, cid);
+            gl.gldUnbind(GL.VBO_TYPE_VERTEX, id);
+            gl.gldUnbind(GL.VBO_TYPE_COLOR, id2);
         }
-
-        public Square(ObjectReader r)
-        {
-        }
-
-        public void writeObject(ObjectWriter outs) throws IOException
-        {
-            outs.writeColor(c);
-        }
-
-        public void readObject(ObjectReader ins) throws IOException
-        {
-            c = ins.readColor();
-        }
-
     }
 }

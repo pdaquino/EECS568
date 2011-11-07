@@ -1,25 +1,16 @@
 package april.vis;
 
 import java.awt.event.*;
-import java.util.*;
-import java.io.*;
-
 import april.jmat.*;
 import april.jmat.geom.*;
 
-public class DefaultEventHandler implements VisEventHandler, VisSerializable
+public class DefaultEventHandler implements VisEventHandler
 {
     // the point that we try to keep under the cursor when doing mouse drags.
     double manipulationPoint[];
 
     public double SCROLL_ZOOM_FACTOR = Math.pow(2, 0.25);
     public double SHIFT_SCROLL_ZOOM_FACTOR = Math.pow(2, 1);
-
-    HashMap<Integer, VisCameraManager.CameraPosition> bookmarks = new HashMap<Integer, VisCameraManager.CameraPosition>();
-
-    public DefaultEventHandler()
-    {
-    }
 
     public int getPriority()
     {
@@ -325,100 +316,5 @@ public class DefaultEventHandler implements VisEventHandler, VisSerializable
                                   false);
 
         return true;
-    }
-
-    public boolean keyTyped(VisCanvas vc, VisLayer vl, VisCanvas.RenderInfo rinfo, KeyEvent e)
-    {
-        return false;
-    }
-
-    public boolean keyPressed(VisCanvas vc, VisLayer vl, VisCanvas.RenderInfo rinfo, KeyEvent e)
-    {
-        int code = e.getKeyCode();
-        int mods = e.getModifiersEx();
-        boolean shift = (mods&MouseEvent.SHIFT_DOWN_MASK) > 0;
-        boolean ctrl = (mods&MouseEvent.CTRL_DOWN_MASK) > 0;
-        boolean alt = shift & ctrl;
-
-        if (ctrl) {
-            switch (code) {
-                case KeyEvent.VK_F1:
-                case KeyEvent.VK_F2:
-                case KeyEvent.VK_F3:
-                case KeyEvent.VK_F4:
-                case KeyEvent.VK_F5:
-                case KeyEvent.VK_F6:
-                case KeyEvent.VK_F7:
-                case KeyEvent.VK_F8:
-                case KeyEvent.VK_F9:
-                case KeyEvent.VK_F10:
-                    System.out.println("Set bookmark: "+code);
-                    VisCameraManager.CameraPosition cameraPosition = rinfo.cameraPositions.get(vl);
-                    bookmarks.put(code, cameraPosition);
-                    return true;
-            }
-
-            return false;
-        }
-
-        // no modifiers
-        switch (code) {
-            case KeyEvent.VK_F1:
-            case KeyEvent.VK_F2:
-            case KeyEvent.VK_F3:
-            case KeyEvent.VK_F4:
-            case KeyEvent.VK_F5:
-            case KeyEvent.VK_F6:
-            case KeyEvent.VK_F7:
-            case KeyEvent.VK_F8:
-            case KeyEvent.VK_F9:
-            case KeyEvent.VK_F10:
-                System.out.println("Play bookmark: "+code);
-                VisCameraManager.CameraPosition cameraPosition = bookmarks.get(code);
-                if (cameraPosition != null) {
-                    vl.cameraManager.goBookmark(cameraPosition);
-                    return true;
-                }
-                break;
-        }
-
-        return false;
-    }
-
-    public boolean keyReleased(VisCanvas vc, VisLayer vl, VisCanvas.RenderInfo rinfo, KeyEvent e)
-    {
-        return false;
-    }
-
-    public DefaultEventHandler(ObjectReader r)
-    {
-    }
-
-    public void writeObject(ObjectWriter outs) throws IOException
-    {
-        outs.writeDoubles(manipulationPoint);
-        outs.writeDouble(SCROLL_ZOOM_FACTOR);
-        outs.writeDouble(SHIFT_SCROLL_ZOOM_FACTOR);
-
-        outs.writeInt(bookmarks.size());
-        for (Integer i : bookmarks.keySet()) {
-            VisCameraManager.CameraPosition pos = bookmarks.get(i);
-            outs.writeInt(i);
-            outs.writeObject(pos);
-        }
-    }
-
-    public void readObject(ObjectReader ins) throws IOException
-    {
-        manipulationPoint = ins.readDoubles();
-        SCROLL_ZOOM_FACTOR = ins.readDouble();
-        SHIFT_SCROLL_ZOOM_FACTOR = ins.readDouble();
-
-        int n = ins.readInt();
-        for (int i = 0; i < n; i++) {
-            int id = ins.readInt();
-            VisCameraManager.CameraPosition pos = (VisCameraManager.CameraPosition) ins.readObject();
-            bookmarks.put(id, pos);
-        }
     }
 }

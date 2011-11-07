@@ -3,17 +3,14 @@ package april.vis;
 import java.util.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.*;
 import javax.swing.*;
 
 /** A VisLayer provides information about how to render a VisWorld. A
  * VisLayer is owned by a single VisCanvas.
  **/
-public class VisLayer implements Comparable<VisLayer>, VisSerializable
+public class VisLayer implements Comparable<VisLayer>
 {
     public boolean enabled = true;
-
-    public boolean clearDepth = true;
 
     // The objects in the world.
     public VisWorld world;
@@ -40,6 +37,9 @@ public class VisLayer implements Comparable<VisLayer>, VisSerializable
     // synchronize on list before accessing. Invariant: event handlers
     // are sorted by priority, higher priority handlers first. Use addEventHandler!
     public ArrayList<VisEventHandler> eventHandlers = new ArrayList<VisEventHandler>();
+
+    // Set to the owner when the layer is added to the canvas.
+    public VisCanvas canvas;
 
     VisEventHandler popupMenu = new DefaultPopupMenu(this);
 
@@ -82,7 +82,7 @@ public class VisLayer implements Comparable<VisLayer>, VisSerializable
 
     public int compareTo(VisLayer vl)
     {
-        return drawOrder - vl.drawOrder;
+        return vl.drawOrder - drawOrder;
     }
 
     public void populatePopupMenu(JPopupMenu jmenu)
@@ -146,7 +146,7 @@ public class VisLayer implements Comparable<VisLayer>, VisSerializable
                 }
             }
 
-            if (false) {
+            if (true) {
                 jm.addSeparator();
 
                 JMenuItem jmi = new JMenuItem("Detatch...");
@@ -157,60 +157,4 @@ public class VisLayer implements Comparable<VisLayer>, VisSerializable
             jmenu.add(jm);
         }
     }
-
-    /** For use only be serialization **/
-    public VisLayer(ObjectReader obj)
-    {
-    }
-
-    public void writeObject(ObjectWriter outs) throws IOException
-    {
-        outs.writeBoolean(enabled);
-        outs.writeBoolean(clearDepth);
-        outs.writeObject(world);
-        outs.writeInt(drawOrder);
-        outs.writeColor(backgroundColor);
-
-        outs.writeInt(lights.size());
-        for (VisLight light : lights)
-            outs.writeObject(light);
-
-        outs.writeObject(cameraManager);
-        outs.writeObject(layerManager);
-        outs.writeObject(manipulationManager);
-
-        outs.writeInt(eventHandlers.size());
-        for (VisEventHandler eh : eventHandlers)
-            outs.writeObject(eh);
-
-        outs.writeObject(popupMenu);
-
-        outs.writeInts(popupBackgroundColors);
-    }
-
-    public void readObject(ObjectReader ins) throws IOException
-    {
-        enabled = ins.readBoolean();
-        clearDepth = ins.readBoolean();
-        world = (VisWorld) ins.readObject();
-        drawOrder = ins.readInt();
-        backgroundColor = ins.readColor();
-
-        int n = ins.readInt();
-        for (int i = 0; i < n; i++)
-            lights.add((VisLight) ins.readObject());
-
-        cameraManager = (VisCameraManager) ins.readObject();
-        layerManager = (VisLayerManager) ins.readObject();
-        manipulationManager = (VisManipulationManager) ins.readObject();
-
-        n = ins.readInt();
-        for (int i = 0; i < n; i++)
-            addEventHandler((VisEventHandler) ins.readObject());
-
-        popupMenu = (VisEventHandler) ins.readObject();
-
-        popupBackgroundColors = ins.readInts();
-    }
-
 }

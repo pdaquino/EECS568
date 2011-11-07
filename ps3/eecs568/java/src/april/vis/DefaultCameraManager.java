@@ -3,19 +3,16 @@
 import april.jmat.*;
 
 import java.awt.event.*;
-import java.io.*;
 import javax.swing.*;
 
-public class DefaultCameraManager implements VisCameraManager, VisSerializable
+public class DefaultCameraManager implements VisCameraManager
 {
     // we record two sets of positions to support
     double eye0[], lookat0[], up0[];
-    double scalex0 = 1.0, scaley0 = 1.0;
     double perspectiveness0;
     long mtime0;
 
     double eye1[], lookat1[], up1[];
-    double scalex1 = 1.0, scaley1 = 1.0;
     double perspectiveness1 = 1.0;
     long mtime1;
 
@@ -29,12 +26,12 @@ public class DefaultCameraManager implements VisCameraManager, VisSerializable
     public double zclip_near = 0.1;
     public double zclip_far = 50000;
 
+    public double scalex = 1.0, scaley = 1.0;
+
     public double popupInterfaceModes[] = new double[] { 1.5, 2.0, 2.5, 3.0 };
     public int popupAnimateDelays[] = new int[] { 0, 50, 100, 200, 400, 800 };
 
     public int UI_ANIMATE_MS = popupAnimateDelays[2];
-    public int BOOKMARK_ANIMATE_MS = 500;
-
     public int FIT_ANIMATE_MS = 0;
 
     Fit fit;
@@ -67,9 +64,10 @@ public class DefaultCameraManager implements VisCameraManager, VisSerializable
         p.perspective_fovy_degrees = perspective_fovy_degrees;
         p.zclip_near = zclip_near;
         p.zclip_far = zclip_far;
+        p.scalex = scalex;
+        p.scaley = scaley;
 
         double eye[] = null, lookat[] = null, up[] = null;
-        double scalex, scaley;
         double perspectiveness;
 
         if (fit != null) {
@@ -103,15 +101,11 @@ public class DefaultCameraManager implements VisCameraManager, VisSerializable
             lookat = LinAlg.copy(lookat1);
             up = LinAlg.copy(up1);
             perspectiveness = perspectiveness1;
-            scalex = scalex1;
-            scaley = scaley1;
         } else if (mtime <= mtime0) {
             eye = LinAlg.copy(eye0);
             lookat = LinAlg.copy(lookat0);
             up = LinAlg.copy(up0);
             perspectiveness = perspectiveness0;
-            scalex = scalex0;
-            scaley = scaley0;
         } else {
 
             double alpha1 = ((double) mtime - mtime0) / (mtime1 - mtime0);
@@ -122,8 +116,6 @@ public class DefaultCameraManager implements VisCameraManager, VisSerializable
             lookat = LinAlg.add(LinAlg.scale(lookat0, alpha0), LinAlg.scale(lookat1, alpha1));
             up = LinAlg.add(LinAlg.scale(up0, alpha0), LinAlg.scale(up1, alpha1));
             perspectiveness = perspectiveness0*alpha0 + perspectiveness1*alpha1;
-            scalex = scalex0*alpha0 + scalex1*alpha1;
-            scaley = scaley0*alpha0 + scaley1*alpha1;
 
             // tweak so eye-to-lookat position is the right distance
             double dist0 = LinAlg.distance(eye0, lookat0);
@@ -138,8 +130,6 @@ public class DefaultCameraManager implements VisCameraManager, VisSerializable
         lookat0 = lookat;
         up0 = up;
         perspectiveness0 = perspectiveness;
-        scalex0 = scalex;
-        scaley0 = scaley;
         mtime0 = mtime;
 
         //////////////////////////////////////////////////
@@ -201,8 +191,6 @@ public class DefaultCameraManager implements VisCameraManager, VisSerializable
         p.lookat = LinAlg.copy(lookat);
         p.up = LinAlg.copy(up);
         p.perspectiveness = perspectiveness;
-        p.scalex = scalex;
-        p.scaley = scaley;
 
         return p;
     }
@@ -228,18 +216,6 @@ public class DefaultCameraManager implements VisCameraManager, VisSerializable
         eye1 = neweye;
         up1 = newup;
         this.mtime1 = System.currentTimeMillis() + UI_ANIMATE_MS;
-    }
-
-    public void goBookmark(CameraPosition pos)
-    {
-        eye1 = pos.eye;
-        up1 = pos.up;
-        lookat1 = pos.lookat;
-        perspectiveness1 = pos.perspectiveness;
-        perspective_fovy_degrees = pos.perspective_fovy_degrees;
-        scalex1 = pos.scalex;
-        scaley1 = pos.scaley;
-        this.mtime1 = System.currentTimeMillis() + BOOKMARK_ANIMATE_MS;
     }
 
     class Fit
@@ -388,77 +364,5 @@ public class DefaultCameraManager implements VisCameraManager, VisSerializable
         double w[] = new double[v.length];
         w[maxidx] = maxvalue > 0 ? 1 : -1;
         return w;
-    }
-
-    public DefaultCameraManager(ObjectReader r)
-    {
-    }
-
-    public void writeObject(ObjectWriter outs) throws IOException
-    {
-        outs.writeDoubles(eye0);
-        outs.writeDoubles(lookat0);
-        outs.writeDoubles(up0);
-        outs.writeDouble(perspectiveness0);
-        outs.writeDouble(scalex0);
-        outs.writeDouble(scaley0);
-        outs.writeLong(mtime0);
-
-        outs.writeDoubles(eye1);
-        outs.writeDoubles(lookat1);
-        outs.writeDoubles(up1);
-        outs.writeDouble(perspectiveness1);
-        outs.writeDouble(scalex1);
-        outs.writeDouble(scaley1);
-        outs.writeLong(mtime1);
-
-        outs.writeDoubles(defaultEye);
-        outs.writeDoubles(defaultLookat);
-        outs.writeDoubles(defaultUp);
-
-        outs.writeDouble(interfaceMode);
-        outs.writeDouble(perspective_fovy_degrees);
-        outs.writeDouble(zclip_near);
-        outs.writeDouble(zclip_far);
-
-        outs.writeDoubles(popupInterfaceModes);
-        outs.writeInts(popupAnimateDelays);
-        outs.writeInt(UI_ANIMATE_MS);
-        outs.writeInt(BOOKMARK_ANIMATE_MS);
-        outs.writeInt(FIT_ANIMATE_MS);
-    }
-
-    public void readObject(ObjectReader ins) throws IOException
-    {
-        eye0 = ins.readDoubles();
-        lookat0 = ins.readDoubles();
-        up0 = ins.readDoubles();
-        perspectiveness0 = ins.readDouble();
-        scalex0 = ins.readDouble();
-        scaley0 = ins.readDouble();
-        mtime0 = ins.readLong();
-
-        eye1 = ins.readDoubles();
-        lookat1 = ins.readDoubles();
-        up1 = ins.readDoubles();
-        perspectiveness1 = ins.readDouble();
-        scalex1 = ins.readDouble();
-        scaley1 = ins.readDouble();
-        mtime1 = ins.readLong();
-
-        defaultEye = ins.readDoubles();
-        defaultLookat = ins.readDoubles();
-        defaultUp = ins.readDoubles();
-
-        interfaceMode = ins.readDouble();
-        perspective_fovy_degrees = ins.readDouble();
-        zclip_near = ins.readDouble();
-        zclip_far = ins.readDouble();
-
-        popupInterfaceModes = ins.readDoubles();
-        popupAnimateDelays = ins.readInts();
-        UI_ANIMATE_MS = ins.readInt();
-        BOOKMARK_ANIMATE_MS = ins.readInt();
-        FIT_ANIMATE_MS = ins.readInt();
     }
 }
