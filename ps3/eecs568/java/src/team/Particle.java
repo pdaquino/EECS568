@@ -4,44 +4,68 @@ import java.util.*;
 
 import april.jmat.*;
 import april.sim.*;
+import april.config.*;
 
 public class Particle
 {
+    Config config;
+
     // List of previous points (trajectory) ... last of which is our current pos
     ArrayList<double[]> trajectory = new ArrayList<double[]>();
+    double[] xyt = new double[3];
 
     // List of EKFs for landmark observations. Map landmark IDs to EKFs
     HashMap<Integer, LandmarkEKF> observations = new HashMap<Integer, LandmarkEKF>();
 
     double weight = 1.0;  // Particle weight for resampling
-    double chi2;    // Chi^2 value for this particleA
 
-    public Particle()
+    public Particle(Config config_)
     {
-        this(null);
+        this(config_, null);
     }
 
-    public Particle(double[] start_)
+    public Particle(Config config_, double[] start_)
     {
-        if (start_ != null)
-            trajectory.add(LinAlg.copy(start_));
+        config = config_;
+
+        if (start_ != null) {
+            trajectory.add(LinAlg.resize(start_, 2));
+            xyt = LinAlg.copy(start_);
+        }
     }
 
     public void updateLocation(double[] local_xyt)
     {
-        trajectory.add(LinAlg.xytMultiply(getPose(), local_xyt));
+        xyt = LinAlg.xytMultiply(xyt, local_xyt);
+        trajectory.add(LinAlg.resize(xyt, 2));
     }
 
     public double[] getPose() {
-        assert(trajectory.size() > 0);
-        return trajectory.get(trajectory.size()-1);
+        return LinAlg.copy(xyt);
     }
 
     public ArrayList<double[]> getTrajectory() {
-        ArrayList<double[]> traj = new ArrayList<double[]>();
-        for (double[] xyt: trajectory)
-            traj.add(LinAlg.resize(xyt, 2));
-        return traj;
+        return trajectory;
+    }
+
+    public ArrayList<double[]> getLandmarks()
+    {
+        ArrayList<double[]> landmarks = new ArrayList<double[]>();
+        for (LandmarkEKF ekf: observations.values()) {
+            landmarks.add(ekf.getPosition());
+        }
+
+        return landmarks;
+    }
+
+    public ArrayList<Integer> getIDs()
+    {
+        ArrayList<Integer> ids = new ArrayList<Integer>();
+        for (LandmarkEKF ekf: observations.values()) {
+            ids.add(ekf.getRealID());
+        }
+
+        return ids;
     }
 
     // Return IDs for each of the landmarks in the same order as dets are listed.
@@ -56,38 +80,38 @@ public class Particle
 
         // Update the landmark
         for (int i = 0; i < ids.size(); i++) {
-            updateLandmark(dets.get(i).obs, ids.get(i));
+            updateLandmark(dets.get(i).obs, ids.get(i), dets.get(i).id);
         }
 
         // Calculate new weight
-        double w = 0;
         for (int i = 0; i < ids.size(); i++) {
-            double[] r = observations.get(ids.get(i)).getResidual(dets.get(i).obs[0], dets.get(i).obs[1], getPose());
-            Matrix P = observations.get(ids.get(i)).getCovariance();
+            double[] r = observations.get(ids.get(i)).getResidual(dets.get(i).obs[0], dets.get(i).obs[1], xyt);
+            Matrix P = observations.get(ids.get(i)).getLinearizedCovariance(dets.get(i).obs[0], dets.get(i).obs[1], xyt);
 
-            w += (1.0/Math.sqrt(2*Math.PI*P.det()))*Math.exp(-0.5*LinAlg.dotProduct(P.inverse().transposeTimes(r), r));
+            double w0 = 2*Math.PI*Math.sqrt(P.det());
+            double chi2 = LinAlg.dotProduct(P.inverse().transposeTimes(r), r);
+            double w1 = Math.exp(-0.5*chi2);
+            weight *= w1/w0;
         }
 
-        if (w != 0)
-            updateWeight(w);
+        //updateWeight(w);
 
         return weight;
     }
 
     // Given an (r,theta), do data association and add appropriate landmark
     // Return the residual after the update
-    public double[] updateLandmark(double[] obs, int id)
+    public double[] updateLandmark(double[] obs, int id, int realID)
     {
         if(observations.containsKey(id)) {
-            observations.get(id).update(obs[0], obs[1], getPose());
+            observations.get(id).update(obs[0], obs[1], xyt);
         } else {
-            observations.put(id, new LandmarkEKF(obs[0], obs[1], getPose()));
+            observations.put(id, new LandmarkEKF(config, obs[0], obs[1], xyt));
+            observations.get(id).setID(realID);
         }
-        return observations.get(id).getResidual(obs[0], obs[1], getPose());
+        return observations.get(id).getResidual(obs[0], obs[1], xyt);
     }
 
-    // XXX Some way to get landmark position estimates back
-    //
     public void updateWeight(double factor)
     {
         weight *= factor;
@@ -103,28 +127,32 @@ public class Particle
         return weight;
     }
 
-    // XXX Chi2?????
-
     public double getChi2()
     {
-        assert(false);
-        return 0;
+        // The Chi2 is directly associated with the error for each
+        // landmark. Sum those errors.
+        double chi2 = 0;
+        for (LandmarkEKF ekf: observations.values()) {
+            chi2 += ekf.getChi2();
+        }
+
+        return chi2;
     }
 
     // Return a sample for this particle (deep copy it but reset weight)
     public Particle getSample()
     {
-        Particle p = new Particle();
+        Particle p = new Particle(config);
         weight = 1.0;
-        for (double[] xyt: trajectory) {
-            p.trajectory.add(LinAlg.copy(xyt));
+        for (double[] xy: trajectory) {
+            p.trajectory.add(LinAlg.copy(xy));
         }
+
+        p.xyt = LinAlg.copy(xyt);
 
         for (Integer key: observations.keySet()) {
             p.observations.put(key, observations.get(key).copy());
         }
-
-        p.chi2 = chi2;
 
         return p;
     }
