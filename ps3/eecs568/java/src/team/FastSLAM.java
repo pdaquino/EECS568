@@ -111,7 +111,7 @@ public class FastSLAM implements Simulator.Listener
             }
         }
 
-        // Render the robot(s)
+        // Render the (best) robot
         {
             VisWorld.Buffer vb = vw.getBuffer("robot-local");
             vb.setDrawOrder(-100);
@@ -123,14 +123,19 @@ public class FastSLAM implements Simulator.Listener
             vb2.addBack(new VisChain(LinAlg.xyzrpyToMatrix(xyzrpy),
                                     new VisRobot(Color.yellow)));
 
-            for (Particle p: particles) {
-                VisRobot robot = new VisRobot(new Color(160, 30, 30));
-                xyt = p.getPose();
 
+            VisRobot robot = new VisRobot(new Color(160, 30, 30));
+            ArrayList<double[]> points = new ArrayList<double[]>();
+            for (Particle p: particles) {
+                xyt = p.getPose();
                 xyzrpy = new double[]{xyt[0], xyt[1], 0,
                                                0, 0, xyt[2]};
-                vb.addBack(new VisChain(LinAlg.xyzrpyToMatrix(xyzrpy), robot));
+                //vb.addBack(new VisChain(LinAlg.xyzrpyToMatrix(xyzrpy), robot));
+                points.add(LinAlg.resize(xyt,2));
             }
+            vb.addBack(new VisPoints(new VisVertexData(points),
+                                     new VisConstantColor(new Color(160, 30, 30)),
+                                     1));
             vb.swap();
             vb2.swap();
         }
@@ -145,12 +150,13 @@ public class FastSLAM implements Simulator.Listener
             VisConstantColor vccYellow = new VisConstantColor(Color.yellow);
             vb2.addBack(new VisLines(vvd, vccYellow, 1.5, VisLines.TYPE.LINE_STRIP));
 
+            /*
             for (Particle p: particles) {
                 vvd = new VisVertexData(p.getTrajectory());
                 VisConstantColor vccRed = new VisConstantColor(new Color(160, 30, 30));
-                vb.addBack(new VisLines(vvd, vccRed, 1.5, VisLines.TYPE.LINE_STRIP));
+                vb.addBack(new VisLines(vvd, vccRed, 0.5, VisLines.TYPE.LINE_STRIP));
             }
-            vb.swap();
+            vb.swap();*/
             vb2.swap();
         }
 
