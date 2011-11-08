@@ -9,6 +9,7 @@ import java.io.*;
 import april.vis.*;
 import april.util.*;
 import april.lcmtypes.*;
+import april.jmat.*;
 
 import lcm.lcm.*;
 
@@ -27,7 +28,7 @@ public class Task2 implements LCMSubscriber, ParameterListener
     ParameterGUI pg = new ParameterGUI();
 
     laser_t laser; // synchronize on 'this'
-    ArrayList<ArrayList<double[]> > lines = new ArrayList<ArrayList<double[]> >();
+    ArrayList<Line> lines = new ArrayList<Line>();
 
     public Task2()
     {
@@ -123,7 +124,7 @@ public class Task2 implements LCMSubscriber, ParameterListener
     }
 
     // Get lines from a scan using agglomeration
-    public static ArrayList<Line> > agglomerateLines(ArrayList<double[]> points)
+    public static ArrayList<Line> agglomerateLines(ArrayList<double[]> points)
     {
         // Initialize tiny lines
         ArrayList<Line> lines = new ArrayList<Line>();
@@ -142,6 +143,7 @@ public class Task2 implements LCMSubscriber, ParameterListener
             }
         }
 
+        return lines;
     }
 
     public synchronized void messageReceived(LCM lcm, String channel, LCMDataInputStream ins)
