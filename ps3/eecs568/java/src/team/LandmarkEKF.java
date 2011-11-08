@@ -65,17 +65,21 @@ public class LandmarkEKF {
         return covariance;
     }
 
-    public Matrix getLinearizedCovariance(double r, double theta, double[] robotPose) {
+    public Matrix getMeasurementCovariance(double[] robotPose) {
+        Matrix H = getH(robotPose);
+
+        return H.times(this.covariance).times(H.transpose()).plus(measurementNoise);
+    }
+
+    protected Matrix getH(double[] robotPose) {
         double dx = position[0] - robotPose[0];
         double dy = position[1] - robotPose[1];
         double d2 = dx * dx + dy * dy;
         double d = Math.sqrt(d2);
-
         double[][] H0 = new double[][] {{dx/d, dy/d},
                                         {-dy/d2, dy/d2}};
         Matrix H = new Matrix(H0);
-
-        return H.times(this.covariance).times(H.transpose()).plus(measurementNoise);
+        return H;
     }
 
     public double[] getPosition() {
@@ -103,32 +107,16 @@ public class LandmarkEKF {
     {
         double[] r = getResidual();
         Matrix P = getCovariance().inverse();
-
-        return LinAlg.dotProduct(P.transposeTimes(r), r);
+        Matrix rT = Matrix.rowMatrix(r);
+        return rT.times(P).times(r)[0];
     }
 
     public void update(double r, double theta, double[] robotPose) {
-        double dx = position[0] - robotPose[0];
-        double dy = position[1] - robotPose[1];
-        double d2 = dx * dx + dy * dy;
-        double d = Math.sqrt(d2);
-
-        Matrix H = new Matrix(2, 2);
-        H.set(0, 0, dx / d);
-        H.set(0, 1, dy / d);
-        H.set(1, 0, -dy / d2);
-        H.set(1, 1, dx / d2);
-
-        Matrix S = H.times(this.covariance).times(H.transpose()).plus(measurementNoise);
-        Matrix K = this.covariance.times(H.transpose()).times(S.inverse());
-        double[] h = getPredictedObservation(robotPose);
-        //LinAlg.print(h);
-
-        assert(residual != null);
-
-        residual[0] = r - h[0];
-        residual[1] = theta - h[1];
-
+        Matrix H = this.getH(robotPose);
+        Matrix Q = this.getMeasurementCovariance(robotPose);
+        Matrix K = this.covariance.times(H.transpose()).times(Q.inverse());
+        double[] residual = this.getResidual(r, theta, robotPose);
+        
         this.position = Matrix.columnMatrix(position).plus(K.times(Matrix.columnMatrix(residual))).copyAsVector();
         this.covariance = this.covariance.minus(K.times(H).times(this.covariance));
     }

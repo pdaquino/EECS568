@@ -8,24 +8,21 @@ import april.jmat.*;
 import april.sim.*;
 import april.vis.*;
 
-public class FastSLAM implements Simulator.Listener
-{
+public class FastSLAM implements Simulator.Listener {
+
     Config config;
     VisWorld vw;
-
     // Config vals
     double baseline;
     ArrayList<double[]> lmarkGroundTruth = new ArrayList<double[]>();
-
     // Particle management
     int NUM_PARTICLES;
     ArrayList<Particle> particles = new ArrayList<Particle>(NUM_PARTICLES);
-
     // Odometry info
     double[][] odomP;
+    Random random = new Random(148971469);
 
-    public void init(Config config_, VisWorld vw_)
-    {
+    public void init(Config config_, VisWorld vw_) {
         config = config_;
         vw = vw_;
 
@@ -37,10 +34,11 @@ public class FastSLAM implements Simulator.Listener
         odomP[0][0] = sigLsigR[0];
         odomP[1][1] = sigLsigR[1];
 
-        for (int i = 0;;i++) {
-            double[] xy = config.getDoubles("landmarks.l"+i, null);
-            if (xy == null)
+        for (int i = 0;; i++) {
+            double[] xy = config.getDoubles("landmarks.l" + i, null);
+            if (xy == null) {
                 break;
+            }
             lmarkGroundTruth.add(xy);
         }
 
@@ -50,60 +48,71 @@ public class FastSLAM implements Simulator.Listener
         }
     }
 
-    public void update(Simulator.odometry_t odom, ArrayList<Simulator.landmark_t> dets)
-    {
-        Random random = new Random(589134987);
+    static int resampleCount = 1;
 
+    public void update(Simulator.odometry_t odom, ArrayList<Simulator.landmark_t> dets) {
         // Update particle positions by sampling around odom measurement
         //MultiGaussian mg = new MultiGaussian(odomP, odom.obs);
         MultiGaussian mg = new MultiGaussian(odomP, new double[2]);
-        for (Particle p: particles) {
+        for (Particle p : particles) {
             double[] dLdR = mg.sample(random);
-            dLdR[0] = odom.obs[0]*(1.0 + dLdR[0]);
-            dLdR[1] = odom.obs[1]*(1.0 + dLdR[1]);
+            dLdR[0] = odom.obs[0] * (1.0 + dLdR[0]);
+            dLdR[1] = odom.obs[1] * (1.0 + dLdR[1]);
             //System.out.printf("%f,%f\n",dLdR[0],dLdR[1]);
-            double[] local_xyt = new double[] {(dLdR[0] + dLdR[1])/2,
-                                                0,
-                                                Math.atan2((dLdR[1] - dLdR[0]), baseline)};
+            double[] local_xyt = new double[]{(dLdR[0] + dLdR[1]) / 2,
+                0,
+                Math.atan2((dLdR[1] - dLdR[0]), baseline)};
 
             p.updateLocation(local_xyt);
         }
 
         // Do feature matching (XXX for now, perfect). Specific to each
         // particle. (Data association)
-        double weightTotal = 0;
-        for (Particle p: particles) {
-            weightTotal += p.associateAndUpdateLandmarks(dets);
-        }
 
-        ArrayList<Particle> newParticles = new ArrayList<Particle>(NUM_PARTICLES);
-        for (int i = 0; i < NUM_PARTICLES; i++) {
-            double rand = random.nextDouble()*weightTotal;
-            //System.out.printf("%f -- %f\n", rand, weightTotal);
-            //int cnt = 0;
-            double weightSum = 0;
-            for (Particle p: particles) {
-                weightSum += p.getWeight();
-                if (weightSum >= rand) {
-                    newParticles.add(p.getSample());
-                    break;
-                }
-                //cnt++;
+        // no need to resample if there were no detections
+        if (dets.size() > 0) {
+            System.out.printf("%d new observations\n", dets.size());
+            double weightTotal = 0;
+            for (int i = 0; i < particles.size(); i++) {
+                weightTotal += particles.get(i).associateAndUpdateLandmarks(dets);
+                System.out.printf("%.10f (%f)\n", particles.get(i).getWeight(), particles.get(i).getChi2());
             }
-            //System.out.printf("Chose particle %d\n", cnt);
-        }
-        particles = newParticles;
 
+            System.out.printf("------------------------\n");
+            if (resampleCount++ == 10) {
+                resampleCount = 1;
+                ArrayList<Particle> newParticles = new ArrayList<Particle>(NUM_PARTICLES);
+                for (int i = 0; i < NUM_PARTICLES; i++) {
+                    newParticles.add(sample(weightTotal));
+                }
+                particles = newParticles;
+            }
+        }
+        assert particles.size() == NUM_PARTICLES;
         drawStuff();
     }
 
+    private Particle sample(double totalWeight) {
+        double rand = random.nextDouble() * totalWeight;
+        //int cnt = 0;
+        double weightSum = 0;
+        for (Particle p : particles) {
+            weightSum += p.getWeight();
+            if (weightSum >= rand) {
+                return p.getSample();
+            }
+        }
+        System.err.printf("weigthSum = %f; rand = %f\n", weightSum, rand);
+        throw new IllegalStateException("No particle could be sampled");
+
+    }
+
     // Draw our own updates to screen
-    void drawStuff()
-    {
+    void drawStuff() {
         // Pick the particle to render
         Particle best = null;
         double chi2 = Double.MAX_VALUE;
-        for (Particle p: particles) {
+        for (Particle p : particles) {
             double temp = p.getChi2();
             if (chi2 > temp) {
                 chi2 = temp;
@@ -119,25 +128,40 @@ public class FastSLAM implements Simulator.Listener
             vb2.setDrawOrder(100);
             double[] xyt = best.getPose();
             double[] xyzrpy = new double[]{xyt[0], xyt[1], 0,
-                                           0, 0, xyt[2]};
+                0, 0, xyt[2]};
             vb2.addBack(new VisChain(LinAlg.xyzrpyToMatrix(xyzrpy),
-                                    new VisRobot(Color.yellow)));
+                    new VisRobot(Color.yellow)));
 
 
             VisRobot robot = new VisRobot(new Color(160, 30, 30));
             ArrayList<double[]> points = new ArrayList<double[]>();
-            for (Particle p: particles) {
+            for (Particle p : particles) {
                 xyt = p.getPose();
                 xyzrpy = new double[]{xyt[0], xyt[1], 0,
-                                               0, 0, xyt[2]};
+                    0, 0, xyt[2]};
                 //vb.addBack(new VisChain(LinAlg.xyzrpyToMatrix(xyzrpy), robot));
-                points.add(LinAlg.resize(xyt,2));
+                points.add(LinAlg.resize(xyt, 2));
             }
             vb.addBack(new VisPoints(new VisVertexData(points),
-                                     new VisConstantColor(new Color(160, 30, 30)),
-                                     1));
+                    new VisConstantColor(new Color(160, 30, 30)),
+                    1));
             vb.swap();
             vb2.swap();
+        }
+
+        // Render all landmark estimates
+        {
+            VisWorld.Buffer vb = vw.getBuffer("all-landmark-estimates");
+            vb.setDrawOrder(-200);
+            ArrayList<double[]> points = new ArrayList<double[]>();
+            for (Particle p : particles) {
+                points.addAll(p.getLandmarks());
+            }
+            vb.addBack(new VisPoints(new VisVertexData(points),
+                    new VisConstantColor(Color.LIGHT_GRAY),
+                    2));
+            vb.swap();
+
         }
 
         // Render (all) trajectories
@@ -150,13 +174,13 @@ public class FastSLAM implements Simulator.Listener
             VisConstantColor vccYellow = new VisConstantColor(Color.yellow);
             vb2.addBack(new VisLines(vvd, vccYellow, 1.5, VisLines.TYPE.LINE_STRIP));
 
-            /*
-            for (Particle p: particles) {
-                vvd = new VisVertexData(p.getTrajectory());
-                VisConstantColor vccRed = new VisConstantColor(new Color(160, 30, 30));
-                vb.addBack(new VisLines(vvd, vccRed, 0.5, VisLines.TYPE.LINE_STRIP));
-            }
-            vb.swap();*/
+
+            /*for (Particle p: particles) {
+            vvd = new VisVertexData(p.getTrajectory());
+            VisConstantColor vccRed = new VisConstantColor(new Color(160, 30, 30));
+            vb.addBack(new VisLines(vvd, vccRed, 0.5, VisLines.TYPE.LINE_STRIP));
+            }*/
+            vb.swap();
             vb2.swap();
         }
 
@@ -178,8 +202,9 @@ public class FastSLAM implements Simulator.Listener
             ArrayList<double[]> lines = new ArrayList<double[]>();
             VisConstantColor vccCyan = new VisConstantColor(Color.cyan);
             for (int i = 0; i < lmarks.size(); i++) {
-                if (ids.get(i) < 0)
+                if (ids.get(i) < 0) {
                     continue;
+                }
                 lines.add(lmarks.get(i));
                 lines.add(lmarkGroundTruth.get(ids.get(i)));
             }
