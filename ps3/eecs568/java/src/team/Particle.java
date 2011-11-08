@@ -85,6 +85,10 @@ public class Particle
 
         // Calculate new weight
         for (int i = 0; i < ids.size(); i++) {
+            // S_q, S_z, S_ekf = actual covariances
+            // K =
+
+
             double[] r = observations.get(ids.get(i)).getResidual(dets.get(i).obs[0], dets.get(i).obs[1], xyt);
             Matrix P = observations.get(ids.get(i)).getLinearizedCovariance(dets.get(i).obs[0], dets.get(i).obs[1], xyt);
 

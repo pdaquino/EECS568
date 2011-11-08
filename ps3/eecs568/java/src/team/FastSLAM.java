@@ -52,7 +52,7 @@ public class FastSLAM implements Simulator.Listener
 
     public void update(Simulator.odometry_t odom, ArrayList<Simulator.landmark_t> dets)
     {
-        Random random = new Random();
+        Random random = new Random(589134987);
 
         // Update particle positions by sampling around odom measurement
         //MultiGaussian mg = new MultiGaussian(odomP, odom.obs);
