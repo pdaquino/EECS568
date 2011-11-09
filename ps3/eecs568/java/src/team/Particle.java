@@ -88,21 +88,9 @@ public class Particle {
                 ekf.setID(det.id);
                 observations.put(det.id, ekf);
             } else {
-                LandmarkEKF currentEKF = observations.get(det.id);
-                double[] residual = currentEKF.getResidual(r, theta, xyt);
-                Matrix Q = currentEKF.getMeasurementCovariance(residual);
-                System.out.println("Q");
-                Q.print();
-                double w0 = Math.sqrt(2 * Math.PI * Q.det());
-                Matrix residualT = Matrix.rowMatrix(residual);
-                double chi2 = residualT.times(Q.inverse()).times(residual)[0];
-                System.out.println("Residual: ");
-                residualT.print();
-                System.out.println("Chi2: " + chi2);
-                assert residualT.times(Q.inverse()).times(residual).length == 1;
-
-                double w1 = Math.exp(-0.5 * chi2);
-                weight *= w1 / w0;
+                double w = observations.get(det.id).update(r, theta, xyt);
+                weight *= w;
+                System.out.println("Weight: " + weight + " (" + w + ")");
             }
         }
 
