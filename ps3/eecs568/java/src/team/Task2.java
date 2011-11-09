@@ -33,7 +33,7 @@ public class Task2 implements LCMSubscriber, ParameterListener
 
     public Task2()
     {
-        pg.addDoubleSlider("thresh","Thresh",0,1,.5);
+        pg.addDoubleSlider("thresh","Thresh",0,1,.05);
         pg.addInt("maxsteps", "Max Agglomeration Steps", 200);
 
         jf.setLayout(new BorderLayout());
@@ -64,6 +64,11 @@ public class Task2 implements LCMSubscriber, ParameterListener
         {
             line = line_;
             computeLineFit();
+        }
+
+        public int size()
+        {
+            return line.size();
         }
 
         private void computeLineFit()
@@ -129,12 +134,27 @@ public class Task2 implements LCMSubscriber, ParameterListener
         // Get a line for drawing purposes XXX
         public ArrayList<double[]> getLine()
         {
-            if (line.size() < 4) // XXX This probably belongs elsewhere
-                return null;
             ArrayList<double[]> lineSegment = new ArrayList<double[]>();
 
-            lineSegment.add(line.get(0));
-            lineSegment.add(line.get(line.size()-1));
+            // Calculate endpoints
+            double ct = Math.cos(theta);
+            double st = Math.sin(theta);
+            double[] n = LinAlg.normalize(new double[] {ct, st});
+            double[] v = LinAlg.normalize(new double[] {-st, ct});
+
+            double[] p0 = line.get(0);
+            double[] p1 = line.get(line.size()-1);
+
+            double dotqv = LinAlg.dotProduct(q, v);
+            double[] q1 = new double[] {v[0]*dotqv, v[1]*dotqv};
+
+            double dotnp0 = LinAlg.dotProduct(p0, n);
+            double dotnp1 = LinAlg.dotProduct(p1, n);
+
+            lineSegment.add(new double[] {n[0]*dotnp0 + q1[0],
+                                          n[1]*dotnp0 + q1[1]});
+            lineSegment.add(new double[] {n[0]*dotnp1 + q1[0],
+                                          n[1]*dotnp1 + q1[1]});
 
             return lineSegment;
         }
@@ -153,13 +173,13 @@ public class Task2 implements LCMSubscriber, ParameterListener
             line.add(points.get(i+1));
             lines.add(new Line(line));
         }
-        this.lines = lines;
+        /*this.lines = lines;
         update();
         try {
             System.out.println("Now have " + lines.size() + " lines");
             System.out.println("Hit a key to continue");
             System.in.read();
-        } catch(Exception ex) {}
+        } catch(Exception ex) {}*/
 
         // Try to merge lines until none are less than our minimum error cost
         for (int iters = 0; iters < maxSteps; iters++) {
@@ -182,13 +202,12 @@ public class Task2 implements LCMSubscriber, ParameterListener
             lines.set(idx, best);
             lines.remove(idx+1);
 
-            this.lines = lines;
+            /*this.lines = lines;
             update();
             try {
-                System.out.println("Now have" + lines.size() + " lines");
                 System.out.println("Hit a key to continue");
                 System.in.read();
-            } catch(Exception ex) {}
+            } catch(Exception ex) {}*/
         }
 
         return lines;
@@ -203,6 +222,8 @@ public class Task2 implements LCMSubscriber, ParameterListener
                 lines = agglomerateLines(laserToPoints(laser),
                                          pg.gd("thresh"),
                                          pg.gi("maxsteps"));
+                // Strip out undersized lines
+                pruneLines();
 
                 update();
             } else if (channel.equals("POSE")) {
@@ -213,6 +234,16 @@ public class Task2 implements LCMSubscriber, ParameterListener
         }
     }
 
+    private void pruneLines()
+    {
+        ArrayList<Line> newLines = new ArrayList<Line>();
+        for (Line l: lines) {
+            if (l.size() > 4) {
+                newLines.add(l);
+            }
+        }
+        lines = newLines;
+    }
 
     public synchronized void update()
     {
