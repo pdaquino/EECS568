@@ -10,6 +10,7 @@ import april.vis.*;
 import april.util.*;
 import april.lcmtypes.*;
 import april.jmat.*;
+import april.jmat.geom.*;
 
 import lcm.lcm.*;
 
@@ -33,7 +34,7 @@ public class Task2 implements LCMSubscriber, ParameterListener
     public Task2()
     {
         pg.addDoubleSlider("thresh","Thresh",0,1,.5);
-        pg.addInt("maxsteps", "Max Agglomeration Steps", 100);
+        pg.addInt("maxsteps", "Max Agglomeration Steps", 200);
 
         jf.setLayout(new BorderLayout());
         jf.add(vc, BorderLayout.CENTER);
@@ -68,7 +69,12 @@ public class Task2 implements LCMSubscriber, ParameterListener
         private void computeLineFit()
         {
             assert(line != null && line.size() > 0);
-            Mx = My = Mxx = Mxy = Myy = 0;
+
+            Mx = 0;
+            My = 0;
+            Mxx = 0;
+            Mxy = 0;
+            Myy = 0;
             for (int i = 0; i < line.size(); i++) {
                 double[] xy = line.get(i);
                 Mx += xy[0];
@@ -79,12 +85,16 @@ public class Task2 implements LCMSubscriber, ParameterListener
             }
 
             // Can optimize later XXX
-            double Cxx = Mxx/line.size() - (Mx*Mx)/(line.size()*line.size());
-            double Cyy = Myy/line.size() - (My*My)/(line.size()*line.size());
-            double Cxy = Mxy/line.size() - (Mx*My)/(line.size()*line.size());
+            double Cxx = (Mxx/line.size()) - ((Mx*Mx)/(line.size()*line.size()));
+            double Cyy = (Myy/line.size()) - ((My*My)/(line.size()*line.size()));
+            double Cxy = (Mxy/line.size()) - ((Mx*My)/(line.size()*line.size()));
+
+            //System.out.printf("%f %f %f %f %f === %f %f %f\n", Mx, My, Mxx, Myy, Mxy, Cxx, Cyy, Cxy);
 
             q = new double[] {Mx/line.size(), My/line.size()};
-            theta = MathUtil.mod2pi(Math.PI + .5*MathUtil.atan2(-2*Cxy, Cyy-Cxx));
+            //LinAlg.print(q);
+            theta = MathUtil.mod2pi(Math.PI/2 + MathUtil.atan2(-2*Cxy, Cyy-Cxx)/2);
+            //System.out.printf("theta: %f\n", theta);
         }
 
         // If the merged line is below our threshold, keep it. Otherwise, return null
@@ -119,12 +129,21 @@ public class Task2 implements LCMSubscriber, ParameterListener
         // Get a line for drawing purposes XXX
         public ArrayList<double[]> getLine()
         {
-            return null;
+            if (line.size() < 4) // XXX This probably belongs elsewhere
+                return null;
+            ArrayList<double[]> lineSegment = new ArrayList<double[]>();
+
+            lineSegment.add(line.get(0));
+            lineSegment.add(line.get(line.size()-1));
+
+            return lineSegment;
         }
     }
 
     // Get lines from a scan using agglomeration
-    public static ArrayList<Line> agglomerateLines(ArrayList<double[]> points)
+    public ArrayList<Line> agglomerateLines(ArrayList<double[]> points,
+                                                   double threshold,
+                                                   int maxSteps)
     {
         // Initialize tiny lines
         ArrayList<Line> lines = new ArrayList<Line>();
@@ -134,13 +153,42 @@ public class Task2 implements LCMSubscriber, ParameterListener
             line.add(points.get(i+1));
             lines.add(new Line(line));
         }
+        this.lines = lines;
+        update();
+        try {
+            System.out.println("Now have " + lines.size() + " lines");
+            System.out.println("Hit a key to continue");
+            System.in.read();
+        } catch(Exception ex) {}
 
-        boolean done = false;
-        while (!done) {
-            done = true;
+        // Try to merge lines until none are less than our minimum error cost
+        for (int iters = 0; iters < maxSteps; iters++) {
+            Line best = null;
+            double err = Double.MAX_VALUE;
+            int idx = -1;
             for (int i = 0; i < lines.size()-1; i++) {
-
+                // XXX Priority queues are the shit
+                Line temp = lines.get(i).tryLineMerge(lines.get(i+1), threshold);
+                if (temp != null && temp.getError() < err) {
+                    best = temp;
+                    err = temp.getError();
+                    idx = i;
+                }
             }
+            if (best == null)
+                break;
+
+            // Remove old lines and add in new
+            lines.set(idx, best);
+            lines.remove(idx+1);
+
+            this.lines = lines;
+            update();
+            try {
+                System.out.println("Now have" + lines.size() + " lines");
+                System.out.println("Hit a key to continue");
+                System.in.read();
+            } catch(Exception ex) {}
         }
 
         return lines;
@@ -152,7 +200,9 @@ public class Task2 implements LCMSubscriber, ParameterListener
             if (channel.equals("LIDAR_FRONT")) {
                 laser = new laser_t(ins);
 
-                lines = agglomerateLines(laserToPoints(laser));
+                lines = agglomerateLines(laserToPoints(laser),
+                                         pg.gd("thresh"),
+                                         pg.gi("maxsteps"));
 
                 update();
             } else if (channel.equals("POSE")) {
@@ -175,6 +225,21 @@ public class Task2 implements LCMSubscriber, ParameterListener
         }
 
         // Draw the lines
+        {
+            VisWorld.Buffer vb = vw.getBuffer("lines");
+            for (Line l: lines) {
+                ArrayList<double[]> points = l.getLine();
+                if (points == null)
+                    continue;
+                VisConstantColor vcc = new VisConstantColor(randomColor());
+                VisVertexData vvd = new VisVertexData(points);
+                vb.addBack(new VisLines(vvd,
+                                        vcc,
+                                        1.0,
+                                        VisLines.TYPE.LINES));
+            }
+            vb.swap();
+        }
     }
 
     public void parameterChanged(ParameterGUI pg, String name)
@@ -192,6 +257,12 @@ public class Task2 implements LCMSubscriber, ParameterListener
                                       laser.ranges[i] * Math.sin(theta) });
         }
         return points;
+    }
+
+    static Random r = new Random();
+    public static Color randomColor()
+    {
+        return new Color(r.nextInt(255), r.nextInt(255), r.nextInt(255));
     }
 
     public static void main(String args[])
