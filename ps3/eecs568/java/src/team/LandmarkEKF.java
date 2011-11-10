@@ -128,11 +128,12 @@ public class LandmarkEKF {
         chi2 += chi2(residual, Qi); // XXX
 
         //double w = edsWeight(new double[]{r, theta}, robotPose);
+        //double w = edsWeight(new double[]{r, theta}, H, robotPose);
+        double w = booksWeight(Q, residual, Qi);
+        //double w = stupidWeight(r, theta, robotPose);
 
         this.position = Matrix.columnMatrix(position).plus(K.times(residual)).copyAsVector();
         this.covariance = this.covariance.minus(K.times(H).times(this.covariance));
-
-        double w = booksWeight(Q, residual, Qi);
 
         return w;
     }
@@ -185,6 +186,12 @@ public class LandmarkEKF {
         System.out.println("Normalization: " + normalization);*/
 
         return normalization * MathUtil.exp(exponent);
+    }
+    
+    protected double stupidWeight(double r, double theta, double[] robotPose) {
+        Matrix res = Matrix.columnMatrix(getResidual(r, theta, robotPose));
+        double exponent = res.transpose().times(measurementNoise.inverse()).times(res).get(0);
+        return MathUtil.exp(-0.5*exponent);
     }
 
     private double chi2(Matrix u, Matrix inverseCov) {

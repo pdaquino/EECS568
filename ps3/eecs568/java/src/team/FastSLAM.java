@@ -57,10 +57,11 @@ public class FastSLAM implements Simulator.Listener {
             P.set(1,1, odomP[1][1]*odom.obs[1]*odom.obs[1]);
             MultiGaussian mg = new MultiGaussian(P.copyArray(), new double[2]);
             double[] dLdR = new double[2];
-            // XXX removed motion error for testing
             dLdR = mg.sample(random);
-            dLdR[0] = odom.obs[0] * (1.0 + dLdR[0]);
-            dLdR[1] = odom.obs[1] * (1.0 + dLdR[1]);
+            //dLdR[0] = odom.obs[0] * (1.0 + dLdR[0]);
+            //dLdR[1] = odom.obs[1] * (1.0 + dLdR[1]);
+            dLdR[0] = odom.obs[0] + dLdR[0];
+            dLdR[1] = odom.obs[1] + dLdR[1];
             //System.out.printf("%f,%f\n",dLdR[0],dLdR[1]);
             double[] local_xyt = new double[]{(dLdR[0] + dLdR[1]) / 2,
                 0,
