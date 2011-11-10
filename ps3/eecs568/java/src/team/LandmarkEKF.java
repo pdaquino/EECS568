@@ -28,9 +28,9 @@ public class LandmarkEKF {
         position[1] = robotPose[1] + r * Math.sin(angle);
 
         // jacobian of the covariance projection of (r,t) into (x,y)
-        double[][] jw = new double[][] {{ Math.cos(angle), -r*Math.sin(angle)},
-                                        { Math.sin(angle), r*Math.cos(angle)}};
-        Matrix Jw = new Matrix(jw);
+        //double[][] jw = new double[][] {{ Math.cos(angle), -r*Math.sin(angle)},
+        //                                { Math.sin(angle), r*Math.cos(angle)}};
+        //Matrix Jw = new Matrix(jw);
 
         if (this.measurementNoise == null) {
             double[] sigmas = config.requireDoubles("noisemodels.landmarkDiag");
@@ -39,7 +39,9 @@ public class LandmarkEKF {
             this.measurementNoise.set(0, 0, sigmas[0]);
             this.measurementNoise.set(1, 1, sigmas[1]);
         }
-        this.covariance = Jw.times(measurementNoise).times(Jw.transpose());
+        //this.covariance = Jw.times(measurementNoise).times(Jw.transpose());
+        Matrix Hi = getH(robotPose).inverse();
+        this.covariance = Hi.times(measurementNoise).times(Hi.transpose());
     }
 
     public void setID(int id)
@@ -77,7 +79,7 @@ public class LandmarkEKF {
         double d2 = dx * dx + dy * dy;
         double d = Math.sqrt(d2);
         double[][] H0 = new double[][] {{dx/d, dy/d},
-                                        {-dy/d2, dy/d2}};
+                                        {-dy/d2, dx/d2}};
         Matrix H = new Matrix(H0);
         return H;
     }
@@ -97,7 +99,7 @@ public class LandmarkEKF {
     }
 
     // Get the last residual we calculated
-    public double[] getResidual()
+    private double[] getResidual()
     {
         return residual;
     }
@@ -108,17 +110,24 @@ public class LandmarkEKF {
         double[] r = getResidual();
         Matrix P = getCovariance().inverse();
         Matrix rT = Matrix.rowMatrix(r);
-        return rT.times(P).times(r)[0];
+        //return rT.times(P).times(r)[0];
+        return LinAlg.magnitude(r);
     }
 
-    public void update(double r, double theta, double[] robotPose) {
+    // returns p(z|x)
+    public double update(double r, double theta, double[] robotPose) {
         Matrix H = this.getH(robotPose);
         Matrix Q = this.getMeasurementCovariance(robotPose);
+        Matrix Qi = Q.inverse();
         Matrix K = this.covariance.times(H.transpose()).times(Q.inverse());
-        double[] residual = this.getResidual(r, theta, robotPose);
+        Matrix residual = Matrix.columnMatrix(this.getResidual(r, theta, robotPose));
         
-        this.position = Matrix.columnMatrix(position).plus(K.times(Matrix.columnMatrix(residual))).copyAsVector();
+        this.position = Matrix.columnMatrix(position).plus(K.times(residual)).copyAsVector();
         this.covariance = this.covariance.minus(K.times(H).times(this.covariance));
+        
+        double w = 1/Math.sqrt(Q.times(2*Math.PI).det()) *
+                Math.exp(-0.5*residual.transpose().times(Qi).times(residual).get(0));
+        return w;
     }
 
     private double[] getPredictedObservation(double[] robotPose) {

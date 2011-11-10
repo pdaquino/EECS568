@@ -47,15 +47,17 @@ public class FastSLAM implements Simulator.Listener {
             particles.add(new Particle(config_, new double[3]));
         }
     }
-
     static int resampleCount = 1;
 
     public void update(Simulator.odometry_t odom, ArrayList<Simulator.landmark_t> dets) {
+        assertWeightsAreOne();
         // Update particle positions by sampling around odom measurement
         //MultiGaussian mg = new MultiGaussian(odomP, odom.obs);
         MultiGaussian mg = new MultiGaussian(odomP, new double[2]);
         for (Particle p : particles) {
-            double[] dLdR = mg.sample(random);
+            double[] dLdR = new double[2];
+            // XXX removed motion error for testing
+            dLdR = mg.sample(random);
             dLdR[0] = odom.obs[0] * (1.0 + dLdR[0]);
             dLdR[1] = odom.obs[1] * (1.0 + dLdR[1]);
             //System.out.printf("%f,%f\n",dLdR[0],dLdR[1]);
@@ -71,25 +73,39 @@ public class FastSLAM implements Simulator.Listener {
 
         // no need to resample if there were no detections
         if (dets.size() > 0) {
-            System.out.printf("%d new observations\n", dets.size());
-            double weightTotal = 0;
-            for (int i = 0; i < particles.size(); i++) {
-                weightTotal += particles.get(i).associateAndUpdateLandmarks(dets);
-                System.out.printf("%.10f (%f)\n", particles.get(i).getWeight(), particles.get(i).getChi2());
-            }
-
-            System.out.printf("------------------------\n");
-            if (resampleCount++ == 10) {
-                resampleCount = 1;
-                ArrayList<Particle> newParticles = new ArrayList<Particle>(NUM_PARTICLES);
-                for (int i = 0; i < NUM_PARTICLES; i++) {
-                    newParticles.add(sample(weightTotal));
-                }
-                particles = newParticles;
-            }
+            updateLandmarks(dets);
+            System.out.println("---------------------");
+            resample();
         }
         assert particles.size() == NUM_PARTICLES;
-        drawStuff();
+        drawStuff(dets);
+    }
+    
+    private void updateLandmark(Simulator.landmark_t det) {
+        ArrayList<Simulator.landmark_t> detList = new ArrayList<Simulator.landmark_t>();
+        detList.add(det);
+        updateLandmarks(detList);
+    }
+    
+    private void updateLandmarks(ArrayList<Simulator.landmark_t> detList) {
+        for(Particle p: particles) {
+            p.associateAndUpdateLandmarks(detList);
+        }
+    }
+
+    private void resample() {
+        double weightTotal = 0;
+        for(Particle p : particles) {
+            weightTotal += p.getWeight();
+        }
+        if(MathUtil.doubleEquals(weightTotal, 0)) {
+            throw new IllegalStateException("All weights are zero");
+        }
+        ArrayList<Particle> newParticles = new ArrayList<Particle>(NUM_PARTICLES);
+        for (int i = 0; i < NUM_PARTICLES; i++) {
+            newParticles.add(sample(weightTotal));
+        }
+        particles = newParticles;
     }
 
     private Particle sample(double totalWeight) {
@@ -108,7 +124,7 @@ public class FastSLAM implements Simulator.Listener {
     }
 
     // Draw our own updates to screen
-    void drawStuff() {
+    void drawStuff(ArrayList<Simulator.landmark_t> dets) {
         // Pick the particle to render
         Particle best = null;
         double chi2 = Double.MAX_VALUE;
@@ -132,7 +148,7 @@ public class FastSLAM implements Simulator.Listener {
             vb2.addBack(new VisChain(LinAlg.xyzrpyToMatrix(xyzrpy),
                     new VisRobot(Color.yellow)));
 
-
+//            System.out.printf("%d new observations\n", dets.size());
             VisRobot robot = new VisRobot(new Color(160, 30, 30));
             ArrayList<double[]> points = new ArrayList<double[]>();
             for (Particle p : particles) {
@@ -162,6 +178,20 @@ public class FastSLAM implements Simulator.Listener {
                     2));
             vb.swap();
 
+        }
+        // Draw the landmark observations
+        {
+            VisWorld.Buffer vb = vw.getBuffer("landmarks-noisy");
+            for (Simulator.landmark_t lmark : dets) {
+                double[] obs = lmark.obs;
+                ArrayList<double[]> obsPoints = new ArrayList<double[]>();
+                obsPoints.add(LinAlg.resize(best.getPose(), 2));
+                double rel_xy[] = {obs[0] * Math.cos(obs[1]), obs[0] * Math.sin(obs[1])};
+                obsPoints.add(LinAlg.transform(best.getPose(), rel_xy));
+                vb.addBack(new VisLines(new VisVertexData(obsPoints),
+                        new VisConstantColor(lmark.id == -1 ? Color.gray : Color.cyan), 2, VisLines.TYPE.LINE_STRIP));
+            }
+            vb.swap();
         }
 
         // Render (all) trajectories
@@ -215,5 +245,11 @@ public class FastSLAM implements Simulator.Listener {
             vb.swap();
         }
 
+    }
+
+    private void assertWeightsAreOne() {
+        for (Particle p : particles) {
+            assert (MathUtil.doubleEquals(p.getWeight(), 1.0));
+        }
     }
 }
