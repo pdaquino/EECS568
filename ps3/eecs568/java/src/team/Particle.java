@@ -90,7 +90,7 @@ public class Particle {
             } else {
                 double w = observations.get(det.id).update(r, theta, xyt);
                 weight *= w;
-                System.out.println("Weight: " + weight + " (" + w + ")");
+                System.out.println("> Weight: " + weight + " (" + w + ")");
             }
         }
 

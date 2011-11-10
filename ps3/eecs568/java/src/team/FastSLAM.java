@@ -99,7 +99,7 @@ public class FastSLAM implements Simulator.Listener {
             weightTotal += p.getWeight();
         }
         if(MathUtil.doubleEquals(weightTotal, 0)) {
-            throw new IllegalStateException("All weights are zero");
+            //throw new IllegalStateException("All weights are zero");
         }
         ArrayList<Particle> newParticles = new ArrayList<Particle>(NUM_PARTICLES);
         for (int i = 0; i < NUM_PARTICLES; i++) {
