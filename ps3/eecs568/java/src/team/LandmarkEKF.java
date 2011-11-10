@@ -12,12 +12,12 @@ import april.config.*;
 public class LandmarkEKF {
 
     int realID = -1;
-
     private double[] position;
     private Matrix covariance;
     private static Matrix measurementNoise = null;
-
     private double[] residual;
+
+    double chi2 = 0;
 
     public LandmarkEKF(Config config, double r, double phi, double robotPose[]) {
         double angle = MathUtil.mod2pi(robotPose[2] + phi);
@@ -28,9 +28,9 @@ public class LandmarkEKF {
         position[1] = robotPose[1] + r * Math.sin(angle);
 
         // jacobian of the covariance projection of (r,t) into (x,y)
-        //double[][] jw = new double[][] {{ Math.cos(angle), -r*Math.sin(angle)},
-        //                                { Math.sin(angle), r*Math.cos(angle)}};
-        //Matrix Jw = new Matrix(jw);
+        double[][] jw = new double[][]{{Math.cos(angle), -r * Math.sin(angle)},
+            {Math.sin(angle), r * Math.cos(angle)}};
+        Matrix Jw = new Matrix(jw);
 
         if (this.measurementNoise == null) {
             double[] sigmas = config.requireDoubles("noisemodels.landmarkDiag");
@@ -41,19 +41,16 @@ public class LandmarkEKF {
             //this.measurementNoise.set(0, 0, 3);
             //this.measurementNoise.set(1, 1, 1);
         }
-        //this.covariance = Jw.times(measurementNoise).times(Jw.transpose());
-        Matrix Hi = getH(robotPose).inverse();
-        this.covariance = Hi.times(measurementNoise).times(Hi.transpose());
-        //this.covariance.print();
+        this.covariance = Jw.times(measurementNoise).times(Jw.transpose());
+        //Matrix Hi = getH(robotPose).inverse();
+        //this.covariance = Hi.times(measurementNoise).times(Hi.transpose());
     }
 
-    public void setID(int id)
-    {
+    public void setID(int id) {
         realID = id;
     }
 
-    public int getRealID()
-    {
+    public int getRealID() {
         return realID;
     }
 
@@ -82,8 +79,9 @@ public class LandmarkEKF {
         double dy = position[1] - robotPose[1];
         double d2 = dx * dx + dy * dy;
         double d = Math.sqrt(d2);
-        double[][] H0 = new double[][] {{dx/d, dy/d},
-                                        {-dy/d2, dx/d2}};
+        double[][] H0 = new double[][]{
+            {dx / d, dy / d},
+            {-dy / d2, dx / d2}};
         Matrix H = new Matrix(H0);
         return H;
     }
@@ -97,14 +95,13 @@ public class LandmarkEKF {
         double[] h = getPredictedObservation(robotPose);
 
         residual[0] = r - h[0];
-        residual[1] = theta - h[1];
+        residual[1] = MathUtil.mod2pi(theta - h[1]);
 
         return residual;
     }
 
     // Get the last residual we calculated
-    private double[] getResidual()
-    {
+    private double[] getResidual() {
         return residual;
     }
 
@@ -116,7 +113,8 @@ public class LandmarkEKF {
         Matrix P = getCovariance().inverse();
         Matrix rT = Matrix.rowMatrix(r);
         //return rT.times(P).times(r)[0];
-        return LinAlg.magnitude(r);
+        //return LinAlg.magnitude(r);
+        return chi2;
     }
 
     // returns ~p(z|x)
@@ -127,11 +125,15 @@ public class LandmarkEKF {
         Matrix K = this.covariance.times(H.transpose()).times(Qi);
         Matrix residual = Matrix.columnMatrix(this.getResidual(r, theta, robotPose));
 
+        chi2 += chi2(residual, Qi); // XXX
+
+        //double w = edsWeight(new double[]{r, theta}, robotPose);
+
         this.position = Matrix.columnMatrix(position).plus(K.times(residual)).copyAsVector();
         this.covariance = this.covariance.minus(K.times(H).times(this.covariance));
 
-        double w = 1/Math.sqrt(Q.times(2*Math.PI).det()) *
-                Math.exp(-0.5*residual.transpose().times(Qi).times(residual).get(0));
+        double w = booksWeight(Q, residual, Qi);
+
         return w;
     }
 
@@ -139,9 +141,57 @@ public class LandmarkEKF {
         double[] h = new double[2];
         double dx = position[0] - robotPose[0];
         double dy = position[1] - robotPose[1];
-        h[0] = Math.sqrt(dx*dx + dy*dy);
+        h[0] = Math.sqrt(dx * dx + dy * dy);
         h[1] = MathUtil.mod2pi(Math.atan2(dy, dx) - robotPose[2]);
         return h;
+    }
+
+    protected double booksWeight(Matrix Q, Matrix residual, Matrix Qi) {
+        double w = (1.0 / Math.sqrt(Q.times(2 * Math.PI).det()))
+                * MathUtil.exp(-0.5 * residual.transpose().times(Qi).times(residual).get(0));
+        return w;
+    }
+
+    protected double edsWeight(double[] obs, double[] robotPose) {
+        Matrix J = getH(robotPose);
+        Matrix Jt = J.transpose();
+        // z0 = zpred - Jf*uf
+        double[] z_0 = LinAlg.subtract(getPredictedObservation(robotPose), J.times(position));
+        z_0[1] = MathUtil.mod2pi(z_0[1]);
+        Matrix y = Matrix.columnMatrix(LinAlg.subtract(obs, z_0));
+
+        Matrix S_zi = measurementNoise.inverse();
+        Matrix S_fi = covariance.inverse();
+        Matrix u_f = Matrix.columnMatrix(position);
+        Matrix S_qi = Jt.times(S_zi).times(J).plus(S_fi);
+        Matrix S_q = S_qi.inverse();
+        Matrix u_q = S_q.times(Jt.plus(S_zi).times(y).plus(S_fi.times(u_f)));
+
+        // Constants
+        double twoPi = 2 * Math.PI;
+        double K_z = Math.sqrt(measurementNoise.det()) * twoPi;
+        double K_f = Math.sqrt(covariance.det()) * twoPi;
+        double K_q = Math.sqrt(S_q.det()) * twoPi;
+
+        double normalization = K_q / (K_z * K_f);
+        double exponent = -0.5 * (-1 * chi2(u_q, S_qi) + chi2(y, S_zi) + chi2(u_f, S_fi));
+
+        /*System.out.println("u_f:");
+        LinAlg.print(position);
+        System.out.println("S_f:");
+        covariance.print();
+        System.out.println("Chi2 Sum: -" + chi2(u_q, S_qi) + " + " + chi2(y, S_zi) + " + " + chi2(u_f, S_fi) + " = " + exponent * -2);
+        System.out.println("Exponent: " + exponent);
+        System.out.println("Normalization: " + normalization);*/
+
+        return normalization * MathUtil.exp(exponent);
+    }
+
+    private double chi2(Matrix u, Matrix inverseCov) {
+        Matrix result = u.transpose().times(inverseCov).times(u);
+        assert result.getRowDimension() == 1;
+        assert result.getColumnDimension() == 1;
+        return result.get(0);
     }
 
     public LandmarkEKF copy() {

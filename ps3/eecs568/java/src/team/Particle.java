@@ -14,6 +14,8 @@ public class Particle {
     double[] xyt = new double[3];
     // List of EKFs for landmark observations. Map landmark IDs to EKFs
     HashMap<Integer, LandmarkEKF> observations = new HashMap<Integer, LandmarkEKF>();
+
+    double chi2 = 0.0;
     double weight = 1.0;  // Particle weight for resampling
 
     public Particle(Config config_) {
@@ -44,9 +46,10 @@ public class Particle {
         }
     }
 
-    public void updateLocation(double[] local_xyt) {
+    public void updateLocation(double[] local_xyt, double chi2) {
         xyt = LinAlg.xytMultiply(xyt, local_xyt);
         trajectory.add(LinAlg.resize(xyt, 2));
+        this.chi2 += chi2;
     }
 
     public double[] getPose() {
@@ -90,7 +93,7 @@ public class Particle {
             } else {
                 double w = observations.get(det.id).update(r, theta, xyt);
                 weight *= w;
-                System.out.println("Weight: " + weight + " (" + w + ")");
+                //System.out.println("> Weight: " + weight + " (" + w + ")");
             }
         }
 
@@ -101,14 +104,16 @@ public class Particle {
         return weight;
     }
 
+    public double normalizeWeight(double n) {
+        weight /= n;
+        return weight;
+    }
+
     public double getChi2() {
-        // The Chi2 is directly associated with the error for each
-        // landmark. Sum those errors. XXX Sort of.
-        double chi2 = 0;
-        for (LandmarkEKF ekf : observations.values()) {
+        double chi2 = this.chi2;
+        for (LandmarkEKF ekf: observations.values()) {
             chi2 += ekf.getChi2();
         }
-
         return chi2;
     }
 

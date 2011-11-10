@@ -20,7 +20,7 @@ public class FastSLAM implements Simulator.Listener {
     ArrayList<Particle> particles = new ArrayList<Particle>(NUM_PARTICLES);
     // Odometry info
     double[][] odomP;
-    Random random = new Random(148971469);
+    Random random = new Random(1);
 
     public void init(Config config_, VisWorld vw_) {
         config = config_;
@@ -31,8 +31,8 @@ public class FastSLAM implements Simulator.Listener {
         baseline = config.requireDouble("robot.baseline_m");
         odomP = new double[2][2];
         double[] sigLsigR = config.requireDoubles("noisemodels.odometryDiag");
-        odomP[0][0] = sigLsigR[0];
-        odomP[1][1] = sigLsigR[1];
+        odomP[0][0] = sigLsigR[0]*sigLsigR[0];
+        odomP[1][1] = sigLsigR[1]*sigLsigR[1];
 
         for (int i = 0;; i++) {
             double[] xy = config.getDoubles("landmarks.l" + i, null);
@@ -50,11 +50,12 @@ public class FastSLAM implements Simulator.Listener {
     static int resampleCount = 1;
 
     public void update(Simulator.odometry_t odom, ArrayList<Simulator.landmark_t> dets) {
-        assertWeightsAreOne();
         // Update particle positions by sampling around odom measurement
-        //MultiGaussian mg = new MultiGaussian(odomP, odom.obs);
-        MultiGaussian mg = new MultiGaussian(odomP, new double[2]);
         for (Particle p : particles) {
+            Matrix P = new Matrix(2,2);
+            P.set(0,0, odomP[0][0]*odom.obs[0]*odom.obs[0]);
+            P.set(1,1, odomP[1][1]*odom.obs[1]*odom.obs[1]);
+            MultiGaussian mg = new MultiGaussian(P.copyArray(), new double[2]);
             double[] dLdR = new double[2];
             // XXX removed motion error for testing
             dLdR = mg.sample(random);
@@ -65,7 +66,13 @@ public class FastSLAM implements Simulator.Listener {
                 0,
                 Math.atan2((dLdR[1] - dLdR[0]), baseline)};
 
-            p.updateLocation(local_xyt);
+            double[] res = new double[] {dLdR[0] - odom.obs[0],
+                                       dLdR[1] - odom.obs[1]};
+            Matrix r = Matrix.columnMatrix(res);
+            Matrix Pi = P.inverse();
+            double chi2 = r.transpose().times(Pi).times(r).get(0);
+
+            p.updateLocation(local_xyt, chi2);
         }
 
         // Do feature matching (XXX for now, perfect). Specific to each
@@ -74,19 +81,19 @@ public class FastSLAM implements Simulator.Listener {
         // no need to resample if there were no detections
         if (dets.size() > 0) {
             updateLandmarks(dets);
-            System.out.println("---------------------");
+            //System.out.println("---------------------");
             resample();
         }
         assert particles.size() == NUM_PARTICLES;
         drawStuff(dets);
     }
-    
+
     private void updateLandmark(Simulator.landmark_t det) {
         ArrayList<Simulator.landmark_t> detList = new ArrayList<Simulator.landmark_t>();
         detList.add(det);
         updateLandmarks(detList);
     }
-    
+
     private void updateLandmarks(ArrayList<Simulator.landmark_t> detList) {
         for(Particle p: particles) {
             p.associateAndUpdateLandmarks(detList);
@@ -94,13 +101,20 @@ public class FastSLAM implements Simulator.Listener {
     }
 
     private void resample() {
+        /*double maxWeight = Double.NEGATIVE_INFINITY;
+        for (Particle p: particles) {
+            if (p.getWeight() > maxWeight) {
+                maxWeight = p.getWeight();
+            }
+        }*/
+
         double weightTotal = 0;
         for(Particle p : particles) {
             weightTotal += p.getWeight();
         }
-        if(MathUtil.doubleEquals(weightTotal, 0)) {
-            throw new IllegalStateException("All weights are zero");
-        }
+        //if(MathUtil.doubleEquals(weightTotal, 0)) {
+            //throw new IllegalStateException("All weights are zero");
+        //}
         ArrayList<Particle> newParticles = new ArrayList<Particle>(NUM_PARTICLES);
         for (int i = 0; i < NUM_PARTICLES; i++) {
             newParticles.add(sample(weightTotal));
@@ -118,7 +132,7 @@ public class FastSLAM implements Simulator.Listener {
                 return p.getSample();
             }
         }
-        System.err.printf("weigthSum = %f; rand = %f\n", weightSum, rand);
+        //System.err.printf("weigthSum = %f; rand = %f\n", weightSum, rand);
         throw new IllegalStateException("No particle could be sampled");
 
     }
