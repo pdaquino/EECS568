@@ -20,7 +20,7 @@ public class FastSLAM implements Simulator.Listener {
     ArrayList<Particle> particles = new ArrayList<Particle>(NUM_PARTICLES);
     // Odometry info
     double[][] odomP;
-    Random random = new Random(1);
+    Random random = new Random(1748298757);
 
     public void init(Config config_, VisWorld vw_) {
         config = config_;
