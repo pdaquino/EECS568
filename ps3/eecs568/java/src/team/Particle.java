@@ -103,7 +103,7 @@ public class Particle {
 
     public double getChi2() {
         // The Chi2 is directly associated with the error for each
-        // landmark. Sum those errors.
+        // landmark. Sum those errors. XXX Sort of.
         double chi2 = 0;
         for (LandmarkEKF ekf : observations.values()) {
             chi2 += ekf.getChi2();

@@ -38,10 +38,13 @@ public class LandmarkEKF {
             this.measurementNoise = new Matrix(2, 2);
             this.measurementNoise.set(0, 0, sigmas[0]);
             this.measurementNoise.set(1, 1, sigmas[1]);
+            //this.measurementNoise.set(0, 0, 3);
+            //this.measurementNoise.set(1, 1, 1);
         }
         //this.covariance = Jw.times(measurementNoise).times(Jw.transpose());
         Matrix Hi = getH(robotPose).inverse();
         this.covariance = Hi.times(measurementNoise).times(Hi.transpose());
+        //this.covariance.print();
     }
 
     public void setID(int id)
@@ -73,6 +76,7 @@ public class LandmarkEKF {
         return H.times(this.covariance).times(H.transpose()).plus(measurementNoise);
     }
 
+    // XXX Jacobian
     protected Matrix getH(double[] robotPose) {
         double dx = position[0] - robotPose[0];
         double dy = position[1] - robotPose[1];
@@ -104,7 +108,8 @@ public class LandmarkEKF {
         return residual;
     }
 
-    // XXX is this right?
+    // XXX is this right? No...chi2 should be additive. It never goes away. It
+    // theoretically *could* our current way
     public double getChi2()
     {
         double[] r = getResidual();
@@ -114,17 +119,17 @@ public class LandmarkEKF {
         return LinAlg.magnitude(r);
     }
 
-    // returns p(z|x)
+    // returns ~p(z|x)
     public double update(double r, double theta, double[] robotPose) {
         Matrix H = this.getH(robotPose);
         Matrix Q = this.getMeasurementCovariance(robotPose);
         Matrix Qi = Q.inverse();
-        Matrix K = this.covariance.times(H.transpose()).times(Q.inverse());
+        Matrix K = this.covariance.times(H.transpose()).times(Qi);
         Matrix residual = Matrix.columnMatrix(this.getResidual(r, theta, robotPose));
-        
+
         this.position = Matrix.columnMatrix(position).plus(K.times(residual)).copyAsVector();
         this.covariance = this.covariance.minus(K.times(H).times(this.covariance));
-        
+
         double w = 1/Math.sqrt(Q.times(2*Math.PI).det()) *
                 Math.exp(-0.5*residual.transpose().times(Qi).times(residual).get(0));
         return w;
@@ -145,17 +150,33 @@ public class LandmarkEKF {
 
     public static void main(String[] args) {
         // Broken now that config file exists
-        /*
+        Config config = null;
+        try {
+            config = new ConfigFile("/home/rgoeddel/class/eecs568/EECS568/ps3/eecs568/config/sim.config");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            System.exit(1);
+        }
+
         double[] pose = { 3, 2, Math.PI };
-        LandmarkEKF ekf = new LandmarkEKF(10, Math.PI/2, pose);
+        LandmarkEKF ekf = new LandmarkEKF(config, 10, Math.PI/2, pose);
+        LandmarkEKF ekf2 = new LandmarkEKF(config, 10, Math.PI/2, pose);
         System.out.println("Position after first observation: ");
         LinAlg.print(ekf.getPosition());
         System.out.println("Covariance after first observation: ");
         ekf.getCovariance().print();
-        ekf.update(11, 0.6*Math.PI, pose);
+        double w = ekf.update(11, 0.6*Math.PI, pose);
         System.out.println("Position after 2nd observation: ");
         LinAlg.print(ekf.getPosition());
         System.out.println("Covariance after 2nd observation: ");
-        ekf.getCovariance().print();*/
+        ekf.getCovariance().print();
+        System.out.println("Weight after 2nd observation: \n"+w);
+        System.out.println("===================================");
+        w = ekf2.update(10, 0.5*Math.PI, pose);
+        System.out.println("Position after 2nd observation: ");
+        LinAlg.print(ekf2.getPosition());
+        System.out.println("Covariance after 2nd observation: ");
+        ekf2.getCovariance().print();
+        System.out.println("Weight after 2nd observation: \n"+w);
     }
 }
