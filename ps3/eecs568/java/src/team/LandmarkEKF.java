@@ -161,22 +161,33 @@ public class LandmarkEKF {
         double[] pose = { 3, 2, Math.PI };
         LandmarkEKF ekf = new LandmarkEKF(config, 10, Math.PI/2, pose);
         LandmarkEKF ekf2 = new LandmarkEKF(config, 10, Math.PI/2, pose);
+
         System.out.println("Position after first observation: ");
         LinAlg.print(ekf.getPosition());
         System.out.println("Covariance after first observation: ");
         ekf.getCovariance().print();
+
         double w = ekf.update(11, 0.6*Math.PI, pose);
         System.out.println("Position after 2nd observation: ");
         LinAlg.print(ekf.getPosition());
         System.out.println("Covariance after 2nd observation: ");
         ekf.getCovariance().print();
         System.out.println("Weight after 2nd observation: \n"+w);
+
         System.out.println("===================================");
+
         w = ekf2.update(10, 0.5*Math.PI, pose);
         System.out.println("Position after 2nd observation: ");
         LinAlg.print(ekf2.getPosition());
         System.out.println("Covariance after 2nd observation: ");
         ekf2.getCovariance().print();
         System.out.println("Weight after 2nd observation: \n"+w);
+
+        w = ekf2.update(10, 0.5*Math.PI, pose);
+        System.out.println("Position after 3rd observation: ");
+        LinAlg.print(ekf2.getPosition());
+        System.out.println("Covariance after 3rd observation: ");
+        ekf2.getCovariance().print();
+        System.out.println("Weight after 3rd observation: \n"+w);
     }
 }
