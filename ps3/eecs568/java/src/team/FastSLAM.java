@@ -31,8 +31,8 @@ public class FastSLAM implements Simulator.Listener {
         baseline = config.requireDouble("robot.baseline_m");
         odomP = new double[2][2];
         double[] sigLsigR = config.requireDoubles("noisemodels.odometryDiag");
-        odomP[0][0] = sigLsigR[0]*sigLsigR[0];
-        odomP[1][1] = sigLsigR[1]*sigLsigR[1];
+        odomP[0][0] = sigLsigR[0] * sigLsigR[0];
+        odomP[1][1] = sigLsigR[1] * sigLsigR[1];
 
         for (int i = 0;; i++) {
             double[] xy = config.getDoubles("landmarks.l" + i, null);
@@ -52,9 +52,9 @@ public class FastSLAM implements Simulator.Listener {
     public void update(Simulator.odometry_t odom, ArrayList<Simulator.landmark_t> dets) {
         // Update particle positions by sampling around odom measurement
         for (Particle p : particles) {
-            Matrix P = new Matrix(2,2);
-            P.set(0,0, odomP[0][0]*odom.obs[0]*odom.obs[0]);
-            P.set(1,1, odomP[1][1]*odom.obs[1]*odom.obs[1]);
+            Matrix P = new Matrix(2, 2);
+            P.set(0, 0, odomP[0][0] * odom.obs[0] * odom.obs[0]);
+            P.set(1, 1, odomP[1][1] * odom.obs[1] * odom.obs[1]);
             MultiGaussian mg = new MultiGaussian(P.copyArray(), new double[2]);
             double[] dLdR = new double[2];
             dLdR = mg.sample(random);
@@ -67,8 +67,8 @@ public class FastSLAM implements Simulator.Listener {
                 0,
                 Math.atan2((dLdR[1] - dLdR[0]), baseline)};
 
-            double[] res = new double[] {dLdR[0] - odom.obs[0],
-                                       dLdR[1] - odom.obs[1]};
+            double[] res = new double[]{dLdR[0] - odom.obs[0],
+                dLdR[1] - odom.obs[1]};
             Matrix r = Matrix.columnMatrix(res);
             Matrix Pi = P.inverse();
             double chi2 = r.transpose().times(Pi).times(r).get(0);
@@ -96,7 +96,7 @@ public class FastSLAM implements Simulator.Listener {
     }
 
     private void updateLandmarks(ArrayList<Simulator.landmark_t> detList) {
-        for(Particle p: particles) {
+        for (Particle p : particles) {
             p.associateAndUpdateLandmarks(detList);
         }
     }
@@ -104,17 +104,17 @@ public class FastSLAM implements Simulator.Listener {
     private void resample() {
         /*double maxWeight = Double.NEGATIVE_INFINITY;
         for (Particle p: particles) {
-            if (p.getWeight() > maxWeight) {
-                maxWeight = p.getWeight();
-            }
+        if (p.getWeight() > maxWeight) {
+        maxWeight = p.getWeight();
+        }
         }*/
 
         double weightTotal = 0;
-        for(Particle p : particles) {
+        for (Particle p : particles) {
             weightTotal += p.getWeight();
         }
         //if(MathUtil.doubleEquals(weightTotal, 0)) {
-            //throw new IllegalStateException("All weights are zero");
+        //throw new IllegalStateException("All weights are zero");
         //}
         ArrayList<Particle> newParticles = new ArrayList<Particle>(NUM_PARTICLES);
         for (int i = 0; i < NUM_PARTICLES; i++) {
@@ -138,6 +138,18 @@ public class FastSLAM implements Simulator.Listener {
 
     }
 
+    // find the rotation that best aligns the features in the map
+    private double getAlignmentRotation(Particle p) {
+        ArrayList<double[]> lmarks = p.getLandmarks();
+        ArrayList<Integer> lmarkIds = p.getIDs();
+        ArrayList<double[]> matchingTruthLmarks = new ArrayList<double[]>();
+        for (int i = 0; i < lmarks.size(); i++) {
+            matchingTruthLmarks.add(lmarkGroundTruth.get(lmarkIds.get(i)));
+        }
+        double alignRotation = RotationFit.fitRotation(p.getLandmarks(), matchingTruthLmarks);
+        return alignRotation;
+    }
+
     // Draw our own updates to screen
     void drawStuff(ArrayList<Simulator.landmark_t> dets) {
         // Pick the particle to render
@@ -150,6 +162,8 @@ public class FastSLAM implements Simulator.Listener {
                 best = p;
             }
         }
+        
+        double alignRotation = getAlignmentRotation(best);
 
         // Render the (best) robot
         {
@@ -219,20 +233,28 @@ public class FastSLAM implements Simulator.Listener {
             VisConstantColor vccYellow = new VisConstantColor(Color.yellow);
             vb2.addBack(new VisLines(vvd, vccYellow, 1.5, VisLines.TYPE.LINE_STRIP));
 
-
-            /*for (Particle p: particles) {
-            vvd = new VisVertexData(p.getTrajectory());
-            VisConstantColor vccRed = new VisConstantColor(new Color(160, 30, 30));
-            vb.addBack(new VisLines(vvd, vccRed, 0.5, VisLines.TYPE.LINE_STRIP));
-            }*/
             vb.swap();
             vb2.swap();
+        }
+
+        // Render the aligned trajectory
+        {
+            if (alignRotation != Double.NaN) {
+                VisWorld.Buffer vb = vw.getBuffer("aligned-trajectory");
+                vb.setDrawOrder(200);
+                ArrayList<double[]> alignedPoints = RotationFit.applyRotation(
+                        alignRotation, best.getTrajectory());
+                VisVertexData vvd = new VisVertexData(alignedPoints);
+                vb.addBack(new VisLines(vvd, new VisConstantColor(Color.GREEN), 1.5, VisLines.TYPE.LINE_STRIP));
+
+                vb.swap();
+            }
         }
 
         // Render landmark estimates for best robot along with lines
         // connecting them to the landmark that spawned them
         ArrayList<double[]> lmarks = best.getLandmarks();
-        ArrayList<Integer> ids = best.getIDs();
+        ArrayList<Integer> lmarkIds = best.getIDs();
         {
             VisWorld.Buffer vb = vw.getBuffer("landmark-estimates");
             VisVertexData vvd = new VisVertexData(lmarks);
@@ -242,16 +264,29 @@ public class FastSLAM implements Simulator.Listener {
             vb.swap();
         }
 
+        // Render aligned landmark estimates
+        {
+            if (alignRotation != Double.NaN) {
+                VisWorld.Buffer vb = vw.getBuffer("aligned-landmark-estimates");
+                VisVertexData vvd = new VisVertexData(
+                        RotationFit.applyRotation(alignRotation, lmarks));
+                VisConstantColor vccOrange = new VisConstantColor(Color.ORANGE);
+                vb.addBack(new VisPoints(vvd, vccOrange, 5));
+
+                vb.swap();
+            }
+        }
+
         {
             VisWorld.Buffer vb = vw.getBuffer("landmark-groundTruth");
             ArrayList<double[]> lines = new ArrayList<double[]>();
             VisConstantColor vccCyan = new VisConstantColor(Color.cyan);
             for (int i = 0; i < lmarks.size(); i++) {
-                if (ids.get(i) < 0) {
+                if (lmarkIds.get(i) < 0) {
                     continue;
                 }
                 lines.add(lmarks.get(i));
-                lines.add(lmarkGroundTruth.get(ids.get(i)));
+                lines.add(lmarkGroundTruth.get(lmarkIds.get(i)));
             }
             VisVertexData vvd = new VisVertexData(lines);
 
