@@ -47,7 +47,7 @@ $\Sigma_x'' = (I - K'J_{x'}) \Sigma_x'$ \\
 
 \subparagraph{iii}
 update 1: \\
-$\mu = \left[ \begin{array}{c} 
+$\mu = \left[ \begin{array}{c}
 3 \\
 2 \\
 pi \\
@@ -56,14 +56,14 @@ pi \\
 3 \\
 -8
 \end{array}\right],
-\Sigma = \left[ \begin{array}{c c c c c c c} 
+\Sigma = \left[ \begin{array}{c c c c c c c}
 4.00 & 1.00 & 2.00  & 1.00 & 1.00 & 1.00 & -2.40 \\
 1.00 & 6.00 & 3.00 & 1.00 & 2.00 & 6.00 & -3.10 \\
 2.00 &  3.00 & 4.00 & 1.00 & 2.00 & 3.00 & -4.20 \\
 1.00 & 1.00 & 1.00 & 8.00 & 1.00 & 1.00 & -1.10 \\
-1.00 & 2.00 & 2.00 & 1.00 & 10.00 & 2.00 & -2.10 \\ 
+1.00 & 2.00 & 2.00 & 1.00 & 10.00 & 2.00 & -2.10 \\
 1.00 & 6.00 & 3.00 & 1.00 & 2.00 & 106.00 & -3.10 \\
--2.40 & -3.10 & -4.20 & -1.10 & -2.10 & -3.10 & 7.44 
+-2.40 & -3.10 & -4.20 & -1.10 & -2.10 & -3.10 & 7.44
 \end{array}\right]$ \\
 update 2: \\
 
@@ -76,7 +76,7 @@ $\mu = \left[ \begin{array}{c}
 4.97\\
 -8.30\\
 \end{array}\right],
-\Sigma = \left[ \begin{array}{c c c c c c c} 
+\Sigma = \left[ \begin{array}{c c c c c c c}
 -0.94 & -1.31 & -1.67 & -0.44 & -0.85 & 2.00 & 1.93 \\
 -1.31& -3.66 & -2.82 & -0.83 & -1.62 & -4.08 & 4.19 \\
 -1.67 & -2.82 & -3.10 & -0.84 & -1.62 & 1.73 & 3.83 \\
@@ -94,14 +94,63 @@ $\mu = \left[ \begin{array}{c}
 
 % Task 1 part B-D
 \paragraph{B}
+FastSLAM 1.0 samples new robot positions from a distrubtion taking only
+odometry measurements into account. However, it is often the case that
+a robot's sensors are more accurate than its odometry and control. FastSLAM 2.0
+leverages these accurate observation measurements to its advantage, sampling
+new poses based on odometry \emph{and} observation measurements. This prevents
+FastSLAM 2.0 from sampling as many low likelihood particles, making it more
+efficient.
 
 \paragraph{C}
+Our particle resampling method resamples particles whenever a new observation
+is made, since this is when the weights change. We iterate through all
+particles to sum their weights, and then we draw random values between 0 and
+the summed weight to select new particles. To determine which particle to pick,
+we iterate through the particles, summing the weights again as we go, and when
+the sum is greater than our random value, we return a copy of that particle.
+
+% XXX Bias test?
 
 \paragraph{D}
+Since every particle is an independent entity, particles that make bad
+associations will be killed off during resampling. Therefore, our
+expectation is that a particle-based method like FastSLAM can get away
+with a fairly poor data association technique like nearest-neighbor
+because only good associations will survive. A method like least-squares
+SLAM commits to the poor associations it makes and may never recover, so
+data association techniques must be ``smarter'' than nearest-neighbor
+matching.
 
 \paragraph{E}
+Attached in email.
+
+%XXX Make visualization key
 
 \paragraph{F}
+FastSLAM is easy to implement and does not require very ``intelligent'' data
+association techniques to work well. In fact, a big advantage of FastSLAM is
+that it is more robust to poor data associations than alternative SLAM
+algorithms. Least-squares may run faster than FastSLAM, given the potentially
+large particle requirements of FastSLAM, and it is more consistent in that
+there is no random element to the problem. Least-squares also maintains
+complete information forever, unlike FastSLAM, so it will not throw away
+potentially useful information as FastSLAM does in cases involving particle
+depletion. In other words, least-squares is good at loop closures.
+
+FastSLAM is a safe choice in environments where data association is difficult.
+If one can afford enough particles, it is probable that a particle that makes
+the correct associations and can survive to give a good map. Least-squares SLAM
+would likely not recover from a bad association without interference. However,
+in cases where we are confident in our data association, methods like
+least-squares SLAM converge faster due to the preservation of loops and, given
+the optimizations employed in the past few years, are otherwise comparable to
+FastSLAM in terms of speed of computation.
+
+SLAM research has likely left particle filters behind because, given the option,
+it is preferable to represent the entire problem, that is, to not throw out
+constraint information, rather than rely on our best solutions to survive
+filtering. %XXX More could be done here
 
 %% Task 2
 \section{Line Estimation from Laser Data}
