@@ -16,8 +16,7 @@ public class LandmarkEKF {
     private Matrix covariance;
     private static Matrix measurementNoise = null;
     private double[] residual;
-
-    double chi2 = 0;
+    private int wrongClosureCounter = 0;
 
     public LandmarkEKF(Config config, double r, double phi, double robotPose[]) {
         double angle = MathUtil.mod2pi(robotPose[2] + phi);
@@ -61,6 +60,7 @@ public class LandmarkEKF {
         this.covariance = ekf.covariance.copy();
         this.residual = LinAlg.copy(ekf.residual);
         this.realID = ekf.realID;
+        this.wrongClosureCounter = ekf.wrongClosureCounter;
     }
 
     public Matrix getCovariance() {
@@ -104,17 +104,20 @@ public class LandmarkEKF {
     private double[] getResidual() {
         return residual;
     }
-
-    // XXX is this right? No...chi2 should be additive. It never goes away. It
-    // theoretically *could* our current way
-    public double getChi2()
-    {
-        double[] r = getResidual();
-        Matrix P = getCovariance().inverse();
-        Matrix rT = Matrix.rowMatrix(r);
-        //return rT.times(P).times(r)[0];
-        //return LinAlg.magnitude(r);
-        return chi2;
+    
+    public double getObservationChi2(double r, double theta, double[] robotPose) {
+        Matrix Q = this.getMeasurementCovariance(robotPose);
+        Matrix Qi = Q.inverse();
+        Matrix residual = Matrix.columnMatrix(this.getResidual(r, theta, robotPose));
+        return booksExponent(Qi, residual) * -2;
+    }
+    
+    // returns the ln of the probability, using the book's equation
+    public double getObservationlogProb(double r, double theta, double[] robotPose) {
+        Matrix Q = this.getMeasurementCovariance(robotPose);
+        Matrix Qi = Q.inverse();
+        Matrix residual = Matrix.columnMatrix(this.getResidual(r, theta, robotPose));
+        return booksExponent(Qi, residual);
     }
 
     // returns ~p(z|x)
@@ -125,19 +128,21 @@ public class LandmarkEKF {
         Matrix K = this.covariance.times(H.transpose()).times(Qi);
         Matrix residual = Matrix.columnMatrix(this.getResidual(r, theta, robotPose));
 
-        chi2 += chi2(residual, Qi); // XXX
-
-        //double w = edsWeight(new double[]{r, theta}, robotPose);
-        //double w = edsWeight(new double[]{r, theta}, H, robotPose);
         double w = booksWeight(Q, residual, Qi);
-        //double w = stupidWeight(r, theta, robotPose);
 
         this.position = Matrix.columnMatrix(position).plus(K.times(residual)).copyAsVector();
         this.covariance = this.covariance.minus(K.times(H).times(this.covariance));
 
         return w;
     }
-
+    
+    public double getObservationWeight(double r, double theta, double[] robotPose) {
+        Matrix Q = this.getMeasurementCovariance(robotPose);
+        Matrix Qi = Q.inverse();
+        Matrix residual = Matrix.columnMatrix(this.getResidual(r, theta, robotPose));
+        return booksWeight(Q, residual, Qi);
+    }
+    
     private double[] getPredictedObservation(double[] robotPose) {
         double[] h = new double[2];
         double dx = position[0] - robotPose[0];
@@ -148,9 +153,17 @@ public class LandmarkEKF {
     }
 
     protected double booksWeight(Matrix Q, Matrix residual, Matrix Qi) {
-        double w = (1.0 / Math.sqrt(Q.times(2 * Math.PI).det()))
-                * MathUtil.exp(-0.5 * residual.transpose().times(Qi).times(residual).get(0));
+        double w = booksNormalizationConst(Q)
+                * MathUtil.exp(booksExponent(Qi, residual));
         return w;
+    }
+    
+    protected double booksNormalizationConst(Matrix Q) {
+        return (1.0 / Math.sqrt(Q.times(2 * Math.PI).det()));
+    }
+    
+    protected double booksExponent(Matrix Qi, Matrix residual) {
+        return -0.5 * residual.transpose().times(Qi).times(residual).get(0);
     }
 
     protected double edsWeight(double[] obs, double[] robotPose) {
@@ -175,7 +188,7 @@ public class LandmarkEKF {
         double K_q = Math.sqrt(S_q.det()) * twoPi;
 
         double normalization = K_q / (K_z * K_f);
-        double exponent = -0.5 * (-1 * chi2(u_q, S_qi) + chi2(y, S_zi) + chi2(u_f, S_fi));
+        double exponent = -0.5 * (-1 * ekfChi2(u_q, S_qi) + ekfChi2(y, S_zi) + ekfChi2(u_f, S_fi));
 
         /*System.out.println("u_f:");
         LinAlg.print(position);
@@ -194,7 +207,7 @@ public class LandmarkEKF {
         return MathUtil.exp(-0.5*exponent);
     }
 
-    private double chi2(Matrix u, Matrix inverseCov) {
+    private double ekfChi2(Matrix u, Matrix inverseCov) {
         Matrix result = u.transpose().times(inverseCov).times(u);
         assert result.getRowDimension() == 1;
         assert result.getColumnDimension() == 1;

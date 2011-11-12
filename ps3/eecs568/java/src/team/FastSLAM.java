@@ -56,24 +56,17 @@ public class FastSLAM implements Simulator.Listener {
             P.set(0, 0, odomP[0][0] * odom.obs[0] * odom.obs[0]);
             P.set(1, 1, odomP[1][1] * odom.obs[1] * odom.obs[1]);
             MultiGaussian mg = new MultiGaussian(P.copyArray(), new double[2]);
-            double[] dLdR = new double[2];
-            dLdR = mg.sample(random);
-            //dLdR[0] = odom.obs[0] * (1.0 + dLdR[0]);
-            //dLdR[1] = odom.obs[1] * (1.0 + dLdR[1]);
+            double[] dLdR = mg.sample(random);
+            double chi2 = mg.chi2(dLdR);
+            double logProb = -chi2 / 2;
             dLdR[0] = odom.obs[0] + dLdR[0];
             dLdR[1] = odom.obs[1] + dLdR[1];
-            //System.out.printf("%f,%f\n",dLdR[0],dLdR[1]);
             double[] local_xyt = new double[]{(dLdR[0] + dLdR[1]) / 2,
                 0,
                 Math.atan2((dLdR[1] - dLdR[0]), baseline)};
 
-            double[] res = new double[]{dLdR[0] - odom.obs[0],
-                dLdR[1] - odom.obs[1]};
-            Matrix r = Matrix.columnMatrix(res);
-            Matrix Pi = P.inverse();
-            double chi2 = r.transpose().times(Pi).times(r).get(0);
-
             p.updateLocation(local_xyt, chi2);
+            p.addLogProb(logProb);
         }
 
         // Do feature matching (XXX for now, perfect). Specific to each
@@ -82,7 +75,6 @@ public class FastSLAM implements Simulator.Listener {
         // no need to resample if there were no detections
         if (dets.size() > 0) {
             updateLandmarks(dets);
-            //System.out.println("---------------------");
             resample();
         }
         assert particles.size() == NUM_PARTICLES;
@@ -139,15 +131,16 @@ public class FastSLAM implements Simulator.Listener {
     }
 
     // find the rotation that best aligns the features in the map
-    private double getAlignmentRotation(Particle p) {
-        ArrayList<double[]> lmarks = p.getLandmarks();
-        ArrayList<Integer> lmarkIds = p.getIDs();
+    private double[] getAlignmentTransformation(Particle p) {
+        ArrayList<LandmarkEKF> lmarkEKFs = p.getLandmarkEKFs();
+        ArrayList<double[]> lmarks = new ArrayList<double[]>();
         ArrayList<double[]> matchingTruthLmarks = new ArrayList<double[]>();
-        for (int i = 0; i < lmarks.size(); i++) {
-            matchingTruthLmarks.add(lmarkGroundTruth.get(lmarkIds.get(i)));
+        for (LandmarkEKF ekf : lmarkEKFs) {
+            lmarks.add(ekf.getPosition());
+            matchingTruthLmarks.add(lmarkGroundTruth.get(ekf.getRealID()));
         }
-        double alignRotation = RotationFit.fitRotation(p.getLandmarks(), matchingTruthLmarks);
-        return alignRotation;
+        double[] alignTransform = TransformationFit.getTransformation(lmarks, matchingTruthLmarks);
+        return alignTransform;
     }
 
     // Draw our own updates to screen
@@ -155,15 +148,25 @@ public class FastSLAM implements Simulator.Listener {
         // Pick the particle to render
         Particle best = null;
         double chi2 = Double.MAX_VALUE;
+        double logProb = -Double.MAX_VALUE;
         for (Particle p : particles) {
             double temp = p.getChi2();
             if (chi2 > temp) {
                 chi2 = temp;
                 best = p;
             }
+//            double temp = p.getLogProb();
+//            if (logProb < temp) {
+//                logProb = temp;
+//                best = p;
+//            }
+
         }
-        
-        double alignRotation = getAlignmentRotation(best);
+        //System.out.println(best.getChi2() + "/" + best.getLogProb());
+        if (best.getNumWrongClosures() > 0) {
+            System.out.println("Wrong closures: " + best.getNumWrongClosures());
+        }
+        double[] alignTransform = getAlignmentTransformation(best);
 
         // Render the (best) robot
         {
@@ -239,16 +242,13 @@ public class FastSLAM implements Simulator.Listener {
 
         // Render the aligned trajectory
         {
-            if (alignRotation != Double.NaN) {
                 VisWorld.Buffer vb = vw.getBuffer("aligned-trajectory");
                 vb.setDrawOrder(200);
-                ArrayList<double[]> alignedPoints = RotationFit.applyRotation(
-                        alignRotation, best.getTrajectory());
+                ArrayList<double[]> alignedPoints = LinAlg.transform(alignTransform, best.getTrajectory());
                 VisVertexData vvd = new VisVertexData(alignedPoints);
                 vb.addBack(new VisLines(vvd, new VisConstantColor(Color.GREEN), 1.5, VisLines.TYPE.LINE_STRIP));
 
                 vb.swap();
-            }
         }
 
         // Render landmark estimates for best robot along with lines
@@ -266,15 +266,12 @@ public class FastSLAM implements Simulator.Listener {
 
         // Render aligned landmark estimates
         {
-            if (alignRotation != Double.NaN) {
                 VisWorld.Buffer vb = vw.getBuffer("aligned-landmark-estimates");
-                VisVertexData vvd = new VisVertexData(
-                        RotationFit.applyRotation(alignRotation, lmarks));
+                ArrayList<double[]> alignedLmarks = LinAlg.transform(alignTransform, lmarks);
+                VisVertexData vvd = new VisVertexData(alignedLmarks);
                 VisConstantColor vccOrange = new VisConstantColor(Color.ORANGE);
                 vb.addBack(new VisPoints(vvd, vccOrange, 5));
-
                 vb.swap();
-            }
         }
 
         {
