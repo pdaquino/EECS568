@@ -148,7 +148,11 @@ the summed weight to select new particles. To determine which particle to pick,
 we iterate through the particles, summing the weights again as we go, and when
 the sum is greater than our random value, we return a copy of that particle.
 
-% XXX Bias test?
+To test for sampling bias, we can easily just sample an excessive amount of
+particles and compare the resulting distribution of particles to our
+expected distribution. If we sample many, many particles, large differences
+in the resulting set of particles compared to our expected set will become
+increasingly improbable and thus detectable with a certain confidence.
 
 \paragraph{D}
 Since every particle is an independent entity, particles that make bad
@@ -198,6 +202,7 @@ filtering. %XXX More could be done here
 \paragraph{B}
 
 \paragraph{C}
+% XXX Keep trying, folks
 
 %% Task 3
 \section{RANSAC Rigid-Body Transformation}
