@@ -16,6 +16,7 @@ public class LandmarkEKF {
     private Matrix covariance;
     private static Matrix measurementNoise = null;
     private double[] residual;
+    private int wrongClosureCounter = 0;
 
     public LandmarkEKF(Config config, double r, double phi, double robotPose[]) {
         double angle = MathUtil.mod2pi(robotPose[2] + phi);
@@ -59,6 +60,7 @@ public class LandmarkEKF {
         this.covariance = ekf.covariance.copy();
         this.residual = LinAlg.copy(ekf.residual);
         this.realID = ekf.realID;
+        this.wrongClosureCounter = ekf.wrongClosureCounter;
     }
 
     public Matrix getCovariance() {
@@ -133,7 +135,14 @@ public class LandmarkEKF {
 
         return w;
     }
-
+    
+    public double getObservationWeight(double r, double theta, double[] robotPose) {
+        Matrix Q = this.getMeasurementCovariance(robotPose);
+        Matrix Qi = Q.inverse();
+        Matrix residual = Matrix.columnMatrix(this.getResidual(r, theta, robotPose));
+        return booksWeight(Q, residual, Qi);
+    }
+    
     private double[] getPredictedObservation(double[] robotPose) {
         double[] h = new double[2];
         double dx = position[0] - robotPose[0];
