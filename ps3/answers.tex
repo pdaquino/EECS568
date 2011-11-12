@@ -15,8 +15,10 @@
 \maketitle
 \pagebreak
 
+%% TASK 1
 \section{FastSLAM}
 
+% PART A
 \paragraph{A}
 Starting with an existing EKF...
 \subparagraph{i}
@@ -44,46 +46,114 @@ $x'' = x' + K'r'$ \\
 $\Sigma_x'' = (I - K'J_{x'}) \Sigma_x'$ \\
 
 \subparagraph{iii}
+After observing $f_1$: \\
+$$\mu = \left[ \begin{array}{c} 
+3 \\
+2 \\
+pi \\
+12 \\
+15 \\
+3 \\
+-8
+\end{array}\right],
+\Sigma = \left[ \begin{array}{c c c c c c c} 
+4.00 & 1.00 & 2.00  & 1.00 & 1.00 & 1.00 & -2.40 \\
+1.00 & 6.00 & 3.00 & 1.00 & 2.00 & 6.00 & -3.10 \\
+2.00 &  3.00 & 4.00 & 1.00 & 2.00 & 3.00 & -4.20 \\
+1.00 & 1.00 & 1.00 & 8.00 & 1.00 & 1.00 & -1.10 \\
+1.00 & 2.00 & 2.00 & 1.00 & 10.00 & 2.00 & -2.10 \\ 
+1.00 & 6.00 & 3.00 & 1.00 & 2.00 & 106.00 & -3.10 \\
+-2.40 & -3.10 & -4.20 & -1.10 & -2.10 & -3.10 & 7.44 
+\end{array}\right]$$
 
-update 1:
-x =
-% 3
-% 2
-% pi
-% 12
-% 15
-% 3
-% -8
+after re-observing $f_1$: 
 
-sigma = 
-%     4.0000     1.0000     2.0000     1.0000     1.0000     1.0000    -2.4000
-%     1.0000     6.0000     3.0000     1.0000     2.0000     6.0000    -3.1000
-%     2.0000     3.0000     4.0000     1.0000     2.0000     3.0000    -4.2000
-%     1.0000     1.0000     1.0000     8.0000     1.0000     1.0000    -1.1000
-%     1.0000     2.0000     2.0000     1.0000    10.0000     2.0000    -2.1000
-%     1.0000     6.0000     3.0000     1.0000     2.0000   106.0000    -3.1000
-%    -2.4000    -3.1000    -4.2000    -1.1000    -2.1000    -3.1000     7.4400
+$$\mu = \left[ \begin{array}{c}
+2.95\\
+2.43\\
+3.18\\
+12.03\\
+15.07\\
+4.97\\
+-8.30\\
+\end{array}\right],
+\Sigma = \left[ \begin{array}{c c c c c c c} 
+-0.94 & -1.31 & -1.67 & -0.44 & -0.85 & 2.00 & 1.93 \\
+-1.31& -3.66 & -2.82 & -0.83 & -1.62 & -4.08 & 4.19 \\
+-1.67 & -2.82 & -3.10 & -0.84 & -1.62 & 1.73 & 3.83 \\
+-0.44 & -0.83 & -0.84 & -0.23 & -0.45 & 0.15 & 1.08 \\
+-0.85 & -1.62 & -1.62 & -0.45 & -0.87 & 0.16 & 2.09 \\
+2.00 & -4.08 & 1.73 & 0.15 & 0.16 & -29.89 & 1.54 \\
+1.93 & 4.19 & 3.83 & 1.08 & 2.09 & 1.54 & -5.18\\
+\end{array}\right]$$
 
-update 2:
+\subparagraph{iv} Compute the mean and covariance of $f_1$:
+$$\mu = \left[ \begin{array}{c}
+x_0 + rcos(\theta_0 + \phi) \\
+y_0 + rsin(\theta_0 + \phi) \\
+\end{array}\right]$$
+$$J =  \left[ \begin{array}{c c}
+cos(\theta_0 + \phi) & -rsin(\theta_0 + \phi)\\
+sin(\theta_0 + \phi) & rcos(\theta_0 + \phi)\\
+\end{array}\right]$$
 
-x =
-%   2.9491
-%    2.4274
-%    3.1835
-%   12.0334
-%   15.0733
-%    4.9686
-%   -8.3047
+\subparagraph{v} Update the landmark mean and covariance given re-observation of $f_1$:
+$$K = \Sigma_0J^T\left(J\Sigma_0J^T + \Sigma_w\right)^{-1}$$
+$$\mu_1 = \mu_0 + Kr$$
+$$\Sigma_1 = (I-KJ)\Sigma_0$$
+where $\mu_0$ and $\Sigma_0$ are the mean and covariance before this observation and $\mu_1$ and $\Sigma_1$ are the new mean and covariance.
 
+\subparagraph{vi}
+After observing $f_1$: \\
+$$\mu_0 = \left[ \begin{array}{c} 
+3 \\
+-8
+\end{array}\right],
+\Sigma_0 = \left[ \begin{array}{c c} 
+100 & 0 \\
+0 & 3
+\end{array}\right]$$
 
-sigma =
-%  -0.94257   -1.31200   -1.67459   -0.44288   -0.84733    1.99979    1.92842
-%   -1.31200   -3.66459   -2.81899   -0.82796   -1.61869   -4.08324    4.19280
-%   -1.67459   -2.81899   -3.10468   -0.84299   -1.62200    1.72981    3.82657
-%   -0.44288   -0.82796   -0.84299   -0.23243   -0.44867    0.14965    1.07966
-%   -0.84733   -1.61869   -1.62200   -0.44867   -0.86667    0.15698    2.09402
-%    1.99979   -4.08324    1.72981    0.14965    0.15698  -29.89266    1.54348
-%    1.92842    4.19280    3.82657    1.07966    2.09402    1.54348   -5.18331
+after re-observing $f_1$: 
+$$\mu_1 = \left[ \begin{array}{c}
+4.57 \\
+-8.5
+\end{array}\right],
+\Sigma_1 = \left[ \begin{array}{c c c c c c c} 
+50 & 0 \\
+0 & 1.5
+\end{array}\right]$$
 
+% Task 1 part B-D
+\paragraph{B}
+
+\paragraph{C}
+
+\paragraph{D}
+
+\paragraph{E}
+
+\paragraph{F}
+
+%% Task 2
+\section{Line Estimation from Laser Data}
+
+\paragraph{A}
+
+\paragraph{B}
+
+\paragraph{C}
+
+%% Task 3
+\section{RANSAC Rigid-Body Transformation}
+
+\paragraph{A}
+
+\paragraph{B}
+
+\paragraph{C}
+
+%% Task 4
+\section{Advanced Data Association }
 
 \end{document}
