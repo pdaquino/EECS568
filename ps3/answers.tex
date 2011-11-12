@@ -57,20 +57,14 @@ pi \\
 -8
 \end{array}\right],
 \Sigma = \left[ \begin{array}{c c c c c c c}
-4.00 & 1.00 & 2.00  & 1.00 & 1.00 & 1.00 & -2.40 \\
+4.00 & 1.00 & 2.00 & 1.00 & 1.00 & 1.00 & -2.40 \\
 1.00 & 6.00 & 3.00 & 1.00 & 2.00 & 6.00 & -3.10 \\
-2.00 &  3.00 & 4.00 & 1.00 & 2.00 & 3.00 & -4.20 \\
+2.00 & 3.00 & 4.00 & 1.00 & 2.00 & 3.00 & -4.20 \\
 1.00 & 1.00 & 1.00 & 8.00 & 1.00 & 1.00 & -1.10 \\
 1.00 & 2.00 & 2.00 & 1.00 & 10.00 & 2.00 & -2.10 \\
 1.00 & 6.00 & 3.00 & 1.00 & 2.00 & 106.00 & -3.10 \\
-<<<<<<< HEAD
--2.40 & -3.10 & -4.20 & -1.10 & -2.10 & -3.10 & 7.44
-\end{array}\right]$ \\
-update 2: \\
-=======
 -2.40 & -3.10 & -4.20 & -1.10 & -2.10 & -3.10 & 7.44
 \end{array}\right]$$
->>>>>>> 0848ee6510248fe8e802ec6910adb93fc04aa143
 
 after re-observing $f_1$:
 
@@ -197,7 +191,22 @@ filtering. %XXX More could be done here
 %% Task 2
 \section{Line Estimation from Laser Data}
 
-\paragraph{A}
+\paragraph{A}Deriving a closed-form expression that computes the MSE:
+Given 
+$$M_x = \displaystyle\sum_i x_i \qquad M_{xx} = \displaystyle\sum_i x_i^2 \qquad q_x = \frac{M_x}{N}$$
+$$M_y = \displaystyle\sum_i y_i \qquad M_{yy} = \displaystyle\sum_i y_i^2 \qquad q_y = \frac{M_y}{N}$$
+ $$\hat{n} = \left[ \begin{array}{c}
+-sin\theta \\
+cos\theta
+\end{array}\right]$$
+ 
+\begin{align*} MSE &=  \displaystyle\sum_i \left[\left(x_i - q_x)\hat{n_x} + (y_i - q_y)\hat{n_y}\right)\right]^2\\
+&=\displaystyle\sum_i \left[-\left(x_i - \frac{M_x}{N}\right)sin\theta + \left(y_i - \frac{M_y}{N}\right)cos\theta\right]^2 \\
+&=\displaystyle\sum_i \left(\left(y_i - \frac{M_y}{N}\right)cos^2\theta \right) 
+-2\displaystyle\sum_i \left(\left(x_i-\frac{M_x}{N}\right)\left(y_i - \frac{M_y}{N}\right)cos\theta sin\theta\right) \\
+ &\qquad+ \displaystyle\sum_i \left(\left(x_i - \frac{M_x}{N}\right)cos^2\right) \\
+&= cos^2\theta(M_{yy}-\frac{M_y^2}{N}) - 2cos\theta sin\theta(M_{xy}-\frac{M_xM_y}{N}) + sin^2\theta(M_{xx}-\frac{M_x^2}{N})
+\end{align*}
 
 \paragraph{B}
 
