@@ -46,8 +46,8 @@ $x'' = x' + K'r'$ \\
 $\Sigma_x'' = (I - K'J_{x'}) \Sigma_x'$ \\
 
 \subparagraph{iii}
-update 1: \\
-$\mu = \left[ \begin{array}{c} 
+After observing $f_1$: \\
+$$\mu = \left[ \begin{array}{c} 
 3 \\
 2 \\
 pi \\
@@ -64,10 +64,11 @@ pi \\
 1.00 & 2.00 & 2.00 & 1.00 & 10.00 & 2.00 & -2.10 \\ 
 1.00 & 6.00 & 3.00 & 1.00 & 2.00 & 106.00 & -3.10 \\
 -2.40 & -3.10 & -4.20 & -1.10 & -2.10 & -3.10 & 7.44 
-\end{array}\right]$ \\
-update 2: \\
+\end{array}\right]$$
 
-$\mu = \left[ \begin{array}{c}
+after re-observing $f_1$: 
+
+$$\mu = \left[ \begin{array}{c}
 2.95\\
 2.43\\
 3.18\\
@@ -84,13 +85,44 @@ $\mu = \left[ \begin{array}{c}
 -0.85 & -1.62 & -1.62 & -0.45 & -0.87 & 0.16 & 2.09 \\
 2.00 & -4.08 & 1.73 & 0.15 & 0.16 & -29.89 & 1.54 \\
 1.93 & 4.19 & 3.83 & 1.08 & 2.09 & 1.54 & -5.18\\
-\end{array}\right]$ \\
+\end{array}\right]$$
 
-\subparagraph{iv}
+\subparagraph{iv} Compute the mean and covariance of $f_1$:
+$$\mu = \left[ \begin{array}{c}
+x_0 + rcos(\theta_0 + \phi) \\
+y_0 + rsin(\theta_0 + \phi) \\
+\end{array}\right]$$
+$$J =  \left[ \begin{array}{c c}
+cos(\theta_0 + \phi) & -rsin(\theta_0 + \phi)\\
+sin(\theta_0 + \phi) & rcos(\theta_0 + \phi)\\
+\end{array}\right]$$
 
-\subparagraph{v}
+\subparagraph{v} Update the landmark mean and covariance given re-observation of $f_1$:
+$$K = \Sigma_0J^T\left(J\Sigma_0J^T + \Sigma_w\right)^{-1}$$
+$$\mu_1 = \mu_0 + Kr$$
+$$\Sigma_1 = (I-KJ)\Sigma_0$$
+where $\mu_0$ and $\Sigma_0$ are the mean and covariance before this observation and $\mu_1$ and $\Sigma_1$ are the new mean and covariance.
 
 \subparagraph{vi}
+After observing $f_1$: \\
+$$\mu_0 = \left[ \begin{array}{c} 
+3 \\
+-8
+\end{array}\right],
+\Sigma_0 = \left[ \begin{array}{c c} 
+100 & 0 \\
+0 & 3
+\end{array}\right]$$
+
+after re-observing $f_1$: 
+$$\mu_1 = \left[ \begin{array}{c}
+4.57 \\
+-8.5
+\end{array}\right],
+\Sigma_1 = \left[ \begin{array}{c c c c c c c} 
+50 & 0 \\
+0 & 1.5
+\end{array}\right]$$
 
 % Task 1 part B-D
 \paragraph{B}
