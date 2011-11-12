@@ -14,8 +14,8 @@ public class Particle {
     double[] xyt = new double[3];
     // List of EKFs for landmark observations. Map landmark IDs to EKFs
     HashMap<Integer, LandmarkEKF> observations = new HashMap<Integer, LandmarkEKF>();
-
     double chi2 = 0.0;
+    double logProb = 0.0;
     double weight = 1.0;  // Particle weight for resampling
 
     public Particle(Config config_) {
@@ -35,6 +35,8 @@ public class Particle {
             this.observations.put(key, p.observations.get(key).copy());
         }
         this.weight = 1.0;
+        this.chi2 = p.chi2;
+        this.logProb = p.logProb;
     }
 
     public Particle(Config config_, double[] start_) {
@@ -93,7 +95,9 @@ public class Particle {
             } else {
                 double w = observations.get(det.id).update(r, theta, xyt);
                 weight *= w;
-                //System.out.println("> Weight: " + weight + " (" + w + ")");
+                double obsLogProb = observations.get(det.id).getObservationlogProb(r, theta, xyt);
+                logProb += obsLogProb;
+                this.chi2 += observations.get(det.id).getObservationChi2(r, theta, xyt);
             }
         }
 
@@ -110,11 +114,15 @@ public class Particle {
     }
 
     public double getChi2() {
-        double chi2 = this.chi2;
-        for (LandmarkEKF ekf: observations.values()) {
-            chi2 += ekf.getChi2();
-        }
         return chi2;
+    }
+
+    public double getLogProb() {
+        return this.logProb;
+    }
+
+    public void addLogProb(double logProb) {
+        this.logProb += logProb;
     }
 
     // Return a sample for this particle (deep copy it but reset weight)
