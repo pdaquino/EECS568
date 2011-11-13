@@ -132,36 +132,67 @@ public class Task2 implements LCMSubscriber, ParameterListener
         }
 
         // Get a line for drawing purposes XXX
-        public ArrayList<double[]> getLine()
+        public ArrayList<double[]> getLineSeg()
         {
             ArrayList<double[]> lineSegment = new ArrayList<double[]>();
 
+            // Calculate endpoints
+            lineSegment.add(closestPoint(line.get(0)));
+            lineSegment.add(closestPoint(line.get(line.size()-1)));
+
+            return lineSegment;
+        }
+
+        public double[] getLine()
+        {
+            return new double[] {q[0], q[1], theta};
+        }
+
+        public double[] closestPoint(double[] xy)
+        {
             // Calculate endpoints
             double ct = Math.cos(theta);
             double st = Math.sin(theta);
             double[] n = LinAlg.normalize(new double[] {ct, st});
             double[] v = LinAlg.normalize(new double[] {-st, ct});
 
-            double[] p0 = line.get(0);
-            double[] p1 = line.get(line.size()-1);
-
             double dotqv = LinAlg.dotProduct(q, v);
             double[] q1 = new double[] {v[0]*dotqv, v[1]*dotqv};
 
-            double dotnp0 = LinAlg.dotProduct(p0, n);
-            double dotnp1 = LinAlg.dotProduct(p1, n);
+            double dotnxy = LinAlg.dotProduct(xy, n);
+            return new double[] {n[0]*dotnxy + q1[0],
+                                 n[1]*dotnxy + q1[1]};
+        }
 
-            lineSegment.add(new double[] {n[0]*dotnp0 + q1[0],
-                                          n[1]*dotnp0 + q1[1]});
-            lineSegment.add(new double[] {n[0]*dotnp1 + q1[0],
-                                          n[1]*dotnp1 + q1[1]});
+        public double[] intersect(Line b)
+        {
+            // Parallel with same theta
+            if (MathUtil.doubleEquals(MathUtil.mod2pi(theta),
+                                      MathUtil.mod2pi(b.theta)))
+                return null;
 
-            return lineSegment;
+            double[] cp0 = closestPoint(new double[2]);
+            double[] cp1 = b.closestPoint(new double[2]);
+            double r0 = LinAlg.magnitude(cp0);
+            double r1 = LinAlg.magnitude(cp1);
+
+            double t0 = MathUtil.atan2(cp0[1], cp0[0]);
+            double t1 = MathUtil.atan2(cp1[1], cp1[0]);
+            double ct0 = Math.cos(t0);
+            double st0 = Math.sin(t0);
+            double ct1 = Math.cos(t1);
+            double st1 = Math.sin(t1);
+            double[][] a = new double[][] {{ct0, st0},
+                                           {ct1, st1}};
+            Matrix A = new Matrix(a);
+            double[] xy = A.inverse().times(new double[] {r0, r1});
+
+            return xy;
         }
     }
 
     // Get lines from a scan using agglomeration
-    public ArrayList<Line> agglomerateLines(ArrayList<double[]> points,
+    static public ArrayList<Line> agglomerateLines(ArrayList<double[]> points,
                                                    double threshold,
                                                    int maxSteps)
     {
@@ -173,13 +204,6 @@ public class Task2 implements LCMSubscriber, ParameterListener
             line.add(points.get(i+1));
             lines.add(new Line(line));
         }
-        /*this.lines = lines;
-        update();
-        try {
-            System.out.println("Now have " + lines.size() + " lines");
-            System.out.println("Hit a key to continue");
-            System.in.read();
-        } catch(Exception ex) {}*/
 
         // Try to merge lines until none are less than our minimum error cost
         for (int iters = 0; iters < maxSteps; iters++) {
@@ -201,13 +225,6 @@ public class Task2 implements LCMSubscriber, ParameterListener
             // Remove old lines and add in new
             lines.set(idx, best);
             lines.remove(idx+1);
-
-            /*this.lines = lines;
-            update();
-            try {
-                System.out.println("Hit a key to continue");
-                System.in.read();
-            } catch(Exception ex) {}*/
         }
 
         return lines;
@@ -259,7 +276,7 @@ public class Task2 implements LCMSubscriber, ParameterListener
         {
             VisWorld.Buffer vb = vw.getBuffer("lines");
             for (Line l: lines) {
-                ArrayList<double[]> points = l.getLine();
+                ArrayList<double[]> points = l.getLineSeg();
                 if (points == null)
                     continue;
                 VisConstantColor vcc = new VisConstantColor(randomColor());

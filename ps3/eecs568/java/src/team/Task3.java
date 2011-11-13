@@ -204,6 +204,59 @@ public class Task3 implements ParameterListener
         return points;
     }
 
+    // Returns an xyt aligning a with b
+    private double[] RANSAC(ArrayList<Task2.Line> linesa, ArrayList<Task2.Line> linesb)
+    {
+        assert(linesa.size() > 2 && linesb.size() > 2);
+
+        double[] xyt = new double[3];   // "Best model"
+        int bestConsensus = -1;
+
+        Random rand = new Random(15897143);
+        for (int i = 0; i < 1; i++) {
+            Task2.Line line1, line2, line3;
+            int idx1, idx2, idx3;
+            idx1 = rand.nextInt(linesa.size());
+            do {
+                idx2 = rand.nextInt(linesa.size());
+            } while (idx2 != idx1);
+            do {
+                idx3 = rand.nextInt(linesa.size());
+            } while (idx3 != idx1 && idx3 != idx2);
+            line1 = linesa.get(idx1);
+            line2 = linesa.get(idx2);
+            line3 = linesa.get(idx3);
+
+            int jiters = 100;
+            for (int j = 0; j < jiters; j++) {
+                Task2.Line line1b, line2b, line3b;
+                idx1 = rand.nextInt(linesb.size());
+                do {
+                    idx2 = rand.nextInt(linesb.size());
+                } while (idx2 != idx1);
+                do {
+                    idx3 = rand.nextInt(linesb.size());
+                } while (idx3 != idx1 && idx3 != idx2);
+                line1b = linesb.get(idx1);
+                line2b = linesb.get(idx2);
+                line3b = linesb.get(idx3);
+
+                // Compute line intersections
+                double[] isect1 = line1.intersect(line2);
+                double[] isect2 = line1.intersect(line3);
+                double[] isect3 = line2.intersect(line3);
+
+                double[] isect1b = line1b.intersect(line2b);
+                double[] isect2b = line1b.intersect(line3b);
+                double[] isect3b = line2b.intersect(line3b);
+
+            }
+        }
+
+
+        return xyt;
+    }
+
     public void update()
     {
         laser_t lasera, laserb;
@@ -229,7 +282,19 @@ public class Task3 implements ParameterListener
         ///////////////////////////////////////////////////////////////
         // You'll need to add some code here to process the laser data.
         ///////////////////////////////////////////////////////////////
-
+        ArrayList<Task2.Line> linesa = Task2.agglomerateLines(pointsa, 0.05, 200);
+        ArrayList<Task2.Line> linesb = Task2.agglomerateLines(pointsb, 0.05, 200);
+        double[] xyt = RANSAC(linesa, linesb);
+        /*
+        ArrayList<double[]> pa = new ArrayList<double[]>();
+        pa.add(new double[] {1,1});
+        pa.add(new double[] {0,2});
+        ArrayList<double[]> pb = new ArrayList<double[]>();
+        pb.add(new double[] {3,1});
+        pb.add(new double[] {4,2});
+        Task2.Line linea = new Task2.Line(pa);
+        Task2.Line lineb = new Task2.Line(pb);
+        linea.intersect(lineb);*/
 
         if (true) {
             // left-most panel: draw the odometry path
@@ -262,6 +327,10 @@ public class Task3 implements ParameterListener
             VisWorld.Buffer vb = vwb.getBuffer("points");
             vb.addBack(new VisPoints(new VisVertexData(pointsb),
                                      new VisConstantColor(Color.blue),2));
+            // XXX Add in red points showing transformation of a points to b coordinates
+            vb.addBack(new VisChain(LinAlg.xytToMatrix(xyt),
+                                    new VisPoints(new VisVertexData(pointsa),
+                                                  new VisConstantColor(Color.red), 2)));
             vb.swap();
         }
 
