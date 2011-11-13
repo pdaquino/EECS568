@@ -22,28 +22,27 @@
 \paragraph{A}
 Starting with an existing EKF...
 \subparagraph{i}
-After first observation update, you need to grow the covariance matrix to
-be $7 \times 7$, but we don't expect the covariances of the existing matrix
+After first observation of a new landmark, the covariance matrix grows from $5\times 5$ to
+$7 \times 7$, but we don't expect the covariances of the existing matrix
 to change. We do \emph{not} apply the normal Kalman gain equations. Instead,
 we add rows to $J_x^f$. % XXX What is f?
 In this case, we have observations $(r_1, \theta_1)$ that can be projected
-into $(x,y)$ space from position $(x_0, y_0, \theta_0)$.
-XXX % XXX WARNING, stuff here needs to be written
+into $(x,y)$ space from position $(x_0, y_0, \theta_0)$. % XXX WARNING, stuff here needs to be written
 
-$K = \Sigma_x J_x^T(J_x \Sigma_x J_x^T + \Sigma_z)^{-1} $ \\
-$\Sigma_z = \left[ \begin{array}{c c}
+$$K = \Sigma_x J_x^T(J_x \Sigma_x J_x^T + \Sigma_z)^{-1} $$
+$$\Sigma_z = \left[ \begin{array}{c c}
 3 & 0 \\
 0 & 1 \\
-\end{array} \right]$ \\
-$x' = x + Kr$ \\
-$\Sigma_x' = (I - KJ_x) \Sigma_x$ \\
+\end{array} \right]$$
+$$x' = x + Kr$$
+$$\Sigma_x' = (I - KJ_x) \Sigma_x$$
 
 \subparagraph{ii}
-After second observation update (\emph{Note: additional primes denote
+After re-observing $f_1$, the mean and covariance matrix are calculated using an updated Kalman gain (\emph{Note: additional primes denote
     later state}).
-$K' = \Sigma_x' J_{x'}^T(J_{x'} \Sigma_x' J_{x'}^T + \Sigma_z)^{-1} $ \\
-$x'' = x' + K'r'$ \\
-$\Sigma_x'' = (I - K'J_{x'}) \Sigma_x'$ \\
+$$K' = \Sigma_x' J_{x'}^T(J_{x'} \Sigma_x' J_{x'}^T + \Sigma_z)^{-1} $$
+$$x'' = x' + K'r'$$
+$$\Sigma_x'' = (I - K'J_{x'}) \Sigma_x'$$
 
 \subparagraph{iii}
 After observing $f_1$: \\
@@ -209,6 +208,19 @@ cos\theta
 \end{align*}
 
 \paragraph{B}
+The error threshold controls how large an error is acceptable when merging 
+two lines, or how close the original lines were to being the same line.  If the 
+MSE of the line created by joining the points of two lines is less than the threshold, 
+the points are assumed to be close enough to a straight line, and that any error
+is due to noise in $r$ or $\theta$.  An error in $\theta$ will cause us to see points 
+that don't exist, but places those points close to an existing line.  Therefore, errors in
+$\theta$ are less catastrophic than errors in $r$.  We can use this to determine
+a good error threshold.
+
+The variance in $r$ in this log is $.001$, an error within one standard deviation
+of $r$ must be less than approximately $.03$, the number we selected as our 
+default parameter for the error threshold.  This returns reasonable results (as seen
+in the accompanying figures).
 
 \paragraph{C}
 % XXX Keep trying, folks
