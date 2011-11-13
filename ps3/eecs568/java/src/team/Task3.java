@@ -285,16 +285,18 @@ public class Task3 implements ParameterListener
         ArrayList<Task2.Line> linesa = Task2.agglomerateLines(pointsa, 0.05, 200);
         ArrayList<Task2.Line> linesb = Task2.agglomerateLines(pointsb, 0.05, 200);
         double[] xyt = RANSAC(linesa, linesb);
+
         /*
         ArrayList<double[]> pa = new ArrayList<double[]>();
+        pa.add(new double[] {0,0});
         pa.add(new double[] {1,1});
-        pa.add(new double[] {0,2});
         ArrayList<double[]> pb = new ArrayList<double[]>();
-        pb.add(new double[] {3,1});
-        pb.add(new double[] {4,2});
+        pb.add(new double[] {0,2});
+        pb.add(new double[] {2,0});
         Task2.Line linea = new Task2.Line(pa);
         Task2.Line lineb = new Task2.Line(pb);
-        linea.intersect(lineb);*/
+        linea.intersect(lineb);
+        */
 
         if (true) {
             // left-most panel: draw the odometry path

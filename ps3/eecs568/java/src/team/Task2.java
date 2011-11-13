@@ -186,6 +186,7 @@ public class Task2 implements LCMSubscriber, ParameterListener
                                            {ct1, st1}};
             Matrix A = new Matrix(a);
             double[] xy = A.inverse().times(new double[] {r0, r1});
+            //LinAlg.print(xy);
 
             return xy;
         }
