@@ -31,8 +31,8 @@ $$x' = \left[\begin{array}{c}x_0 \\
         \theta_0 \\
         fx_0 \\
         fy_0 \\
-        x_0 + r * \cos (\theta_0 + \phi) \\
-        y_0 + r * \sin (\theta_0 + \phi)
+        x_0 + r \cos (\theta_0 + \phi) \\
+        y_0 + r \sin (\theta_0 + \phi)
         \end{array}\right]
 $$
 
@@ -45,14 +45,28 @@ $$\Sigma_w = \left[\begin{array}{c c}
     0 & 1 \end{array}\right]
 $$
 
-$$\Sigma'_x = J_x \Sigma_x J_x^T + J_w \Sigma_w J_w^T$$
+$$\Sigma'_x = J^f_x \Sigma_x (J^f_x)^T + J^f_w \Sigma_w (J^f_w)^T$$
+
+$$f(x, y, \theta, r, \phi) = \left[\begin{array}{c}
+    x + r\cos(\theta+\phi) \\
+    y + r\sin(\theta+\phi) \end{array}\right]$$
+    
+$$r = r + \omega_r$$
+$$\phi = \phi + \omega_\phi$$
 
 In this case, $\Sigma_x$ is our old covariance and $\Sigma_w$ is our observational covariance.
-$J_x$ is a $7 \times 5$ matrix in this case consisisting of the identity for the first 5 rows (preserving
-the original entries) and then the jacobian of the observation equations $\frac{\delta fx_1}{\delta x_0}$,
-$\frac{\delta fy_1}{\delta x_0}$, etc. for the initial state vector $x$. $J_w$ projects our covariance
-from $(r,\phi)$ to $(x,y)$. $J_w$ is a $7 \times 2$ matrix in this case computed from our observation equations
-used as seen in our initialization of $x'$. The result is a $7 \times 7$ covariance matrix.
+$J^f_x$ is a $7 \times 5$ matrix in this case consisisting of the identity for the first 5 rows (preserving
+the original entries) and then the Jacobian of the function $f$ with respect to the state vector variables,
+at the current state estimate. $J^f_w$ is the $7 \times 2$ Jacobian of $f$ with respect to the noise variables $\omega_r$ and $\omega_\phi$.
+
+The result is a $7 \times 7$ covariance matrix. The intution for this equation is that there are two sources
+of uncertainty for the estimate of the new feature. The first term, $J_x\Sigma_xJ_x$, is accounting for the
+covariance that comes from the uncertainty in the estimate of the current robot pose. This makes sense: even
+if we had a perfect observation, there would still be some uncertainty in the feature position unless we were
+also completely sure about the current pose. The second term adds to the covariance matrix the error that came
+from the observation itself. In this case, the sensor noise is additive so the Jacobian is essentially performing a projection
+from $(r, \phi)$ space into $(x, y)$. If we had, for example, a proportional noise model, the sensor equations would
+change and so would $J_w$.
 
 \subparagraph{ii}
 After re-observing $f_1$, the mean and covariance matrix are calculated using an updated Kalman gain (\emph{Note: additional primes denote
@@ -61,8 +75,8 @@ $$K' = \Sigma_x' J_{x'}^T(J_{x'} \Sigma_x' J_{x'}^T + \Sigma_w)^{-1} $$
 $$x'' = x' + K'r'$$
 $$\Sigma_x'' = (I - K'J_{x'}) \Sigma_x'$$
 
-$J_{x'}$ denotes the Jacobian as position $x'$, so a jacobian in terms of our previous state, but this time we
-are projecting  back to $(r, \theta)$. In other words, this jacobian is exactly like those used in PS2.
+$J_{x'}$ denotes the Jacobian as position $x'$, so a Jacobian in terms of our previous state, but this time we
+are projecting  back to $(r, \theta)$. In other words, this Jacobian is exactly like those used in PS2.
 
 \subparagraph{iii}
 After observing $f_1$: \\
@@ -110,12 +124,12 @@ $$\mu'' = \left[ \begin{array}{c}
 
 \subparagraph{iv} Compute the mean and covariance of $f_1$:
 $$\mu_0 = \left[ \begin{array}{c}
-x_0 + rcos(\theta_0 + \phi) \\
-y_0 + rsin(\theta_0 + \phi) \\
+x_0 + r\cos(\theta_0 + \phi) \\
+y_0 + r\sin(\theta_0 + \phi) \\
 \end{array}\right]$$
 $$J =  \left[ \begin{array}{c c}
-cos(\theta_0 + \phi) & -rsin(\theta_0 + \phi)\\
-sin(\theta_0 + \phi) & rcos(\theta_0 + \phi)\\
+cos(\theta_0 + \phi) & -r\sin(\theta_0 + \phi)\\
+sin(\theta_0 + \phi) & r\cos(\theta_0 + \phi)\\
 \end{array}\right]$$
 $$\Sigma_0 = J \Sigma_w J^T$$
 
@@ -156,7 +170,7 @@ new poses based on odometry \emph{and} observation measurements. This prevents
 FastSLAM 2.0 from sampling as many low likelihood particles, making it more
 efficient.
 
-\paragraph{C} % XXX
+\paragraph{C}
 Our particle resampling method resamples particles whenever a new observation
 is made, since this is when the weights change. \footnote{Actually we would only need to resample
 after a loop closure, because observing new features does not change the weights. However,
@@ -307,7 +321,7 @@ Let $p_i$ be an observation and $q$ a point on the line:
 
 \[MSE = \sum{\left((p_i-q)^T\left(J\Sigma_zJ^T\right)^{-1}\hat{n}\right)^2} \]
 
-Where $\hat{n}$ is a vector normal to the line, $\Sigma_z$ is the observation covariance in $(r,\theta)$ and $J$ is the jacobian of the function that maps observations in $(r,\theta)$ to the global $(x,y)$ coordinate frame.
+Where $\hat{n}$ is a vector normal to the line, $\Sigma_z$ is the observation covariance in $(r,\theta)$ and $J$ is the Jacobian of the function that maps observations in $(r,\theta)$ to the global $(x,y)$ coordinate frame.
 
 This more principled model would make a significant difference when there is a lot of noise.  In this case the original MSE formula might not allow for points to be combined into a line because they are outside a given threshold.  This new calculation for MSE would weight down the seemingly large errors by taking into account that the large difference is more likely.
 %% Task 3
