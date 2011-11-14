@@ -231,6 +231,7 @@ Let $p_i$ be an observation and $q$ a point on the line:
 
 Where $\hat{n}$ is a vector normal to the line, $\Sigma_z$ is the observation covariance in $(r,\theta)$ and $J$ is the jacobian of the function that maps observations in $(r,\theta)$ to the global $(x,y)$ coordinate frame.
 
+This more principled model would make a significant difference when there is a lot of noise.  In this case the original MSE formula might not allow for points to be combined into a line because they are outside a given threshold.  This new calculation for MSE would weight down the seemingly large errors by taking into account that the large difference is more likely. 
 %% Task 3
 \section{RANSAC Rigid-Body Transformation}
 
