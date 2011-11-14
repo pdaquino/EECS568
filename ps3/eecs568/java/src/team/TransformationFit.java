@@ -23,14 +23,24 @@ public class TransformationFit
         }
 
         double[] centroid1 = LinAlg.centroid(p1);
+        double[] centroid2 = LinAlg.centroid(p2);
         double[] xyta = LinAlg.resize(centroid1, 3);
         double[] xyta_inv = LinAlg.xytInverse(xyta);
         double[] xy = LinAlg.resize(getOptimalTranslation(p1, p2), 3);
-        double[] xyt_trans = new double[] {xyta[0]+xy[0], xyta[1]+xy[1], 0};
+        double[] xy_trans = new double[] {xyta[0]+xy[0], xyta[1]+xy[1], 0};
         double theta = getOptimalRotation(p1, p2);
+        if (Double.isNaN(theta))
+            theta = 0;
         double[] xyt_theta = new double[] {0, 0, theta};
-        //return new double[] { xy[0], xy[1], Double.isNaN(theta) ? 0 : theta };
-        return LinAlg.xytMultiply(LinAlg.xytMultiply(xyta_inv, xyt_theta), xyt_trans);
+
+        double[][] trans1 = LinAlg.translate(xyta_inv); // Faking t as z
+        double[][] rotate = LinAlg.rotateZ(theta);
+        double[][] trans2 = LinAlg.translate(xy_trans);
+
+        LinAlg.timesEquals(trans2, rotate);
+        LinAlg.timesEquals(trans2, trans1);
+        double[] xyzrpy = LinAlg.matrixToXyzrpy(trans2);
+        return new double[] {xyzrpy[0], xyzrpy[1], xyzrpy[5]};
     }
 
     protected static double getOptimalRotation(ArrayList<double[]> p1, ArrayList<double[]> p2) {
@@ -62,4 +72,25 @@ public class TransformationFit
         return LinAlg.subtract(centroid2, centroid1);
     }
 
+    static public void main(String[] args)
+    {
+        ArrayList<double[]> pointsa = new ArrayList<double[]>();
+        ArrayList<double[]> pointsb = new ArrayList<double[]>();
+        pointsa.add(new double[] {0,0});
+        pointsa.add(new double[] {1,1});
+        pointsa.add(new double[] {-1,-1});
+        pointsa.add(new double[] {0,2});
+        pointsa.add(new double[] {5,-3});
+        pointsa.add(new double[] {-2,0});
+        double[] xyt = new double[] {-1,3,3*Math.PI/2};
+        LinAlg.print(xyt);
+        System.out.println("--------");
+        for (double[] a: pointsa) {
+            pointsb.add(LinAlg.transform(xyt, a));
+        }
+
+        double[] guess_xyt = getTransformation(pointsa, pointsb);
+        System.out.println("--------");
+        LinAlg.print(guess_xyt);
+    }
 }
