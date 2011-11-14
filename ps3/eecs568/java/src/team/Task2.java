@@ -133,6 +133,15 @@ public class Task2 implements LCMSubscriber, ParameterListener {
             return new double[]{q[0], q[1], theta};
         }
 
+        public double getAngle(Line l) {
+            double angle = 0;
+            double[] v0 = new double[] {Math.cos(theta), Math.sin(theta)};
+            double[] v1 = new double[] {Math.cos(l.theta), Math.sin(l.theta)};
+            angle = Math.acos(LinAlg.dotProduct(v0, v1));
+            angle = Double.isNaN(angle) ? 0 : angle;
+            return Math.abs(angle-(Math.PI/2));
+        }
+
         public ArrayList<double[]> getPoints() {
             return line;
         }
