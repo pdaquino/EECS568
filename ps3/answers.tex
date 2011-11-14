@@ -223,7 +223,13 @@ default parameter for the error threshold.  This returns reasonable results (as 
 in the accompanying figures).
 
 \paragraph{C}
-% XXX Keep trying, folks
+The idea is to weight fitting errors according to the probability that they came from sensor noise, as opposed to a bad fit. To do that, we project the covariance of the observation from $(r,\theta)$ space to $(x,y)$ and use its inverse as a weight factor in the MSE.
+
+Let $p_i$ be an observation and $q$ a point on the line:
+
+\[MSE = \sum{\left((p_i-q)^T\left(J\Sigma_zJ^T\right)^{-1}\hat{n}\right)^2} \]
+
+Where $\hat{n}$ is a vector normal to the line, $\Sigma_z$ is the observation covariance in $(r,\theta)$ and $J$ is the jacobian of the function that maps observations in $(r,\theta)$ to the global $(x,y)$ coordinate frame.
 
 %% Task 3
 \section{RANSAC Rigid-Body Transformation}
