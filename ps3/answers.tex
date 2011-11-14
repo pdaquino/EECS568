@@ -386,34 +386,41 @@ nearest neighbor, RANSAC, and JCBB.
 should be associated.  A $\chi^2$ value is determined for associating the new observation
 with each previous observation.  The new observation is associated with the previous
 observation causing the lowest $\chi^2$ error, unless it is larger than some threshold,
-in which case the new observation becomes a new feature.
+in which case the new observation becomes a new feature.  
 
 	The advantage of using $\chi^2$ for data association is that it is simple to implement.
-and fast to calculate.  $\chi^2$ nearest neighbor's data association is greedy, matching
-each point individually to an observation that it has the best association with.  This can
+and fast to calculate.  $\chi^2$ nearest neighbor's data association is greedy, matching 
+each point individually to an observation that it has the best association with.  This can 
 cause it to miss a good association that is found only by trying to associate a set of features
  at once.
 
-	RANSAC uses random search to choose a model for associating
-
-	The advantages of RANSAC is easy to implement and doesn't require points to
-be in any order since it randomly selects them (however this means that it doesn't take
-advantage of points that are ordered).  An additional advantage of RANSAC is that it
-can find associations even when there are many outliers, if it is allowed to run long enough.
-However, the number of iterations to run, as well as the threshold used, change depending
-upon the data set.  A ``good" number of iterations can be calculated, but this doesn't
-guarantee finding the best association since RANCAS is probabilistic.
+	RANSAC uses random search to choose a model for associating data points.  Given
+a set of new observations, each observation is associated with a random feature, or 
+becomes a new feature and the resulting $\chi^2$ error is calculated.  This random
+association is done several times, and of these iterations, the one with the lowest 
+resulting $\chi^2$ is chosen as the association for the observations.  RANSAC resolves
+the problem $\chi^2$ nearest neighbor falls into of assigning one point at a time greedily.
+However, it does not exhaustively search the tree of possible associations, and therefore
+does not guarantee finding the ``correct" association at each new observation.
+	
+	In addition to considering multiple points at once, RANSAC is advantageous to more
+accurate methods because it is simpler to implement.  An additional advantage of RANSAC
+is that it can find associations even when there are many outliers, if it is allowed enough
+iterations.  However, the number of iterations to run, as well as the threshold used, change
+depending upon the data set.  A ``good" number of iterations can be calculated, but this doesn't 
+guarantee finding the best association because RANCAS is probabilistic.
+% Doesn't take advantage of points that are ordered
 
 	JCBB seeks to create as few new features as possible (associate as many features
 as it can) at each new observation.  It does this by intelligently searching a tree of all
 possible associations of the set of new observations.  At each branch, JCBB uses a
 heuristic to determine whether to continue searching down the branch for possible
 associations or to backtrack and search another branch.  JCBB matches as many features
-as it can without causing the $\chi^2$ error to exceed a given threshold.
+as it can without causing the $\chi^2$ error to exceed a given threshold.  
 
-	An advantage of JCBB is that it is guaranteed to find the best association of the
-set of points it is working with, given an admissible heuristic.  It is however, harder to
-implement, and determining an appropriate heuristic for the branch and bound introduces
-error.  Although JCBB may be faster, given a good heuristic and set of points to associate,
-it is not guaranteed to be faster.
+	Like RANSAC, JCBB is advantageous to $\chi^2$ nearest neighbor because it 
+considers the effect of assigning multiple associations at once.  An advantage of JCBB
+over RANSAC is that it is guaranteed to find the best association of the set of points it is
+working with, given an admissible heuristic.  It is however, harder to implement, and,
+depends upon determining an appropriate heuristic for the branch and bound.
 \end{document}
