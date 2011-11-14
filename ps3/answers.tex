@@ -336,6 +336,12 @@ RANSAC finding the RBT for two scans that were separated by a significant amount
 of travel. These scans were, in fact, of the same location and we were able to extract
 a correct alignment from the data.
 
+Our algorithm does not associate lines in real time.  This could be improved upon by
+increasing the pre-processing of the lines and using richer features.  This could be done
+by improving our line fitting process in Task 2, only using lines with a larger number of
+in them, and matching intersections of lines with an angle different of near $\frac{\pi}{2}$.
+
+
 \begin{figure}[h!]
 \centering
 \includegraphics[width=.7\textwidth]{figures/Task3_good0.png}
@@ -408,5 +414,6 @@ as it can without causing the $\chi^2$ error to exceed a given threshold.
 	An advantage of JCBB is that it is guaranteed to find the best association of the
 set of points it is working with, given an admissible heuristic.  It is however, harder to
 implement, and determining an appropriate heuristic for the branch and bound introduces
-error.
+error.  Although JCBB may be faster, given a good heuristic and set of points to associate,
+it is not guaranteed to be faster.
 \end{document}
