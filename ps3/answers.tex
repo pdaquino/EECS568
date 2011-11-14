@@ -181,7 +181,7 @@ the resulting weights would be
 a reasonable approximation of the original distribution. Then, we create a new set $S$ and insert $w_i$
 copies of every particle $p_i$ into it, where $w_i$ is that particle's weight.
 
-We are then able to test for bias by sampling enough particles from the original distribution and 
+We are then able to test for bias by sampling enough particles from the original distribution
 (with non-normalized weights) such that the particle with the lowest weight is sampled $w_0$ times.
 If the set of sampled particles is approximately the same as $S$, then the sampling method is correct.
 
@@ -216,8 +216,7 @@ We are plotting several lines and points to aid in visualizing the algorithm:
 FastSLAM is easy to implement and does not require very ``intelligent'' data
 association techniques to work well. In fact, a big advantage of FastSLAM is
 that it is more robust to poor data associations than alternative SLAM
-algorithms. Least-squares may run faster than FastSLAM, given the potentially
-large particle requirements of FastSLAM, and it is more consistent in that
+algorithms. Least squares it is more consistent in performance as
 there is no random element to the problem. Least-squares also maintains
 complete information forever, unlike FastSLAM, so it will not throw away
 potentially useful information as FastSLAM does in cases involving particle
@@ -226,19 +225,21 @@ depletion. In other words, least-squares is good at loop closures.
 FastSLAM is a safe choice in environments where data association is difficult.
 If one can afford enough particles, it is probable that a particle that makes
 the correct associations and can survive to give a good map. Least-squares SLAM
-would likely not recover from a bad association without interference. However,
+would likely not recover from a bad association without user intervention. However,
 in cases where we are confident in our data association, methods like
-least-squares SLAM converge faster due to the preservation of loops and, given
-the optimizations employed in the past few years, are otherwise comparable to
-FastSLAM in terms of speed of computation.
+least-squares SLAM converge faster due to the preservation of loops. Least-squares SLAM
+has also been heavily optimized to the point that it may run at competitive (or better) speeds
+with FastSLAM. More importantly, FastSLAM does not scale well in environments where
+landmarks are observed infrequently as many more particles, possibly intractable amounts, are necessary get consistently
+good solutions. Least-squares SLAM will still produce a good solution in this case.
 
-SLAM research has likely left particle filters behind because, given the option,
-it is preferable to represent the entire problem, that is, to not throw out
-constraint information, rather than rely on our best solutions to survive
-filtering. Also, as processing power and algorithms improved, good data association,
-while not easy, has become more feasible, so algorithms such as least-squares
-have become viable.
-% XXX
+Progress in optimization (for example, exploitation of sparsity in matrices) of least-squares
+SLAM has made it a more viable solution to the SLAM problem. Given the choice of fast
+least-squares SLAM and FastSLAM, a fast least-squares SLAM is preferable as it maintains
+more complete information and has guarantees on results. Likewise, increased processing
+power and advances in data association increase our confidence in our ability to find
+good associations in many cases, rendering one of FastSLAM's main remaining benefits
+less compelling.
 
 %% Task 2
 \section{Line Estimation from Laser Data}
@@ -261,22 +262,33 @@ cos\theta
 \end{align*}
 
 \paragraph{B}
-The error threshold controls how large an error is acceptable when merging
-two lines, or how close the original lines were to being the same line.  If the
-MSE of the line created by joining the points of two lines is less than the threshold,
-the points are assumed to be close enough to a straight line, and that any error
-is due to noise in $r$ or $\theta$.  An error in $\theta$ will cause us to see points
-that don't exist, but places those points close to an existing line.  Therefore, errors in
-$\theta$ are less catastrophic than errors in $r$.  We can use this to determine
-a good error threshold.
+We chose an error threshold $0.03$. This threshold is extremely intolerant of error,
+generally ensuring any lines that we \emph{do} merge are indeed good fits. This helps
+preserve some of the smaller lines that often merged into long, perpendicular lines
+incorrectly.
 
-The variance in $r$ in this log is $.001$, an error within one standard deviation
-of $r$ must be less than approximately $.03$, the number we selected as our
-default parameter for the error threshold.  This generally returns reasonanble results,
-but does not prevent some less probable or bad line fits from sneaking through, as
-seen in Fig.~\ref{fig:line_fits}.
+The error threshold is our total tolerance for line errors in $(x,y)$. The sum of
+the distances of errors for all points with regards to the line fit cannot exceed this
+threshold. Unfortunately, this is an absolute cutoff, so the longer a line gets,
+the less likely we become to merge in even a good point, as it will still contribute
+some error. Conversely, short lines are more likely to merge in bad points as they
+have some remaining wiggle room in their accumulated error.
 
-\begin{figure}[h!]
+A more principled method for selecting such a threshold besides the ``it-looks-pretty-good''
+trial-and-error method is to actually learn from a few ground-truthed examples. Select
+a random subset of frames and have a human fit lines where they feel they are appropriate.
+From this, the most na\"{i}ve method for selecting a threshold is to pick the largest error
+of any of the human-identified lines. In principal, the algorithm will tolerate any line
+that is at least as good as a human-tolerable line. To get a little smarter, we can
+introduce a proportional threshold that also depends on the number of points in the line fit.
+We can then use these random, human-truthed samples to learn a formula for this proportion.
+
+Fig.~\ref{fig:line_fits} gives examples of both good and bad line fits. As we can see in the
+bad cases, our na\"{i}ve, non-proportional threshold often fits very bad lines to small amounts
+of widely separated noise. Accounting for the distance between measurements might also
+improve our fits, as evidenced by some line fits across large discontinuities.
+
+\begin{figure}[htb]
 \centering
 \subfigure[Good example of line fits]{
     \includegraphics[width=0.7\textwidth]{figures/good_line_fit.png}
@@ -357,7 +369,7 @@ by improving our line fitting process in Task 2, only using lines with a larger 
 in them, and matching intersections of lines with an angle different of near $\frac{\pi}{2}$.
 
 
-\begin{figure}[h!]
+\begin{figure}[htb]
 \centering
 \includegraphics[width=.7\textwidth]{figures/Task3_good0.png}
 \caption{A good scan match from RANSAC. Our implementation of RANSAC is able
@@ -367,7 +379,7 @@ was able to match features successfully.}
 \label{fig:good_ransac0}
 \end{figure}
 
-\begin{figure}[h!]
+\begin{figure}[htb]
 \centering
 \includegraphics[width=.7\textwidth]{figures/Task3_bad0.png}
 \caption{A bad scan match from RANSAC. Eventually RANSAC breaks down because the
@@ -379,7 +391,7 @@ was able to match features successfully.}
 \label{fig:bad_ransac0}
 \end{figure}
 
-\begin{figure}[h!]
+\begin{figure}[htb]
 \centering
 \includegraphics[width=.7\textwidth]{figures/Task3_good_endpoints.png}
 \caption{A loop closure detected after significant travel. RANSAC is able to match
@@ -399,31 +411,32 @@ nearest neighbor, RANSAC, and JCBB.
 
 	$\chi^2$ nearest neighbor uses a simple $\chi^2$ to determine whether points
 should be associated.  A $\chi^2$ value is determined for associating the new observation
-with each previous observation.  The new observation is associated with the previous
+with each previous observation.  The new observation is greedily associated with the previous
 observation causing the lowest $\chi^2$ error, unless it is larger than some threshold,
-in which case the new observation becomes a new feature.  
+in which case the new observation becomes a new feature.
 
-	The advantage of using $\chi^2$ for data association is that it is simple to implement.
-and fast to calculate.  $\chi^2$ nearest neighbor's data association is greedy, matching 
-each point individually to an observation that it has the best association with.  This can 
+	The advantage of using $\chi^2$ for data association is that it is simple to implement
+and fast to calculate.  However, since $\chi^2$ nearest neighbor's data association is greedy, this can
 cause it to miss a good association that is found only by trying to associate a set of features
- at once.
+as a whole.
 
 	RANSAC uses random search to choose a model for associating data points.  Given
-a set of new observations, each observation is associated with a random feature, or 
+a set of new observations, each observation is associated with a random feature, or
 becomes a new feature and the resulting $\chi^2$ error is calculated.  This random
-association is done several times, and of these iterations, the one with the lowest 
+association is done several times, and of these iterations, the one with the lowest
 resulting $\chi^2$ is chosen as the association for the observations.  RANSAC resolves
 the problem $\chi^2$ nearest neighbor falls into of assigning one point at a time greedily.
 However, it does not exhaustively search the tree of possible associations, and therefore
-does not guarantee finding the ``correct" association at each new observation.
-	
+does not guarantee finding the ``correct'' association at each new observation.
+
 	In addition to considering multiple points at once, RANSAC is advantageous to more
 accurate methods because it is simpler to implement.  An additional advantage of RANSAC
 is that it can find associations even when there are many outliers, if it is allowed enough
 iterations.  However, the number of iterations to run, as well as the threshold used, change
-depending upon the data set.  A ``good" number of iterations can be calculated, but this doesn't 
-guarantee finding the best association because RANCAS is probabilistic.
+depending upon the data set.  A ``good'' number of iterations can be calculated, but this doesn't
+guarantee finding the best association because RANSAC is probabilistic. RANSAC is also dependent
+on the consensus score being cheap to compute. If a cheap score computation does not exist, then
+RANSAC loses some of its appeal.
 % Doesn't take advantage of points that are ordered
 
 	JCBB seeks to create as few new features as possible (associate as many features
@@ -431,11 +444,23 @@ as it can) at each new observation.  It does this by intelligently searching a t
 possible associations of the set of new observations.  At each branch, JCBB uses a
 heuristic to determine whether to continue searching down the branch for possible
 associations or to backtrack and search another branch.  JCBB matches as many features
-as it can without causing the $\chi^2$ error to exceed a given threshold.  
+as it can without causing the $\chi^2$ error to exceed a given threshold.
 
-	Like RANSAC, JCBB is advantageous to $\chi^2$ nearest neighbor because it 
+	Like RANSAC, JCBB typically associates better than $\chi^2$ nearest neighbor because it
 considers the effect of assigning multiple associations at once.  An advantage of JCBB
 over RANSAC is that it is guaranteed to find the best association of the set of points it is
-working with, given an admissible heuristic.  It is however, harder to implement, and,
-depends upon determining an appropriate heuristic for the branch and bound.
+working with, given an admissible heuristic.  It is, however, harder to implement, and it
+depends upon determining an appropriate heuristic for the branch and bound. It also may cost
+a tremendous amount as if much pruning is not possible.
+
+In PS2, JCBB or RANSAC would be preferable over nearest-neighbor as our tolerance for
+bad associations is low. JCBB, in particular, would guarantee us the highest quality
+loop closures and, thus, the best results. If we were concerned about real-time performance,
+RANSAC gains appeal as it is fast, but also capable of generating very good associations for
+multiple landmarks.
+
+In a project such as FastSLAM (PS3), nearest-neighbor association is sufficient since the
+particles that survive resampling should have the best associations. Bad associations will
+be thrown out as the solutions are quickly realized to be improbable and are accordingly
+weighted very low.
 \end{document}
