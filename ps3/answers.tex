@@ -25,7 +25,7 @@ Starting with an existing EKF...
 After first observation of a new landmark, the covariance matrix grows from $5\times 5$ to
 $7 \times 7$, but we don't expect the covariances of the existing matrix
 to change. We do \emph{not} apply the normal Kalman gain equations. Instead,
-we add rows to $J_x^f$. % XXX What is f?
+we add rows to $J_x^f$, where $f$ is the observation equation.
 In this case, we have observations $(r_1, \theta_1)$ that can be projected
 into $(x,y)$ space from position $(x_0, y_0, \theta_0)$. % XXX WARNING, stuff here needs to be written
 
@@ -158,9 +158,21 @@ data association techniques must be ``smarter'' than nearest-neighbor
 matching.
 
 \paragraph{E}
-Attached in email.
+The video is attached in email.
 
-%XXX Make visualization key
+We are plotting several lines and points to aid in visualizing the algorithm:
+\begin{itemize}
+	\item Blue line: ground-truth trajectory.
+	\item Yellow line: best estimated trajectory, from the particle with the lowest $\chi^2$.
+	\item Green line: best estimated trajectory, after alignment*.
+	\item Green stars: ground-truth landmarks.
+	\item Small red points: latest robot position estimate from all the particles.
+	\item Big red points: estimated landmark positions, from the particle with the lowest $\chi^2$. They are connected by lines to the true position of the respective landmarks.
+	\item Yellow points: estimated landmark positions, after alignment*.
+	\item Gray points: landmark position estimates for all particles.
+\end{itemize}
+
+*We compute the alignment as the RBT between the estimated and true landmark positions.
 
 \paragraph{F}
 FastSLAM is easy to implement and does not require very ``intelligent'' data
