@@ -328,23 +328,37 @@ not have known data association.  Without good data association, SLAM won't work
 The three ways we have discussed doing data association in class are $\chi^2$
 nearest neighbor, RANSAC, and JCBB.
 
-	$\chi^2$ nearest neighbor %XXXX
+	$\chi^2$ nearest neighbor uses a simple $\chi^2$ to determine whether points
+should be associated.  A $\chi^2$ value is determined for associating the new observation
+with each previous observation.  The new observation is associated with the previous
+observation causing the lowest $\chi^2$ error, unless it is larger than some threshold,
+in which case the new observation becomes a new feature.  
+
+	The advantage of using $\chi^2$ for data association is that it is simple to implement.
+and fast to calculate.  $\chi^2$ nearest neighbor's data association is greedy, matching 
+each point individually to an observation that it has the best association with.  This can 
+cause it to miss a good association that is found only by trying to associate a set of features
+ at once.
 
 	RANSAC uses random search to choose a model for associating
-RANSAC is easy to implement and doesn't require points to be in any order since
-it randomly selects them (however this means that it doesn't take advantage of points
-that are ordered).  An additional advantage of RANSAC is that it can find associations
-even when there are many outliers, if it is allowed to run long enough.  However, the
-number of iterations to run, as well as the threshold used, change depending upon the
-dataset.  A ``good" number of iterations can be calculated, but this doesn't guarantee
-finding the best association since RANCAS is probabilistic. % XXX When would RANSAC be best
+	
+	The advantages of RANSAC is easy to implement and doesn't require points to 
+be in any order since it randomly selects them (however this means that it doesn't take
+advantage of points that are ordered).  An additional advantage of RANSAC is that it 
+can find associations even when there are many outliers, if it is allowed to run long enough.  
+However, the number of iterations to run, as well as the threshold used, change depending
+upon the data set.  A ``good" number of iterations can be calculated, but this doesn't 
+guarantee finding the best association since RANCAS is probabilistic. 
 
 	JCBB seeks to create as few new features as possible (associate as many features
-as it can) without surpassing a threshold.  It does this by intelligently searching a tree of
-possible associations in which a newly observed feature can be associated with any
-previously observed feature, and if none of these produce a $\chi^2$ less than a given
-threshold the observation becomes a new feature.  It
+as it can) at each new observation.  It does this by intelligently searching a tree of all
+possible associations of the set of new observations.  At each branch, JCBB uses a
+heuristic to determine whether to continue searching down the branch for possible
+associations or to backtrack and search another branch.  JCBB matches as many features
+as it can without causing the $\chi^2$ error to exceed a given threshold.
 
-
-%XXX The advantages of JCBB
+	An advantage of JCBB is that it is guaranteed to find the best association of the
+set of points it is working with, given an admissible heuristic.  It is however, harder to
+implement, and determining an appropriate heuristic for the branch and bound introduces
+error.
 \end{document}
