@@ -1,0 +1,5 @@
+To invoke our FastSLAM, run the simulator as normal and call -l team.FastSLAM:
+
+java -cp april.jar april.sim.Simulator ../config/sim.config -l team.FastSLAM
+
+To invoke Task2 and Task3, call exactly as specified in the assignment.
