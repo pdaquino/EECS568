@@ -185,7 +185,10 @@ FastSLAM in terms of speed of computation.
 SLAM research has likely left particle filters behind because, given the option,
 it is preferable to represent the entire problem, that is, to not throw out
 constraint information, rather than rely on our best solutions to survive
-filtering. %XXX More could be done here
+filtering. Also, as processing power and algorithms improved, good data association,
+while not easy, has become more feasible, so algorithms such as least-squares
+have become viable.
+% XXX
 
 %% Task 2
 \section{Line Estimation from Laser Data}
@@ -208,17 +211,17 @@ cos\theta
 \end{align*}
 
 \paragraph{B}
-The error threshold controls how large an error is acceptable when merging 
-two lines, or how close the original lines were to being the same line.  If the 
-MSE of the line created by joining the points of two lines is less than the threshold, 
+The error threshold controls how large an error is acceptable when merging
+two lines, or how close the original lines were to being the same line.  If the
+MSE of the line created by joining the points of two lines is less than the threshold,
 the points are assumed to be close enough to a straight line, and that any error
-is due to noise in $r$ or $\theta$.  An error in $\theta$ will cause us to see points 
+is due to noise in $r$ or $\theta$.  An error in $\theta$ will cause us to see points
 that don't exist, but places those points close to an existing line.  Therefore, errors in
 $\theta$ are less catastrophic than errors in $r$.  We can use this to determine
 a good error threshold.
 
 The variance in $r$ in this log is $.001$, an error within one standard deviation
-of $r$ must be less than approximately $.03$, the number we selected as our 
+of $r$ must be less than approximately $.03$, the number we selected as our
 default parameter for the error threshold.  This returns reasonable results (as seen
 in the accompanying figures).
 
@@ -242,24 +245,79 @@ use Horn's Algorithm to align the resulting sets of 3 points.
 
 \paragraph{B}
 Given a fit between lines in set A and lines in set B, we compute a RBT that
-rotates A into B's space. Then, for every point in A that was used to estimate
-the line fits, we find the line in set B that the point in A is closest to and
-see if the distance between the A and line B is within a threshold. If so,
-we vote $1$ for that point, else $0$. The consensus score is the sum of these
-votes.
+rotates A into B's space. To cheaply/quickly compute how good this fit is,
+we discretize the world into bins and mark all bins that points from B fall
+into. We then apply our transform to the points from A and see if they fall
+into a bin from B. If so, we vote $1$, otherwise we vote $0$. The consensus
+score is computed as the sum of votes. This is extremely fast as we only need
+to bin the points in B once ever and checking for a hit by a point in A only
+costs one transformation and a constant time check in a LUT.
+
+After some tuning, we selected a bin size of 10\,cm. This seemed to be a good
+balance between ensuring close fits and accounting for the fact that points do
+not generally align exactly between scans.
+
+\emph{Disclaimer: The use of a binning method for votes resulted from brainstorming with John Peterson,
+    also in the class, about fast ways to calculate votes in such spaces since our existing methods
+    were far too slow to use. We can not honestly claim completely that this idea is 100\% ours.}
 
 \paragraph{C}
+RANSAC makes good matches much of the time, provided the scans have a reasonable
+amount of overlap. Fig.~\ref{fig:good_ransac0} shows how a translation of several
+meters is still successfully found by RANSAC. However, eventually this may break
+down, even in the presence of human-detectable features, more points will vote
+for a bad alignment that ignores these ``good'' and result in the selection of
+a sub-optimal transform. This is evident particularly in hallways, where straight,
+parallel lines make up the majority of votes and, given the small amounts of overlap in
+the optimal match, may vote for poor line matches that. Fig.~\ref{fig:bad_ransac0} gives
+an excellent example of this. Finally, Fig.~\ref{fig:long_ransac} shows an example of
+RANSAC finding the RBT for two scans that were separated by a significant amount
+of travel. These scans were, in fact, of the same location and we were able to extract
+a correct alignment from the data.
 
+\begin{figure}[h!]
+\centering
+\includegraphics[width=.7\textwidth]{figures/Task3_good0.png}
+\caption{A good scan match from RANSAC. Our implementation of RANSAC is able
+to fit models to points that are translated or rotated by a non-negligible amount. As seen
+in this figure, the recorded poses are separated by several meters, but RANSAC
+was able to match features successfully.}
+\label{fig:good_ransac0}
+\end{figure}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=.7\textwidth]{figures/Task3_bad0.png}
+\caption{A bad scan match from RANSAC. Eventually RANSAC breaks down because the
+    ``good'' features that a human can detect do not hold enough votes to outweigh
+    less ``good'' matches. As seen in this figure, after moving the robot slightly
+    down the hall from our previously shown good match, RANSAC breaks down and
+    returns a significantly less reasonable transformation even though there are
+    several features that indicate a good match is still possible.}
+\label{fig:bad_ransac0}
+\end{figure}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=.7\textwidth]{figures/Task3_good_endpoints.png}
+\caption{A loop closure detected after significant travel. RANSAC is able to match
+    scans when the robot returns to a familiar location after traveling a long
+    distance. In this case, the robot starts in an elevator lobby and ends its
+    travels in the same elevator lobby. RANSAC is able to detect this, providing a
+    RBT that clearly matches the elevator lobby again, though from a different
+    perspective.}
+\label{fig:long_ransac}
+\end{figure}
 %% Task 4
 \section{Advanced Data Association }
 	Data association is the attempt to correlating observed features when we do
 not have known data association.  Without good data association, SLAM won't work.
-The three ways we have discussed doing data association in class are $\chi^2$ 
+The three ways we have discussed doing data association in class are $\chi^2$
 nearest neighbor, RANSAC, and JCBB.
 
 	$\chi^2$ nearest neighbor %XXXX
-	
-	RANSAC uses random search to choose a model for associating  
+
+	RANSAC uses random search to choose a model for associating
 RANSAC is easy to implement and doesn't require points to be in any order since
 it randomly selects them (however this means that it doesn't take advantage of points
 that are ordered).
@@ -267,8 +325,9 @@ that are ordered).
 	JCBB seeks to create as few new features as possible (associate as many features
 as it can) without surpassing a threshold.  It does this by intelligently searching a tree of
 possible associations in which a newly observed feature can be associated with any
-previously observed feature, and if none of these produce a $\chi^2$ less than a given 
-threshold the observation becomes a new feature.  It 
+previously observed feature, and if none of these produce a $\chi^2$ less than a given
+threshold the observation becomes a new feature.  It
+
 
 The advantages of JCBB
 \end{document}
