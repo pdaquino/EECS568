@@ -20,12 +20,12 @@
 
 % PART A
 \paragraph{A}
-Starting with an existing EKF...
+Starting with an existing EKF with state $\left[\begin{array}{c c c c c}x_0 & y_0 & t_0 & fx_0 & fy_0\end{array}\right]$ and a corresponding covariance matrix $\Sigma$.
 \subparagraph{i}
 After first observation of a new landmark, the covariance matrix grows from $5\times 5$ to
 $7 \times 7$, but we don't expect the covariances of the existing matrix
 to change. We do \emph{not} apply the normal Kalman gain equations. Instead,
-we add rows to $J_x^f$. % XXX What is f?
+we add rows to $J_x^f$, where $f$ is the observation equation.
 In this case, we have observations $(r_1, \theta_1)$ that can be projected
 into $(x,y)$ space from position $(x_0, y_0, \theta_0)$. % XXX WARNING, stuff here needs to be written
 
@@ -133,7 +133,7 @@ new poses based on odometry \emph{and} observation measurements. This prevents
 FastSLAM 2.0 from sampling as many low likelihood particles, making it more
 efficient.
 
-\paragraph{C}
+\paragraph{C} % XXX 
 Our particle resampling method resamples particles whenever a new observation
 is made, since this is when the weights change. We iterate through all
 particles to sum their weights, and then we draw random values between 0 and
@@ -158,9 +158,21 @@ data association techniques must be ``smarter'' than nearest-neighbor
 matching.
 
 \paragraph{E}
-Attached in email.
+The video is attached in email.
 
-%XXX Make visualization key
+We are plotting several lines and points to aid in visualizing the algorithm:
+\begin{itemize}
+	\item Blue line: ground-truth trajectory.
+	\item Yellow line: best estimated trajectory, from the particle with the lowest $\chi^2$.
+	\item Green line: best estimated trajectory, after alignment*.
+	\item Green stars: ground-truth landmarks.
+	\item Small red points: latest robot position estimate from all the particles.
+	\item Big red points: estimated landmark positions, from the particle with the lowest $\chi^2$. They are connected by lines to the true position of the respective landmarks.
+	\item Yellow points: estimated landmark positions, after alignment*.
+	\item Gray points: landmark position estimates for all particles.
+\end{itemize}
+
+*We compute the alignment as the RBT between the estimated and true landmark positions.
 
 \paragraph{F}
 FastSLAM is easy to implement and does not require very ``intelligent'' data
@@ -234,6 +246,7 @@ Let $p_i$ be an observation and $q$ a point on the line:
 
 Where $\hat{n}$ is a vector normal to the line, $\Sigma_z$ is the observation covariance in $(r,\theta)$ and $J$ is the jacobian of the function that maps observations in $(r,\theta)$ to the global $(x,y)$ coordinate frame.
 
+This more principled model would make a significant difference when there is a lot of noise.  In this case the original MSE formula might not allow for points to be combined into a line because they are outside a given threshold.  This new calculation for MSE would weight down the seemingly large errors by taking into account that the large difference is more likely. 
 %% Task 3
 \section{RANSAC Rigid-Body Transformation}
 
@@ -320,7 +333,11 @@ nearest neighbor, RANSAC, and JCBB.
 	RANSAC uses random search to choose a model for associating
 RANSAC is easy to implement and doesn't require points to be in any order since
 it randomly selects them (however this means that it doesn't take advantage of points
-that are ordered).
+that are ordered).  An additional advantage of RANSAC is that it can find associations
+even when there are many outliers, if it is allowed to run long enough.  However, the
+number of iterations to run, as well as the threshold used, change depending upon the
+dataset.  A ``good" number of iterations can be calculated, but this doesn't guarantee
+finding the best association since RANCAS is probabilistic. % XXX When would RANSAC be best
 
 	JCBB seeks to create as few new features as possible (associate as many features
 as it can) without surpassing a threshold.  It does this by intelligently searching a tree of
@@ -329,5 +346,5 @@ previously observed feature, and if none of these produce a $\chi^2$ less than a
 threshold the observation becomes a new feature.  It
 
 
-The advantages of JCBB
+%XXX The advantages of JCBB
 \end{document}
