@@ -22,20 +22,37 @@
 \paragraph{A}
 Starting with an existing EKF with state $\left[\begin{array}{c c c c c}x_0 & y_0 & t_0 & fx_0 & fy_0\end{array}\right]$ and a corresponding covariance matrix $\Sigma$.
 \subparagraph{i}
-After first observation of a new landmark, the covariance matrix grows from $5\times 5$ to
-$7 \times 7$, but we don't expect the covariances of the existing matrix
-to change. We do \emph{not} apply the normal Kalman gain equations. Instead,
-we add rows to $J_x^f$, where $f$ is the observation equation.
-In this case, we have observations $(r_1, \theta_1)$ that can be projected
-into $(x,y)$ space from position $(x_0, y_0, \theta_0)$. % XXX WARNING, stuff here needs to be written
+For our first observation, we merely add our estimated position for the observation
+directly to the mean/state vector based on our current position estimate and the
+observation values $r$ and $\phi$. This gives us:
 
-$$K = \Sigma_x J_x^T(J_x \Sigma_x J_x^T + \Sigma_z)^{-1} $$
-$$\Sigma_z = \left[ \begin{array}{c c}
-3 & 0 \\
-0 & 1 \\
-\end{array} \right]$$
-$$x' = x + Kr$$
-$$\Sigma_x' = (I - KJ_x) \Sigma_x$$
+$$x' = \left[\begin{array}{c}x_0 \\
+        y_0 \\
+        \theta_0 \\
+        fx_0 \\
+        fy_0 \\
+        x_0 + r * \cos (\theta_0 + \phi) \\
+        y_0 + r * \sin (\theta_0 + \phi)
+        \end{array}\right]
+$$
+
+To calculate the covariance, we need to base our uncertainties for our new observation
+on the uncertainties of all we've seen before and the uncertainties introduced by taking
+the observation itself. We use the formula:
+
+$$\Sigma_w = \left[\begin{array}{c c}
+    3 & 0 \\
+    0 & 1 \end{array}\right]
+$$
+
+$$\Sigma'_x = J_x \Sigma_x J_x^T + J_w \Sigma_w J_w^T$$
+
+In this case, $\Sigma_x$ is our old covariance and $\Sigma_w$ is our observational covariance.
+$J_x$ is a $7 \times 5$ matrix in this case consisisting of the identity for the first 5 rows (preserving
+the original entries) and then the jacobian of the observation equations $\frac{\delta r}{\delta x_0}$,
+$\frac{\delta \phi}{\delta x_0}$, etc. for the initial state vector $x$. $J_w$ projects our covariance
+from $(r,\phi)$ to $(x,y)$. $J_w$ is a $7 \times 2$ matrix in this case computed from our observation equations
+used as seen in our initialization of $x'$. The result is a $7 \times 7$ covariance matrix.
 
 \subparagraph{ii}
 After re-observing $f_1$, the mean and covariance matrix are calculated using an updated Kalman gain (\emph{Note: additional primes denote
@@ -87,7 +104,7 @@ $$\mu = \left[ \begin{array}{c}
 \end{array}\right]$$
 
 \subparagraph{iv} Compute the mean and covariance of $f_1$:
-$$\mu = \left[ \begin{array}{c}
+$$\mu_0 = \left[ \begin{array}{c}
 x_0 + rcos(\theta_0 + \phi) \\
 y_0 + rsin(\theta_0 + \phi) \\
 \end{array}\right]$$
@@ -95,6 +112,7 @@ $$J =  \left[ \begin{array}{c c}
 cos(\theta_0 + \phi) & -rsin(\theta_0 + \phi)\\
 sin(\theta_0 + \phi) & rcos(\theta_0 + \phi)\\
 \end{array}\right]$$
+$$\Sigma_0 = J \Sigma_w J^T$$
 
 \subparagraph{v} Update the landmark mean and covariance given re-observation of $f_1$:
 $$K = \Sigma_0J^T\left(J\Sigma_0J^T + \Sigma_w\right)^{-1}$$
@@ -133,7 +151,7 @@ new poses based on odometry \emph{and} observation measurements. This prevents
 FastSLAM 2.0 from sampling as many low likelihood particles, making it more
 efficient.
 
-\paragraph{C} % XXX 
+\paragraph{C} % XXX
 Our particle resampling method resamples particles whenever a new observation
 is made, since this is when the weights change. We iterate through all
 particles to sum their weights, and then we draw random values between 0 and
@@ -234,8 +252,33 @@ a good error threshold.
 
 The variance in $r$ in this log is $.001$, an error within one standard deviation
 of $r$ must be less than approximately $.03$, the number we selected as our
-default parameter for the error threshold.  This returns reasonable results (as seen
-in the accompanying figures).
+default parameter for the error threshold.  This generally returns reasonanble results,
+but does not prevent some less probable or bad line fits from sneaking through, as
+seen in Fig.~\ref{fig:line_fits}.
+
+\begin{figure}[h!]
+\centering
+\subfigure[Good example of line fits]{
+    \includegraphics[width=0.7\textwidth]{figures/good_line_fit.png}
+    \label{subfig:good_fit}
+}
+\subfigure[Bad example of line fits]{
+    \includegraphics[width=0.7\textwidth]{figures/bad_line_fit_highlighted.png}
+    \label{subfig:bad_fit}
+}
+\caption{Image~\subref{subfig:good_fit} shows a reasonable example of line fits
+    extracted using agglomeration. Most lines are fit with quality similar to that
+    seen here. However, some lines are fit poorly in cases where there are largeen
+    discontinuities. For example, in \subref{subfig:bad_fit} we highlight a pair
+    of fits we feel are bad. The line fit to the points in the upper corner, for
+    example, is just being fit to two clusters of noise. There is no evidence
+    that a line should exist, but the error in merges is small enough that it
+    still gets through. The long, circled line starts out as a reasonable fit, but
+    makes a large jump to an adjacent point where there is no evidence that such a
+    connection should exist.
+}
+\label{fig:line_fits}
+\end{figure}
 
 \paragraph{C}
 The idea is to weight fitting errors according to the probability that they came from sensor noise, as opposed to a bad fit. To do that, we project the covariance of the observation from $(r,\theta)$ space to $(x,y)$ and use its inverse as a weight factor in the MSE.
@@ -246,7 +289,7 @@ Let $p_i$ be an observation and $q$ a point on the line:
 
 Where $\hat{n}$ is a vector normal to the line, $\Sigma_z$ is the observation covariance in $(r,\theta)$ and $J$ is the jacobian of the function that maps observations in $(r,\theta)$ to the global $(x,y)$ coordinate frame.
 
-This more principled model would make a significant difference when there is a lot of noise.  In this case the original MSE formula might not allow for points to be combined into a line because they are outside a given threshold.  This new calculation for MSE would weight down the seemingly large errors by taking into account that the large difference is more likely. 
+This more principled model would make a significant difference when there is a lot of noise.  In this case the original MSE formula might not allow for points to be combined into a line because they are outside a given threshold.  This new calculation for MSE would weight down the seemingly large errors by taking into account that the large difference is more likely.
 %% Task 3
 \section{RANSAC Rigid-Body Transformation}
 

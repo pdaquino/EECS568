@@ -209,17 +209,49 @@ public class Task3 implements ParameterListener
     private double[] RANSAC(ArrayList<Task2.Line> linesa, ArrayList<Task2.Line> linesb, ArrayList<double[]> pointsa, ArrayList<double[]> pointsb)
     {
         BinPoints bp = new BinPoints(pointsb, 0.1);
+        BinPoints ap = new BinPoints(pointsa, 0.1);
         //BinPoints bp = new BinPoints(linesb, 0.15);
 
-        assert(linesa.size() > 2 && linesb.size() > 2);
+        //assert(linesa.size() > 2 && linesb.size() > 2);
         //System.out.printf("%d, %d\n", linesa.size(), linesb.size());
 
+        // Prune down lines and only find intersections of lines at > thresh degrees
+        /*double angle = Math.toRadians(50);
+        ArrayList<double[]> isects0 = new ArrayList<double[]>();
+        ArrayList<double[]> isects1 = new ArrayList<double[]>();
+        try {
+            for (int i = 0; i < linesa.size(); i++) {
+                Task2.Line l0 = linesa.get(i);
+                for (int j = 1+i; j < linesa.size(); j++) {
+                    Task2.Line l1 = linesa.get(j);
+                    if (l0.getAngle(l1) > angle) {
+                        System.out.println(l0.getAngle(l1));
+                        isects0.add(l0.intersect(l1));
+                    }
+                }
+            }
+            for (int i = 0; i < linesb.size(); i++) {
+                Task2.Line l0 = linesb.get(i);
+                for (int j = 1+i; j < linesb.size(); j++) {
+                    Task2.Line l1 = linesb.get(j);
+                    if (l0.getAngle(l1) > angle)
+                        isects1.add(l0.intersect(l1));
+                }
+            }
+        } catch (ParallelLineException ple) {
+            System.out.println("ERR: unexpected parallel line issue");
+            assert(false);
+        }
+        System.out.printf("%d -- %d\n", isects0.size(), isects1.size());*/
+
         double[] xyt = new double[3];   // "Best model"
+        if (linesa.size() < 3 || linesb.size() < 3)
+            return xyt; // Can't do anything
         int bestConsensus = 0;
 
         Random rand = new Random(15897143);
         Tic tic = new Tic();
-        for (int i = 0; i < 200000; i++) {
+        for (int i = 0; i < 20000; i++) {
             Task2.Line line1, line2, line3;
             int idx1, idx2, idx3;
             idx1 = rand.nextInt(linesa.size());
@@ -264,6 +296,31 @@ public class Task3 implements ParameterListener
             } catch (ParallelLineException ple) {
                 continue;
             }
+            /*
+            ArrayList<double[]> isects = new ArrayList<double[]>();
+            ArrayList<double[]> isectsb = new ArrayList<double[]>();
+            int idx1, idx2, idx3;
+            idx1 = rand.nextInt(isects0.size());
+            do {
+                idx2 = rand.nextInt(isects0.size());
+            } while (idx2 == idx1);
+            do {
+                idx3 = rand.nextInt(isects0.size());
+            } while (idx3 == idx1 && idx3 == idx2);
+            isects.add(isects0.get(idx1));
+            isects.add(isects0.get(idx2));
+            isects.add(isects0.get(idx3));
+
+            idx1 = rand.nextInt(isects1.size());
+            do {
+                idx2 = rand.nextInt(isects1.size());
+            } while (idx2 == idx1);
+            do {
+                idx3 = rand.nextInt(isects1.size());
+            } while (idx3 == idx1 && idx3 == idx2);
+            isectsb.add(isects1.get(idx1));
+            isectsb.add(isects1.get(idx2));
+            isectsb.add(isects1.get(idx3));*/
 
             double[] transform = TransformationFit.getTransformation(isects, isectsb);
             //System.out.printf("RBT took %f s\n", tic.toc());
@@ -299,6 +356,10 @@ public class Task3 implements ParameterListener
                 if (bp.hit(LinAlg.transform(transform, a)))
                     score++;
             }
+            for (double[] b: pointsb) {
+                if (ap.hit(LinAlg.transform(LinAlg.xytInverse(transform), b)))
+                    score++;
+            }
 
 
             if (score > bestConsensus) {
@@ -306,7 +367,7 @@ public class Task3 implements ParameterListener
                 bestConsensus = score;
                 xyt = transform;
             }
-            if (bestConsensus >= .8*pointsa.size()) {
+            if (bestConsensus >= .8*(pointsa.size()+pointsb.size())) {
                 return xyt;
             }
         }
@@ -342,8 +403,8 @@ public class Task3 implements ParameterListener
         ArrayList<Task2.Line> linesa = Task2.agglomerateLines(pointsa, 0.03, 200);
         ArrayList<Task2.Line> linesb = Task2.agglomerateLines(pointsb, 0.03, 200);
         double[] xyt = RANSAC(linesa, linesb, pointsa, pointsb);
-        LinAlg.print(xyt);
-        LinAlg.print(LinAlg.quatToRollPitchYaw(posea.orientation));
+        //LinAlg.print(xyt);
+        //LinAlg.print(LinAlg.quatToRollPitchYaw(posea.orientation));
 
         /*
            ArrayList<double[]> pa = new ArrayList<double[]>();
