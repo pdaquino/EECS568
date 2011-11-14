@@ -130,10 +130,7 @@ public class Task2 implements LCMSubscriber, ParameterListener {
         }
 
         public double[] getLine() {
-            if (line.size() < 4)
-                return null;
-            else
-                return new double[]{q[0], q[1], theta};
+            return new double[]{q[0], q[1], theta};
         }
 
         public ArrayList<double[]> getPoints() {
@@ -230,14 +227,7 @@ public class Task2 implements LCMSubscriber, ParameterListener {
             lines.remove(idx + 1);
         }
 
-        // Prune bad lines
-        ArrayList<Line> greatLines = new ArrayList<Line>();
-        for (Line line: lines) {
-            if (line.getLine() != null)
-                greatLines.add(line);
-        }
-
-        return greatLines;
+        return pruneLines(lines);
     }
 
     public synchronized void messageReceived(LCM lcm, String channel, LCMDataInputStream ins) {
@@ -254,14 +244,14 @@ public class Task2 implements LCMSubscriber, ParameterListener {
         }
     }
 
-    private void pruneLines() {
+    static private ArrayList<Line> pruneLines(ArrayList<Line> lines) {
         ArrayList<Line> newLines = new ArrayList<Line>();
         for (Line l : lines) {
             if (l.size() > 4) {
                 newLines.add(l);
             }
         }
-        lines = newLines;
+        return newLines;
     }
 
     private void agglomerateLines() {
@@ -270,7 +260,7 @@ public class Task2 implements LCMSubscriber, ParameterListener {
                 pg.gd("thresh"),
                 pg.gi("maxsteps"));
         // Strip out undersized lines
-        pruneLines();
+        lines = pruneLines(lines);
     }
 
     public synchronized void update() {

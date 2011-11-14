@@ -206,17 +206,20 @@ public class Task3 implements ParameterListener
     }
 
     // Returns an xyt aligning a with b
-    private double[] RANSAC(ArrayList<Task2.Line> linesa, ArrayList<Task2.Line> linesb, ArrayList<double[]> pointsa)
+    private double[] RANSAC(ArrayList<Task2.Line> linesa, ArrayList<Task2.Line> linesb, ArrayList<double[]> pointsa, ArrayList<double[]> pointsb)
     {
+        BinPoints bp = new BinPoints(pointsb, 0.1);
+        //BinPoints bp = new BinPoints(linesb, 0.15);
+
         assert(linesa.size() > 2 && linesb.size() > 2);
         //System.out.printf("%d, %d\n", linesa.size(), linesb.size());
 
         double[] xyt = new double[3];   // "Best model"
-        int bestConsensus = -1;
+        int bestConsensus = 0;
 
         Random rand = new Random(15897143);
         Tic tic = new Tic();
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 200000; i++) {
             Task2.Line line1, line2, line3;
             int idx1, idx2, idx3;
             idx1 = rand.nextInt(linesa.size());
@@ -267,7 +270,7 @@ public class Task3 implements ParameterListener
 
             // Transform the lines
             //tic.tic();
-            double[] invXform = LinAlg.xytInverse(transform);
+            /*double[] invXform = LinAlg.xytInverse(transform);
             ArrayList<Task2.Line> xformb = new ArrayList<Task2.Line>();
             for (Task2.Line line: linesb) {
                 xformb.add(line.transform(invXform));
@@ -287,16 +290,25 @@ public class Task3 implements ParameterListener
                         break;
                     }
                 }
-            }
+            }*/
             //System.out.printf("Consensus took %f s\n", tic.toc());
 
+            // Transform points in a and check if they're in the bin
+            int score = 0;
+            for (double[] a: pointsa) {
+                if (bp.hit(LinAlg.transform(transform, a)))
+                    score++;
+            }
+
+
             if (score > bestConsensus) {
+                System.out.printf("score: %d\n", score);
                 bestConsensus = score;
                 xyt = transform;
             }
-            /*if (bestConsensus >= .7*pointsa.size()) {
+            if (bestConsensus >= .8*pointsa.size()) {
                 return xyt;
-            }*/
+            }
         }
 
         return xyt;
@@ -329,9 +341,9 @@ public class Task3 implements ParameterListener
         ///////////////////////////////////////////////////////////////
         ArrayList<Task2.Line> linesa = Task2.agglomerateLines(pointsa, 0.03, 200);
         ArrayList<Task2.Line> linesb = Task2.agglomerateLines(pointsb, 0.03, 200);
-        double[] xyt = RANSAC(linesa, linesb, pointsa);
-        //LinAlg.print(xyt);
-        //LinAlg.print(LinAlg.quatToRollPitchYaw(posea.orientation));
+        double[] xyt = RANSAC(linesa, linesb, pointsa, pointsb);
+        LinAlg.print(xyt);
+        LinAlg.print(LinAlg.quatToRollPitchYaw(posea.orientation));
 
         /*
            ArrayList<double[]> pa = new ArrayList<double[]>();
