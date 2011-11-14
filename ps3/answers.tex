@@ -20,7 +20,7 @@
 
 % PART A
 \paragraph{A}
-Starting with an existing EKF...
+Starting with an existing EKF with state $\left[\begin{array}{c c c c c}x_0 & y_0 & t_0 & fx_0 & fy_0\end{array}\right]$ and a corresponding covariance matrix $\Sigma$.
 \subparagraph{i}
 After first observation of a new landmark, the covariance matrix grows from $5\times 5$ to
 $7 \times 7$, but we don't expect the covariances of the existing matrix
@@ -243,6 +243,7 @@ Let $p_i$ be an observation and $q$ a point on the line:
 
 Where $\hat{n}$ is a vector normal to the line, $\Sigma_z$ is the observation covariance in $(r,\theta)$ and $J$ is the jacobian of the function that maps observations in $(r,\theta)$ to the global $(x,y)$ coordinate frame.
 
+This more principled model would make a significant difference when there is a lot of noise.  In this case the original MSE formula might not allow for points to be combined into a line because they are outside a given threshold.  This new calculation for MSE would weight down the seemingly large errors by taking into account that the large difference is more likely. 
 %% Task 3
 \section{RANSAC Rigid-Body Transformation}
 
@@ -264,5 +265,23 @@ votes.
 
 %% Task 4
 \section{Advanced Data Association }
+	Data association is the attempt to correlating observed features when we do
+not have known data association.  Without good data association, SLAM won't work.
+The three ways we have discussed doing data association in class are $\chi^2$ 
+nearest neighbor, RANSAC, and JCBB.
 
+	$\chi^2$ nearest neighbor %XXXX
+	
+	RANSAC uses random search to choose a model for associating  
+RANSAC is easy to implement and doesn't require points to be in any order since
+it randomly selects them (however this means that it doesn't take advantage of points
+that are ordered).
+
+	JCBB seeks to create as few new features as possible (associate as many features
+as it can) without surpassing a threshold.  It does this by intelligently searching a tree of
+possible associations in which a newly observed feature can be associated with any
+previously observed feature, and if none of these produce a $\chi^2$ less than a given 
+threshold the observation becomes a new feature.  It 
+
+The advantages of JCBB
 \end{document}
