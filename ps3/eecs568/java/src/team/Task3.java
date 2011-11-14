@@ -83,6 +83,7 @@ public class Task3 implements ParameterListener
         pg.addListener(this);
 
         jf = new JFrame(this.getClass().getName());
+        jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         jf.setLayout(new BorderLayout());
         JSplitPane jsp = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, vca, vcb);
         jsp.setDividerLocation(0.5);
@@ -199,60 +200,104 @@ public class Task3 implements ParameterListener
         for (int i = 0; i < laser.nranges; i++) {
             double theta = laser.rad0 + laser.radstep*i;
             points.add(new double[] { laser.ranges[i] * Math.cos(theta),
-                                      laser.ranges[i] * Math.sin(theta) });
+                laser.ranges[i] * Math.sin(theta) });
         }
         return points;
     }
 
     // Returns an xyt aligning a with b
-    private double[] RANSAC(ArrayList<Task2.Line> linesa, ArrayList<Task2.Line> linesb)
+    private double[] RANSAC(ArrayList<Task2.Line> linesa, ArrayList<Task2.Line> linesb, ArrayList<double[]> pointsa)
     {
         assert(linesa.size() > 2 && linesb.size() > 2);
+        //System.out.printf("%d, %d\n", linesa.size(), linesb.size());
 
         double[] xyt = new double[3];   // "Best model"
         int bestConsensus = -1;
 
         Random rand = new Random(15897143);
-        for (int i = 0; i < 1; i++) {
+        Tic tic = new Tic();
+        for (int i = 0; i < 10000; i++) {
             Task2.Line line1, line2, line3;
             int idx1, idx2, idx3;
             idx1 = rand.nextInt(linesa.size());
             do {
                 idx2 = rand.nextInt(linesa.size());
-            } while (idx2 != idx1);
+            } while (idx2 == idx1);
             do {
                 idx3 = rand.nextInt(linesa.size());
-            } while (idx3 != idx1 && idx3 != idx2);
+            } while (idx3 == idx1 && idx3 == idx2);
             line1 = linesa.get(idx1);
             line2 = linesa.get(idx2);
             line3 = linesa.get(idx3);
 
-            int jiters = 100;
-            for (int j = 0; j < jiters; j++) {
-                Task2.Line line1b, line2b, line3b;
-                idx1 = rand.nextInt(linesb.size());
-                do {
-                    idx2 = rand.nextInt(linesb.size());
-                } while (idx2 != idx1);
-                do {
-                    idx3 = rand.nextInt(linesb.size());
-                } while (idx3 != idx1 && idx3 != idx2);
-                line1b = linesb.get(idx1);
-                line2b = linesb.get(idx2);
-                line3b = linesb.get(idx3);
+            Task2.Line line1b, line2b, line3b;
+            idx1 = rand.nextInt(linesb.size());
+            int cnt1 = 0, cnt2 = 0;
+            do {
+                idx2 = rand.nextInt(linesb.size());
+                cnt1++;
+            } while (idx2 == idx1);
+            do {
+                idx3 = rand.nextInt(linesb.size());
+                cnt2++;
+            } while (idx3 == idx1 && idx3 == idx2);
+            line1b = linesb.get(idx1);
+            line2b = linesb.get(idx2);
+            line3b = linesb.get(idx3);
+            //System.out.printf("%d, %d\n", cnt1, cnt2);
 
-                // Compute line intersections
-                double[] isect1 = line1.intersect(line2);
-                double[] isect2 = line1.intersect(line3);
-                double[] isect3 = line2.intersect(line3);
+            //tic.tic();
+            // Compute line intersections and RBT
+            ArrayList<double[]> isects = new ArrayList<double[]>();
+            ArrayList<double[]> isectsb = new ArrayList<double[]>();
+            try {
+                isects.add(line1.intersect(line2));
+                isects.add(line1.intersect(line3));
+                isects.add(line2.intersect(line3));
 
-                double[] isect1b = line1b.intersect(line2b);
-                double[] isect2b = line1b.intersect(line3b);
-                double[] isect3b = line2b.intersect(line3b);
-
+                isectsb.add(line1b.intersect(line2b));
+                isectsb.add(line1b.intersect(line3b));
+                isectsb.add(line2b.intersect(line3b));
+            } catch (ParallelLineException ple) {
+                continue;
             }
-        }
 
+            double[] transform = TransformationFit.getTransformation(isects, isectsb);
+            //System.out.printf("RBT took %f s\n", tic.toc());
+
+            // Transform the lines
+            //tic.tic();
+            double[] invXform = LinAlg.xytInverse(transform);
+            ArrayList<Task2.Line> xformb = new ArrayList<Task2.Line>();
+            for (Task2.Line line: linesb) {
+                xformb.add(line.transform(invXform));
+            }
+            //System.out.printf("Applying xform took %f s\n", tic.toc());
+
+            // Apply RBT to points in A and compute consensus score
+            //tic.tic();
+            int score = 0;
+            double thresh = .1;
+            for (double[] pa: pointsa) {
+                for (Task2.Line line: xformb) {
+                    double[] cpa = line.closestPoint(pa);
+                    double temp = LinAlg.distance(cpa, pa);
+                    if (temp < thresh) {
+                        score++;
+                        break;
+                    }
+                }
+            }
+            //System.out.printf("Consensus took %f s\n", tic.toc());
+
+            if (score > bestConsensus) {
+                bestConsensus = score;
+                xyt = transform;
+            }
+            /*if (bestConsensus >= .7*pointsa.size()) {
+                return xyt;
+            }*/
+        }
 
         return xyt;
     }
@@ -282,21 +327,23 @@ public class Task3 implements ParameterListener
         ///////////////////////////////////////////////////////////////
         // You'll need to add some code here to process the laser data.
         ///////////////////////////////////////////////////////////////
-        ArrayList<Task2.Line> linesa = Task2.agglomerateLines(pointsa, 0.05, 200);
-        ArrayList<Task2.Line> linesb = Task2.agglomerateLines(pointsb, 0.05, 200);
-        double[] xyt = RANSAC(linesa, linesb);
+        ArrayList<Task2.Line> linesa = Task2.agglomerateLines(pointsa, 0.03, 200);
+        ArrayList<Task2.Line> linesb = Task2.agglomerateLines(pointsb, 0.03, 200);
+        double[] xyt = RANSAC(linesa, linesb, pointsa);
+        //LinAlg.print(xyt);
+        //LinAlg.print(LinAlg.quatToRollPitchYaw(posea.orientation));
 
         /*
-        ArrayList<double[]> pa = new ArrayList<double[]>();
-        pa.add(new double[] {0,0});
-        pa.add(new double[] {1,1});
-        ArrayList<double[]> pb = new ArrayList<double[]>();
-        pb.add(new double[] {0,2});
-        pb.add(new double[] {2,0});
-        Task2.Line linea = new Task2.Line(pa);
-        Task2.Line lineb = new Task2.Line(pb);
-        linea.intersect(lineb);
-        */
+           ArrayList<double[]> pa = new ArrayList<double[]>();
+           pa.add(new double[] {0,0});
+           pa.add(new double[] {1,1});
+           ArrayList<double[]> pb = new ArrayList<double[]>();
+           pb.add(new double[] {0,2});
+           pb.add(new double[] {2,0});
+           Task2.Line linea = new Task2.Line(pa);
+           Task2.Line lineb = new Task2.Line(pb);
+           linea.intersect(lineb);
+           */
 
         if (true) {
             // left-most panel: draw the odometry path
@@ -305,13 +352,13 @@ public class Task3 implements ParameterListener
             for (pose_t p : allPoses)
                 points.add(p.pos);
             vb.addBack(new VisPoints(new VisVertexData(points),
-                                   new VisConstantColor(Color.gray), 2));
+                                     new VisConstantColor(Color.gray), 2));
 
             vb.addBack(new VisChain(LinAlg.quatPosToMatrix(posea.orientation, posea.pos),
-                                        new VisRobot(Color.blue)));
+                                    new VisRobot(Color.blue)));
 
             vb.addBack(new VisChain(LinAlg.quatPosToMatrix(poseb.orientation, poseb.pos),
-                                        new VisRobot(Color.red)));
+                                    new VisRobot(Color.red)));
 
             vb.swap();
         }
@@ -329,10 +376,10 @@ public class Task3 implements ParameterListener
             VisWorld.Buffer vb = vwb.getBuffer("points");
             vb.addBack(new VisPoints(new VisVertexData(pointsb),
                                      new VisConstantColor(Color.blue),2));
-            // XXX Add in red points showing transformation of a points to b coordinates
+            // Add in red points showing transformation of a points to b coordinates
             vb.addBack(new VisChain(LinAlg.xytToMatrix(xyt),
                                     new VisPoints(new VisVertexData(pointsa),
-                                                  new VisConstantColor(Color.red), 2)));
+                                                  new VisConstantColor(Color.red), 1)));
             vb.swap();
         }
 

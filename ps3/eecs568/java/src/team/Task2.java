@@ -28,7 +28,7 @@ public class Task2 implements LCMSubscriber, ParameterListener {
         pg.addDoubleSlider("thresh", "Thresh", 0, 1, .03);
         pg.addInt("maxsteps", "Max Agglomeration Steps", 200);
         pg.addListener(this);
-        
+
         jf.setLayout(new BorderLayout());
         jf.add(vc, BorderLayout.CENTER);
         jf.add(pg, BorderLayout.SOUTH);
@@ -130,7 +130,10 @@ public class Task2 implements LCMSubscriber, ParameterListener {
         }
 
         public double[] getLine() {
-            return new double[]{q[0], q[1], theta};
+            if (line.size() < 4)
+                return null;
+            else
+                return new double[]{q[0], q[1], theta};
         }
 
         public ArrayList<double[]> getPoints() {
@@ -152,11 +155,11 @@ public class Task2 implements LCMSubscriber, ParameterListener {
                         n[1] * dotnxy + q1[1]};
         }
 
-        public double[] intersect(Line b) {
+        public double[] intersect(Line b) throws ParallelLineException {
             // Parallel with same theta
             if (MathUtil.doubleEquals(MathUtil.mod2pi(theta),
                     MathUtil.mod2pi(b.theta))) {
-                return null;
+                throw new ParallelLineException();
             }
 
             double[] cp0 = closestPoint(new double[2]);
@@ -183,6 +186,11 @@ public class Task2 implements LCMSubscriber, ParameterListener {
             ArrayList<double[]> newPoints = LinAlg.transform(xyt, line);
 
             return new Line(newPoints);
+        }
+
+        public void print()
+        {
+            System.out.printf("(%f,%f) : %f\n", q[0], q[1], theta);
         }
     }
 
@@ -222,7 +230,14 @@ public class Task2 implements LCMSubscriber, ParameterListener {
             lines.remove(idx + 1);
         }
 
-        return lines;
+        // Prune bad lines
+        ArrayList<Line> greatLines = new ArrayList<Line>();
+        for (Line line: lines) {
+            if (line.getLine() != null)
+                greatLines.add(line);
+        }
+
+        return greatLines;
     }
 
     public synchronized void messageReceived(LCM lcm, String channel, LCMDataInputStream ins) {
