@@ -135,8 +135,11 @@ efficient.
 
 \paragraph{C} % XXX 
 Our particle resampling method resamples particles whenever a new observation
-is made, since this is when the weights change. We iterate through all
-particles to sum their weights, and then we draw random values between 0 and
+is made, since this is when the weights change. \footnote{Actually we would only need to resample
+after a loop closure, because observing new features does not change the weights. However,
+each particle has its own data associations; for every observation some particles would
+associate it with previously seen landmarks while others would interpret it as a new landmark.}
+We iterate through all particles to sum their weights, and then we draw random values between 0 and
 the summed weight to select new particles. To determine which particle to pick,
 we iterate through the particles, summing the weights again as we go, and when
 the sum is greater than our random value, we return a copy of that particle.
@@ -146,6 +149,18 @@ particles and compare the resulting distribution of particles to our
 expected distribution. If we sample many, many particles, large differences
 in the resulting set of particles compared to our expected set will become
 increasingly improbable and thus detectable with a certain confidence.
+
+To approximately compute the expected distribution, we can do the following. First, we normalize the weights
+of all particles such that the lowest weight is, say, $w_0=1000$, and then round up all the weights so
+that they are integers. There is some precision being lost (e.g. for particles with weights of 1.00000 and
+1.00001), but we conjecture that with enough tweaking of $w_0$
+the resulting weights would be
+a reasonable approximation of the original distribution. Then, we create a new set $S$ and insert $w_i$
+copies of every particle $p_i$ into it, where $w_i$ is that particle's weight.
+
+We are then able to test for bias by sampling enough particles from the original distribution and 
+(with non-normalized weights) such that the particle with the lowest weight is sampled $w_0$ times.
+If the set of sampled particles is approximately the same as $S$, then the sampling method is correct.
 
 \paragraph{D}
 Since every particle is an independent entity, particles that make bad
