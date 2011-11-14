@@ -133,7 +133,7 @@ new poses based on odometry \emph{and} observation measurements. This prevents
 FastSLAM 2.0 from sampling as many low likelihood particles, making it more
 efficient.
 
-\paragraph{C}
+\paragraph{C} % XXX 
 Our particle resampling method resamples particles whenever a new observation
 is made, since this is when the weights change. We iterate through all
 particles to sum their weights, and then we draw random values between 0 and
@@ -275,7 +275,11 @@ nearest neighbor, RANSAC, and JCBB.
 	RANSAC uses random search to choose a model for associating  
 RANSAC is easy to implement and doesn't require points to be in any order since
 it randomly selects them (however this means that it doesn't take advantage of points
-that are ordered).
+that are ordered).  An additional advantage of RANSAC is that it can find associations
+even when there are many outliers, if it is allowed to run long enough.  However, the
+number of iterations to run, as well as the threshold used, change depending upon the
+dataset.  A ``good" number of iterations can be calculated, but this doesn't guarantee
+finding the best association since RANCAS is probabilistic. % XXX When would RANSAC be best
 
 	JCBB seeks to create as few new features as possible (associate as many features
 as it can) without surpassing a threshold.  It does this by intelligently searching a tree of
@@ -283,5 +287,5 @@ possible associations in which a newly observed feature can be associated with a
 previously observed feature, and if none of these produce a $\chi^2$ less than a given 
 threshold the observation becomes a new feature.  It 
 
-The advantages of JCBB
+%XXX The advantages of JCBB
 \end{document}
