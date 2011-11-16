@@ -57,11 +57,32 @@ This project will be mostly implemented in Java, so that we can use Professor Ol
 
 
 \section{Milestones achieved}
-- plan of how to achieve objective - i.e. cheating with planar motion and only visual odometry; possible extending that to 6DOF full SLAM if we have time (make sure to note that 1 month is not enough to do full Visual SLAM according to Prof. Olson)
-
 - reading quite a few papers and settling on one particular method (dieter fox's)
 
+ - plan of how to achieve objective - i.e. cheating with planar motion and only visual odometry; possible extending that to 6DOF full SLAM if we have time (make sure to note that 1 month is not enough to do full Visual SLAM according to Prof. Olson)
+
+- Acquiring and ploting uncalibrated point cloud data using Vis on linux.
+
+- Decided on World representation using Voxels.
+
+- General Planning
+
 \section{Milestones remaining}
-- stuff from the previous document
+Calibrate Point Cloud: Map depth information to pixels to generate an accurate point cloud.
+
+Extract Sift Features
+
+Construct Rigid Body Transformation for transforming Point Cloud between image frames
+
+Set up JNI to pass SIFT features to Java side
+
+Construct Voxel World Representation: transforms point cloud information to voxels
+
+Determine Feature Corespondances using RANSAC to get Rigid Body Transformation 
+
+Loop Closure using sparse SIFT features and point cloud matching
+
+Extend to 6 Degrees of Freedom
+
 
 \end{document}
