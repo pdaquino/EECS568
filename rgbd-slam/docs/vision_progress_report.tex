@@ -15,19 +15,30 @@
 \maketitle
 
 \section{Introduction}
+- What are we trying to solve: Visual SLAM
+
+- why is it important: cameras are dirt cheap
+
+- example of uses: autonomous vehicles
+
+- kinect: consumer-grade computer vision equipment
 
 \section{Technical details}
-This project will be mostly implemented in Java, so that we can use the April linear algebra libraries, and because our members are more familiar with java.  We will use the Java Native Interface (JNI) to allow us to implement some of the computer vision components in C++, specifically so that we can use OpenCV to extract and match SIFT features. \\
+	This project will be mostly implemented in Java, so that we can use the April linear algebra libraries, and because our members are more familiar with java.  We will use the Java Native Interface (JNI) to allow us to implement some of the computer vision components in C++, specifically so that we can use OpenCV to extract and match SIFT features. 
 
-	We will then use RANSAC to determine feature correspondances between image frames.  For RANSAC we will select features randomly from both images, and compute the optimal rigid body transformation between the two frames.  We will then apply this RBT to the point cloud and compute a consensus score based on how many points fall into occupied voxels in our world representation.  Once we have found RBT that yields the highest consensus score, we can use it to initialize a six degree of freedom (DOF) iterative closest point algorithm to refine our estimate of the rigid body transformation.  Once we have implemented the basics we will be able to accelerate our RANSAC by using depth information, color information, and additional heuristics to increase our likelihood of selecting corresponding features.  We will also be able to improve the accuracy of ICP by taking into account the color data tied to each of the voxels and each of the particles from the point cloud. \\
+	We will then use RANSAC to determine feature correspondances between image frames.  For RANSAC we will select features randomly from both images, and compute the optimal rigid body transformation between the two frames.  We will then apply this RBT to the point cloud and compute a consensus score based on how many points fall into occupied voxels in our world representation.  Once we have found RBT that yields the highest consensus score, we can use it to initialize a six degree of freedom (DOF) iterative closest point algorithm to refine our estimate of the rigid body transformation.  Once we have implemented the basics we will be able to accelerate our RANSAC by using depth information, color information, and additional heuristics to increase our likelihood of selecting corresponding features.  We will also be able to improve the accuracy of ICP by taking into account the color data tied to each of the voxels and each of the particles from the point cloud. 
 
-	We will initially limit our selves at first to 3 DOF system, translation in the x-y plane and yaw only.  With this simpler system we will initially implement mapping based only on the visual odometry computed above completely neglecting loop closures.  After this system has been successfuly implemented we will move on to performing loop closures using both the SIFT features we are gathering as well as planar scan matching.  Finally we will extend this to a full 6 DOF system with x,y,z, roll, pitch and yaw which will allow us to map arbitrary motions.  \\
+	We will initially limit our selves at first to 3 DOF system, translation in the x-y plane and yaw only.  With this simpler system we will initially implement mapping based only on the visual odometry computed above completely neglecting loop closures.  After this system has been successfuly implemented we will move on to performing loop closures using both the SIFT features we are gathering as well as planar scan matching.  Finally we will extend this to a full 6 DOF system with x,y,z, roll, pitch and yaw which will allow us to map arbitrary motions.  
 
 	To map and visualize the surroundings we will use Vis, a java visualization tool written by the April Lab to render and explore our three dimensional map.   Rather than simply storing and rendering the point cloud directly, we intend to use a voxel representation.  This allows us to avoid rapidly increasing memory requirements as more and particles are acquired, since rather than being added directly the map, these particles can be incorporated into the voxel representation.  This representation has benefits for our earlier RANSAC, which would make use of three dimensional occupancy grids anyway, and it also provides a convinient way to visualize our map.  To update the voxels, we will project the particle cloud into our voxel space, and then for each particle in the cloud see which voxel that particle falls into and then update the color of the voxel with the particle information.  We may also use opacity as a way of reflecting our certainty that there is a solid object at that location which provides a mechanism for us to deal with the noisy information provided by the Kinect.  This voxel representation is a compromise beween the the straight point cloud that the Kinect provides and the surfel representation illustrated in "RGB-D Mapping: Using Depth Cameras for Dense 3D Modeling of Indoor Environments" by Peter Henery et al. This surfel representation allowed them to construct a very acurate map of the environment within memory constraints, however this representation slowed down their algorithm down significantly and would likely be a project in and of itself to implement.  We hope that the voxel representation will provide the rendering framework that we need to move the project forwards without being too difficult to implement. 
 
 
 \section{Milestones achieved}
+- plan of how to achieve objective - i.e. cheating with planar motion and only visual odometry; possible extending that to 6DOF full SLAM if we have time (make sure to note that 1 month is not enough to do full Visual SLAM according to Prof. Olson)
+
+- reading quite a few papers and settling on one particular method (dieter fox's)
 
 \section{Milestones remaining}
+- stuff from the previous document
 
 \end{document}
