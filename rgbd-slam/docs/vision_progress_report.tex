@@ -15,13 +15,18 @@
 \maketitle
 
 \section{Introduction}
-- What are we trying to solve: Visual SLAM
+For mobile robots to be useful in the real world they must be able to move through the world 
+with the same ease and proficiency that the humans they are assisting do.  To navigate the world, 
+mobile robots must first localize and map their surroundings, in s step called SLAM, before they are 
+able to apply other path finding algorithms to choose their actions.   Unfortunately SLAM usually relies 
+on expensive and numerous range sensors which significantly raise the cost of any mobile robot. Cameras
+offer an interesting solution to this problem.  They are significantly cheaper and more versatile than the 
+sensors customarily used in SLAM applications, such as laser scanners.
 
-- why is it important: cameras are dirt cheap
-
-- example of uses: autonomous vehicles
-
-- kinect: consumer-grade computer vision equipment
+For this project, we will investigate solving the SLAM problem using a Microsoft Kinect. Our final goal is
+to build a 3D map of the world using the point cloud information that comes from the Kinect. To do that, we
+will estimate rigid body transformations between positions of the camera, taking advantage of the depth information
+made available by the Kinect.
 
 \section{Technical details}
 This project will be mostly implemented mostly in Java, so that we can use the April linear algebra libraries, and because our members are more familiar with java.  We will use the Java Native Interface (JNI) to allow us to implement some of the computer vision components in C++, specifically so that we can use OpenCV to extract and match SIFT features.
