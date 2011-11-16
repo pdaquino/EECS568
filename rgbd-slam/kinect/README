@@ -1,0 +1,94 @@
+To get up and running with the kinect, you'll have to leap through some hoops.
+
+My guide will assume your working in Ubuntu since it's what you have on hand,
+but I'm sure you can tweak it to get this running in any form of Linux.
+
+First, you'll want a copy of libfreenect, an open Kinect library
+(www.openkinect.org). To short circuit your efforts to go through their guides,
+I will take this liberty of telling you how to build it on your own. Run the below
+commands. I did this from my home directory.
+
+sudo apt-get install git-core cmake libglut3-dev pkg-config build-essential libxmu-dev libxi-dev libusb-1.0-0-dev
+git clone git://github.com/OpenKinect/libfreenect.git
+cd libfreenect
+mkdir build
+cd build
+cmake ..
+make
+sudo make install
+sudo ldconfig /usr/local/lib64/
+
+Note: your first line may look like this depending on your version of Ubuntu:
+sudo apt-get install git-core cmake freeglut3-dev pkg-config build-essential libxmu-dev libxi-dev libusb-1.0-0-dev
+
+You're not going to be able to run your kinect unless you have root priveleges, but
+this is a pain in the ass. We'll add some udev rules to fix this. You're going to add
+yourself to a group called "video" and make some rules about using the kinect that
+apply to people in the video group. Run the "setup-rules.sh" script included in the
+same directory as this README as root and everything should ge set up for you:
+
+sudo ./setup-rules.sh
+
+At this point you may need to log out and log back in real fast.
+
+Now, going back to libfreenect! Plug in your Kinect (power and USB) and see if we can
+get some data. libfreenect includes some demos:
+
+cd ~/libfreenect/build/bin
+./glview
+
+If this works, then you should see an RGB visualization of depth as well as the actual
+RGB image being returned by the kinect pop up on your screen. You can twiddle with some
+keys to move the kinect around and to change the camera you're viewing images from.
+Neat!
+
+To get the java side up and running, we'll need to do a bit more. We'll first need to
+get a copy of vis2 and build it. Vis2 conveniently has a lot of dependencies on other
+parts of the APRIL library, so it will haul in my other dependencies with itself.
+
+Extract the copy of the vis2 library I sent you to your home directly. Then:
+
+cd ~/vis2/java/
+ant
+
+Update your .bashrc file (or create one) to have the line below. If you know what you're
+doing, you may need to change this line up a bit to preserve your other classpath values:
+
+export CLASSPATH=$HOME/vis2/april.jar
+
+Make sure that if you have another reference to april, this one comes first! We want it to
+take priority in our build process so we compile with the right files. Now we need to reload
+our .bashrc file so it actually does something:
+
+source ~/.bashrc
+
+Now, returning the home of this README, enter the kinect java directory. Try building. If
+this doesn't work, you need to bug Rob. It should. He'll help you fix it and update this
+README. :)
+
+cd java
+ant
+
+We just need to tack a couple more locations into our .bashrc file:
+
+export CLASSPATH=$HOME/vis2/april.jar:$HOME/<path-to-kinect-folder>/java/kinect.jar
+export LD_LIBRARY_PATH=$HOME/libfreenect/build/lib:$HOME/<path-to-kinect-folder>/lib
+
+And again, reload the file:
+
+source ~/.bashrc
+
+What we've done is point java to our new kinect files with the CLASSPATH changes and
+made them available for use in other projects (as well as conveniently runnable from
+anywhere!) The LD_LIBRARY_PATH changes point us at the libfreenect libraries (which
+actually shouldn't be necessary, but are nice to know about) and, more importantly,
+our library for the kinect JNI bindings that are allowing the C-based libfreenect
+library to chat with our java code. If we don't know where that library file is,
+none of this will work. Now that we theoretically should be done, though, try running
+
+java kinect.KinectDemo
+
+If all is going according to plan, you should see my version of libfreenect's glview
+program. It doesn't let you change cameras or anything, but it spits out frames at
+30 fps, so hot damn! That's pretty exciting. Congratulations, now you can start using
+a kinect in other java projects. For usage, see the source for the demo.
