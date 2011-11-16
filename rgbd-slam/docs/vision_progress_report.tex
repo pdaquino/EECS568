@@ -15,15 +15,27 @@
 \maketitle
 
 \section{Introduction}
+- What are we trying to solve: Visual SLAM
+
+- why is it important: cameras are dirt cheap
+
+- example of uses: autonomous vehicles
+
+- kinect: consumer-grade computer vision equipment
 
 \section{Technical details}
-This project will be mostly implemented mostly in Java, so that we can use the April linear algebra libraries, and because our members are more familiar with java.  We will use the Java Native Interface (JNI) to allow us to implement some of the computer vision components in C++, specifically so that we can use OpenCV to extract and match SIFT features.  
-	We will initially limit our selves at first to 3 DOF system, translation in the x-y plane and yaw.  With this simpler system we will initially implement Visual Odometry approach to compute the Rigid Body transformation between each successive frame. This will simplify the implementation and get something working much more quickly.   We can then extend this to a 6 DOF system with x,y,z, roll, pitch and yaw once we get the simpler system working.  
+This project will be mostly implemented mostly in Java, so that we can use the April linear algebra libraries, and because our members are more familiar with java.  We will use the Java Native Interface (JNI) to allow us to implement some of the computer vision components in C++, specifically so that we can use OpenCV to extract and match SIFT features.
+
+	We will initially limit our selves at first to 3 DOF system, translation in the x-y plane and yaw.  With this simpler system we will initially implement Visual Odometry approach to compute the Rigid Body transformation between each successive frame. This will simplify the implementation and get something working much more quickly.   We can then extend this to a 6 DOF system with x,y,z, roll, pitch and yaw once we get the simpler system working.
+	
 We will use Vis, a java visualization tool written by the April Lab to render and explore our three dimensional map.   Rather than simply storing and rendering the point cloud directly which would result in a representation that was constantly expanding as the system ran longer, we intend to use a voxel representation which should reduce the memory requirements and hopefully more fluid representation of the world.  We still need to decide on the resolution of the voxels but we are probably looking at 5 cubic centimeters.  Then when we receive particle cloud information, we will simply use this particle cloud to update the voxels, rather than displaying the cloud directly.   To update the voxels, we will project the particle cloud into our voxel space, and then for each particle in the cloud see which voxel that particle falls into and then update the color of the voxel with the particle information.  We could also use opacity as a way of reflecting our certainty that there is a solid object at that location. 
 
-
 \section{Milestones achieved}
+- plan of how to achieve objective - i.e. cheating with planar motion and only visual odometry; possible extending that to 6DOF full SLAM if we have time (make sure to note that 1 month is not enough to do full Visual SLAM according to Prof. Olson)
+
+- reading quite a few papers and settling on one particular method (dieter fox's)
 
 \section{Milestones remaining}
+- stuff from the previous document
 
 \end{document}
