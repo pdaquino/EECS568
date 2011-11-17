@@ -27,7 +27,7 @@ yourself to a group called "video" and make some rules about using the kinect th
 apply to people in the video group. Run the "setup-rules.sh" script included in the
 same directory as this README as root and everything should ge set up for you:
 
-sudo ./setup-rules.sh
+sudo ./setup-rules.sh <your-username>
 
 At this point you may need to log out and log back in real fast.
 
@@ -42,23 +42,14 @@ RGB image being returned by the kinect pop up on your screen. You can twiddle wi
 keys to move the kinect around and to change the camera you're viewing images from.
 Neat!
 
-To get the java side up and running, we'll need to do a bit more. We'll first need to
-get a copy of vis2 and build it. Vis2 conveniently has a lot of dependencies on other
-parts of the APRIL library, so it will haul in my other dependencies with itself.
+UPDATED DEPENDENCIES NOTES:
+I just added the jar files for the dependencies. This is just easier. If we need more things,
+I'll build new jars and update them. Simple. The jars are in the rgbd-slam folder. Add to
+your .bashrc:
 
-Extract the copy of the vis2 library I sent you to your home directly. Then:
+export CLASSPATH=$HOME/<path-to-rgbd-slam-folder>/lcm.jar:$HOME/<path-to-rgb-slam-folder>/april.jar
 
-cd ~/vis2/java/
-ant
-
-Update your .bashrc file (or create one) to have the line below. If you know what you're
-doing, you may need to change this line up a bit to preserve your other classpath values:
-
-export CLASSPATH=$HOME/vis2/april.jar
-
-Make sure that if you have another reference to april, this one comes first! We want it to
-take priority in our build process so we compile with the right files. Now we need to reload
-our .bashrc file so it actually does something:
+Then reload your terminal or manually reload the .bashrc with:
 
 source ~/.bashrc
 
@@ -71,7 +62,7 @@ ant
 
 We just need to tack a couple more locations into our .bashrc file:
 
-export CLASSPATH=$HOME/vis2/april.jar:$HOME/<path-to-kinect-folder>/java/kinect.jar
+export CLASSPATH=$CLASSPATH:$HOME/<path-to-kinect-folder>/java/kinect.jar
 export LD_LIBRARY_PATH=$HOME/libfreenect/build/lib:$HOME/<path-to-kinect-folder>/lib
 
 And again, reload the file:
