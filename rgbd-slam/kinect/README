@@ -57,7 +57,9 @@ Now, returning the home of this README, enter the kinect java directory. Try bui
 this doesn't work, you need to bug Rob. It should. He'll help you fix it and update this
 README. :)
 
+mkdir lib
 cd java
+mkdir build
 ant
 
 We just need to tack a couple more locations into our .bashrc file:
