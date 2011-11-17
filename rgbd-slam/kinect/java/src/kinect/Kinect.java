@@ -1,6 +1,7 @@
 package kinect;
 
 import java.util.*;
+import java.awt.image.*;
 
 class Kinect
 {
@@ -127,6 +128,76 @@ class Kinect
             if ((int) depth == 2048)
                 return -1;
             return t_gamma[depth];
+        }
+
+        public BufferedImage makeRGB()
+        {
+            assert (argb.length == rgbHeight*rgbWidth);
+            BufferedImage im = new BufferedImage(rgbWidth, rgbHeight, BufferedImage.TYPE_INT_RGB);
+            int[] buf = ((DataBufferInt)(im.getRaster().getDataBuffer())).getData();
+            for (int i = 0; i < buf.length; i++) {
+                buf[i] = argb[i];
+            }
+
+            return im;
+        }
+
+        public BufferedImage makeDepth()
+        {
+            assert (depth.length == depthHeight*depthWidth);
+            BufferedImage im = new BufferedImage(depthWidth, depthHeight, BufferedImage.TYPE_INT_RGB);
+            int[] buf = ((DataBufferInt)(im.getRaster().getDataBuffer())).getData();
+            double[] cutoffs = new double[] {1.0, 1.75, 2.5, 3.25, 4.0, 5.0};
+            for (int i = 0; i < buf.length; i++) {
+                // XXX Improved color mapping. Optimal range is ~0.8m - 3.5m
+                // white -> close
+                // red
+                // orange
+                // yellow
+                // green
+                // blue
+                // magenta
+                // black -> bad values
+                double m = depthToMeters(depth[i]);
+                if (m < 0) {
+                    buf[i] = 0;
+                    continue;
+                }
+                int r,g,b;
+                if (m < cutoffs[0]) {
+                    r = 0xff;
+                    g = 0xff - (int) (0xff * m/cutoffs[0]);
+                    b = 0xff - (int) (0xff * m/cutoffs[0]);
+                } else if (m < cutoffs[1]) {
+                    r = 0xff;
+                    g = 0xff - (int) (0xff * ((cutoffs[1] - m)/(cutoffs[1]-cutoffs[0])));
+                    b = 0;
+                } else if (m < cutoffs[2]) {
+                    r = (int) (0xff * ((cutoffs[2] - m)/(cutoffs[2]-cutoffs[1])));
+                    g = 0xff;
+                    b = 0;
+                } else if (m < cutoffs[3]) {
+                    r = 0;
+                    g = (int) (0xff * ((cutoffs[3] - m)/(cutoffs[3]-cutoffs[2])));
+                    b = 0xff - (int) (0xff * ((cutoffs[3] - m)/(cutoffs[3]-cutoffs[2])));
+                } else if (m < cutoffs[4]) {
+                    r = 0xff - (int) (0xff * ((cutoffs[4] - m)/(cutoffs[4]-cutoffs[3])));
+                    g = 0;
+                    b = 0xff;
+                } else if (m < cutoffs[5]) {
+                    r = (int) (0xff * ((cutoffs[5] - m)/(cutoffs[5]-cutoffs[4])));
+                    g = 0;
+                    b = (int) (0xff * ((cutoffs[5] - m)/(cutoffs[5]-cutoffs[4])));
+                } else {
+                    r = 0;
+                    g = 0;
+                    b = 0;
+                }
+
+                buf[i] = 0xff000000 | (r << 16) | (g << 8) | b;
+            }
+
+            return im;
         }
     }
 }

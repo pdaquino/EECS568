@@ -53,10 +53,10 @@ Then reload your terminal or manually reload the .bashrc with:
 
 source ~/.bashrc
 
-Now, returning the home of this README, enter the kinect java directory. Try building. If
-this doesn't work, you need to bug Rob. It should. He'll help you fix it and update this
-README. :)
+Now head back to the rgbd-slam directory. Do the following:
 
+mkdir lib
+cd kinect
 mkdir lib
 cd java
 mkdir build
