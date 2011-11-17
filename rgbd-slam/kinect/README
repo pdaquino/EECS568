@@ -65,7 +65,7 @@ ant
 We just need to tack a couple more locations into our .bashrc file:
 
 export CLASSPATH=$CLASSPATH:$HOME/<path-to-kinect-folder>/java/kinect.jar
-export LD_LIBRARY_PATH=$HOME/libfreenect/build/lib:$HOME/<path-to-kinect-folder>/lib
+export LD_LIBRARY_PATH=$HOME/libfreenect/build/lib:$HOME/<path-to-kinect-folder>/lib:$HOME/<path-to-rgbd-slam-folder>/lib
 
 And again, reload the file:
 
