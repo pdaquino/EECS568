@@ -30,39 +30,36 @@ to build a 3D map of the world using the point cloud information that comes from
 The underlying technical problem we will solve in this project is how to compute rigid body transformations (RBTs) between camera poses. There are, roughly speaking, two kinds of situations in which we are interested. The first is to compute the RBT between two sequential camera frames. Solving this will allow us to implement a visual odometry technique. The second situation is loop closures. A loop closure occurs when an area that has already been visited by the camera is seen again, potentially from a very different viewpoint. Detecting loop closures is substantially more difficult, but an essential aspect of a full fledged SLAM system.
 
 \subsection{Frame matching}
-We will base our approach on ``RGB-D Mapping: Using Depth Cameras for Dense 3D Modeling of Indoor Environments" by Peter Henery et al. In that paper, and in our project as well, loop closures and visual odometry are solved in almost identical ways. The idea is to use SIFT features and point cloud information to compute the RBT alignment between two frames.
+We will base our approach on ``RGB-D Mapping: Using Depth Cameras for Dense 3D Modeling of Indoor Environments" by Peter Henery et al. Like the paper, we will use both SIFT features and point cloud information to compute the RBT between two video frames that the kinect provides us.
 
-An initial approximation for the RBT is obtained by looking at SIFT features in both frames. We will use RANSAC to determine feature correspondances the frames.  For each RANSAC iteration, we will select SIFT features randomly from both images, and compute the optimal rigid body transformation between the two frames.  We will then apply this RBT to the point cloud and compute a consensus score based on how many points fall into occupied voxels in our world representation (more on that below).  The RBT that yields the highest consensus is selected.
+We willl obtain an initial approximation of the RBT by looking at SIFT features in both frames. We will use RANSAC to determine feature correspondances the frames.  For each RANSAC iteration, we will select SIFT features randomly from both images, and compute the optimal rigid body transformation between the two frames.  We will then apply this RBT to the point cloud and compute a consensus score based on how many points fall into occupied voxels in our world representation.  The RBT that yields the highest consensus is selected as our best estimate of the rigid body transformation between the two frames.
 
-Our second method for matching frames operates on the point cloud provided by the Kinect. The algorithm is called iterative closest point, or ICP. For each iteration, it computes the RBT that aligns each point on the first cloud with the closest point on the other cloud. One important aspect of ICP is that it is prone to local minima if the initial clouds are too distant. Therefore, we use the RBT found through RANSAC and apply it to the point clouds, in order to give a good initial approximation on which ICP can be more reliable.
+Our second method for matching frames operates on the point cloud provided by the Kinect. The algorithm is called Iterative Closest Point, or ICP. For each iteration, it computes a change to the current estimate of the RBT such that the meansquared error (MSE) between each transformed point from the first frame to the closest point in the second frame is reduced.  By iterating we are able to construct an estimate of the RBT to align two point clouds, however, ICP is that it is prone to local minima if the initial guess for the RBT is not close enough to the optimal RBT. This issue can be addressed by using the RBT found through RANSAC as a good initial approximation.  This good initial guess will allow ICP to converge to the correct solution, the global minimum of the MSE rather than some local minima.
 
-The final RBT is obtained by weighting the transformation computed through RANSAC and the one that came from ICP. The weight factor will be determined empirically.
+The final RBT is obtained by taking a weighted sum of the transformation computed through RANSAC and the transformation computed through ICP. This weight factor will be determined empirically.
 
 %We should note that several optimizations can be implemented. For instance,  to accelerate RANSAC we can use depth information, color information, and additional heuristics to increase our likelihood of selecting corresponding features. We will also be able to improve the accuracy of ICP by taking into account the color data tied to each of the voxels and each of the particles from the point cloud. 
 
 \subsection{Visualization}
-To map and visualize the surroundings we will use Vis, a Java visualization library written by Prof. Olson's April Lab to render and explore our three dimensional map. Rather than simply storing and rendering the point cloud directly, we intend to use a voxel representation.  This allows us to avoid rapidly increasing memory requirements as more and particles are acquired, since rather than being added directly to the map, these particles can be incorporated into the voxel representation.  This representation has benefits for RANSAC, which would make use of three dimensional occupancy grids anyway, and it also provides a convinient way to visualize our map.
+To map and visualize the surroundings we will use Vis, a Java visualization library written by Prof. Olson's April Laboratory to render and explore our three dimensional map. Rather than simply storing and rendering the point cloud directly, we intend to use a voxel representation.  This allows us to avoid rapidly increasing memory requirements as more and particles are acquired.  Rather than adding these particles directly to the map, they will be incorporated into the voxel representation.  This representation has benefits for RANSAC, which would make use of three dimensional occupancy grids anyway, for computing its consensus score, and it also provides a convinient way to visualize our map.  To update the voxels, we will project the particle cloud into our voxel space, and then for each particle in the cloud see which voxel that particle falls into and then update the color of that voxel with the particle color information.
 
-To update the voxels, we will project the particle cloud into our voxel space, and then for each particle in the cloud see which voxel that particle falls into and then update the color of the voxel with the particle information.
 %We may also use opacity as a way of reflecting our certainty that there is a solid object at that location which provides a mechanism for us to deal with the noisy information provided by the Kinect.
 This voxel representation is a compromise beween the the straight point cloud that the Kinect provides and the surfel representation illustrated in the paper by Peter Henery et al. This surfel representation allowed them to construct a very acurate map of the environment within memory constraints, however this representation slowed down their algorithm significantly and would likely be a project in and of itself to implement.  We hope that the voxel representation will provide the rendering framework that we need to move the project forwards without being too difficult to implement.
 
 \subsection{Subgoals}
 
-After consulting with Prof. Ed Olson, our group determined that building a full Visual SLAM system in the available timeframe was an extremely challenging task.
-With that in mind, we have set a number of subgoals -- simplified versions of a full SLAM system. In that way, we will have a working project even if
-some of the components turn out to be more complex than anticipated.
+After consulting with Prof. Ed Olson, our group determined that building a full Visual SLAM system in the available timeframe was an extremely challenging task.  With that in mind, we have divided the full SLAM system into more manageable sections.  We will have a working project even if some of the components turn out to be more complex than anticipated.
 
 \begin{enumerate}
 \item We will first concern ourselves with visual odometry, leaving loop closures to a later stage;
-\item We will also initially limit ourselves to a 3DOF system (assuming the Kinect moves in planar motion).
+\item We will also initially limit ourselves to a 3DOF system (assuming the Kinect moves in the xy plane).
 \item We then expand our implementation to handle visual odometry in 3D -- 6 DOF with movement in x,y,z, roll, pitch and yaw.
-\item Lastly, we implement loop closures and thereby full SLAM. 
+\item Lastly, we implement loop closures which will complete the full SLAM system. 
 \end{enumerate}
 
 \subsection{Programming languages and frameworks}
 
-This project will be mostly implemented in Java, so that we can use Professor Olson's April laboratory linear algebra libraries, and because our members are more familiar with Java.  We will use Java Native Interface (JNI) to allow us to implement some of the computer vision components in C++, specifically so that we can use OpenCV to extract and match SIFT features. We chose to do the image processing in C++ because of the performance gains.
+This project will be mostly implemented in Java, so that we can use the April laboratory's linear algebra libraries, and because our members are more familiar with Java.  We will use Java Native Interface (JNI) to allow us to implement some of the computer vision components in C++, specifically so that we can use OpenCV to extract and match SIFT features.
 
 \section{Milestones achieved}
 \begin{tabular}{| l | p{9cm} | }
@@ -88,8 +85,9 @@ Localization & Use Sift Features and RANSAC to  estimate RBT & Nov 28 & Paridhi 
 Mapping & Use Point Cloud data to generate  static Voxel Map & Nov 28 & John \\ \hline
 Localization2 & Use ICP to refine estimate of RBT & Nov 30 & Pedro \\ \hline
 3 DOF Odometry & Combine above items & Dec 2 & All \\ \hline
-Loop Closures & Use SIFT features and Point Cloud  Matching for loop closure detection & Dec 4 & All \\ \hline
+6 DOF & Extend to full 6 degree of freedom SLAM & Dec 4 & All \\ \hline
 Presentation & Tune 3 DOF slam for presentation & Dec 6 & All \\ \hline
-6 DOF & Extend to full 6 degree of freedom SLAM & Remaining Time & All \\ \hline
+Loop Closures & Use SIFT features and Point Cloud  Matching for loop closure detection & Remaining Time & All \\ \hline
+
 \end{tabular}
 \end{document}
