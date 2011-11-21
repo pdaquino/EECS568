@@ -8,6 +8,7 @@ import april.vis.*;
 public class ColorPointCloud
 {
     public ArrayList<double[]> points = new ArrayList<double[]>();
+    public ArrayList<Integer> colors = new ArrayList<Integer>();
     public VisColorData vcd = new VisColorData();
 
     // Camera calibration numbers courtesy of Nicolas Burrus
@@ -73,8 +74,10 @@ public class ColorPointCloud
                 assert (!(cx < 0 || cx > frame.rgbWidth));
                 assert (!(cy < 0 || cy > frame.rgbHeight));
 
-                points.add(new double[] {px, -py, -pz});
+                points.add(new double[] {px, py, pz});
                 int argb = frame.argb[cy*frame.rgbWidth + cx];
+                colors.add(argb);
+
                 int abgr = (argb & 0xff000000) | ((argb & 0xff) << 16) | (argb & 0xff00) | ((argb >> 16) & 0xff);
                 vcd.add(abgr);
             }
