@@ -168,7 +168,7 @@ class KinectDemo
                     //VisConstantColor vcd = new VisConstantColor(Color.white);
 
                     //vbPts.addBack(new VisPoints(vvd, pointCloud.vcd, 1));
-                    vbPts.addBack(new VzPoints(vvd, new VzPoints.Style(Color.white, 1)));
+                    vbPts.addBack(new VzPoints(vvd, new VzPoints.Style(pointCloud.vcd, 1)));
 
                     vbPts.swap();
                 }

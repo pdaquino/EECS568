@@ -90,11 +90,7 @@ public class VoxelArray
 
         public int hashCode()
         {
-            Integer ix = new Integer(xyz[0]);
-            Integer iy = new Integer(xyz[1]);
-            Integer iz = new Integer(xyz[2]);
-
-            return ix.hashCode() ^ iy.hashCode() ^ iz.hashCode();
+            return Arrays.hashCode(xyz);
         }
 
         public boolean equals(Object o)
