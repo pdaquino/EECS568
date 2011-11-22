@@ -3,7 +3,7 @@ package kinect;
 import java.util.*;
 import java.awt.image.*;
 
-class Kinect
+public class Kinect
 {
     static final int RGB_WIDTH = 640;
     static final int RGB_HEIGHT = 480;

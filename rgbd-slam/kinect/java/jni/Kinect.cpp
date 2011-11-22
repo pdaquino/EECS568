@@ -86,7 +86,7 @@ JNIEXPORT jint JNICALL Java_kinect_Kinect_initKinect(JNIEnv *env, jobject obj)
         return -1;
     }
 
-    freenect_set_log_level(f_ctx, FREENECT_LOG_DEBUG);
+    freenect_set_log_level(f_ctx, FREENECT_LOG_ERROR);
     int num_devs = freenect_num_devices(f_ctx);
     printf("found %d devices\n", num_devs);
     if (num_devs < 1) {
@@ -120,7 +120,12 @@ JNIEXPORT jint JNICALL Java_kinect_Kinect_initKinect(JNIEnv *env, jobject obj)
 
 JNIEXPORT jint JNICALL Java_kinect_Kinect_closeKinect(JNIEnv *env, jobject obj)
 {
+    pthread_mutex_lock(&video_mutex);
+    pthread_mutex_lock(&depth_mutex);
     die = 1;
+    pthread_mutex_unlock(&depth_mutex);
+    pthread_mutex_unlock(&video_mutex);
+
     return 0;
 }
 
@@ -140,6 +145,7 @@ JNIEXPORT void JNICALL Java_kinect_Kinect_stopVideo(JNIEnv *env, jobject obj)
     freenect_stop_video(f_dev);
     delete[] rgb_buf;
     pthread_mutex_unlock(&video_mutex);
+    printf("native video stopped\n");
 }
 
 JNIEXPORT void JNICALL Java_kinect_Kinect_startDepth(JNIEnv *env, jobject obj)
@@ -158,6 +164,7 @@ JNIEXPORT void JNICALL Java_kinect_Kinect_stopDepth(JNIEnv *env, jobject obj)
     freenect_stop_depth(f_dev);
     delete[] d_buf;
     pthread_mutex_unlock(&depth_mutex);
+    printf("native depth stopped\n");
 }
 
 JNIEXPORT jintArray JNICALL Java_kinect_Kinect_getVideoFrame(JNIEnv *env, jobject obj)
