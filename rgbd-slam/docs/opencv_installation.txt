@@ -1,0 +1,85 @@
+How to install OpenCV on Ubuntu 11.04
+
+Reference: http://opencv.willowgarage.com/wiki/InstallGuide
+
+1) sudo apt-get update
+2) sudo apt-get install cmake libgtk2.0-dev ffmpeg libdc1394-22 libgstreamer0.10-dev libxine-dev libgstreamer0.10-dev libv4l-dev libxine-dev libavformat-dev libswscale-dev
+3) Download the tar.bz2 from http://sourceforge.net/projects/opencvlibrary/files/opencv-unix/2.3.1/
+4) Extract it somewhere; open the terminal there
+5) mkdir build && cd build
+6) cmake ..
+7) make -j<number of cores you have>
+8) sudo make install
+9) Edit your ~/.bashrc and add:
+    PKG_CONFIG_PATH=/usr/local/lib/pkgconfig/:${PKG_CONFIG_PATH}
+    export PKG_CONFIG_PATH
+10) Still in your ~/.bashrc, add /usr/local/lib to LD_LIBRARY PATH
+11) source ~/.bashrc
+
+To test your installation, you can use the Hello World program at the end of this file. Do the following:
+
+1) Copy paste the hello world file to helloworld.cpp.
+2) g++ `pkg-config --cflags --libs opencv` helloworld.cpp 
+3) ./a.out <path to an image>
+
+////////////////////////////////////////////////////////////////////////
+//
+// helloworld.cpp
+//
+// This is a simple, introductory OpenCV program. The program reads an
+// image from a file, inverts it, and displays the result. 
+//
+////////////////////////////////////////////////////////////////////////
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+#include <cv.h>
+#include <highgui.h>
+
+
+int main(int argc, char *argv[])
+{
+  IplImage* img = 0; 
+  int height,width,step,channels;
+  uchar *data;
+  int i,j,k;
+
+  if(argc<2){
+    printf("Usage: main <image-file-name>\n\7");
+    exit(0);
+  }
+
+  // load an image  
+  img=cvLoadImage(argv[1]);
+  if(!img){
+    printf("Could not load image file: %s\n",argv[1]);
+    exit(0);
+  }
+
+  // get the image data
+  height    = img->height;
+  width     = img->width;
+  step      = img->widthStep;
+  channels  = img->nChannels;
+  data      = (uchar *)img->imageData;
+  printf("Processing a %dx%d image with %d channels\n",height,width,channels); 
+
+  // create a window
+  cvNamedWindow("mainWin", CV_WINDOW_AUTOSIZE); 
+  cvMoveWindow("mainWin", 100, 100);
+
+  // invert the image
+  for(i=0;i<height;i++) for(j=0;j<width;j++) for(k=0;k<channels;k++)
+    data[i*step+j*channels+k]=255-data[i*step+j*channels+k];
+
+  // show the image
+  cvShowImage("mainWin", img );
+
+  // wait for a key
+  cvWaitKey(0);
+
+  // release the image
+  cvReleaseImage(&img );
+  return 0;
+}
+
