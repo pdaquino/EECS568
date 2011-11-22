@@ -141,14 +141,20 @@ class KinectDemo
                                                            {1,0},
                                                            {0,0}};
 
-                    vbIm.addBack(new VisImage(new VisTexture(rgb, false),
+                    double[] translate = new double[] {currFrame.rgbWidth, 0, 0};
+
+
+                    /*vbIm.addBack(new VisImage(new VisTexture(rgb, false),
                                               rgbvert,
                                               texcoords,
                                               Color.white));
                     vbIm.addBack(new VisImage(new VisTexture(depth, false),
                                               depthvert,
                                               texcoords,
-                                              Color.white));
+                                              Color.white));*/
+                    vbIm.addBack(new VzImage(rgb, VzImage.FLIP));
+                    vbIm.addBack(new VisChain(LinAlg.translate(translate),
+                                              new VzImage(depth, VzImage.FLIP)));
 
                     vbIm.swap();
                 } else if (currFrame != null && opts.getBoolean("point-cloud")) {
@@ -161,7 +167,8 @@ class KinectDemo
                     VisColorData vcd = new VisColorData(colors);*/
                     //VisConstantColor vcd = new VisConstantColor(Color.white);
 
-                    vbPts.addBack(new VisPoints(vvd, pointCloud.vcd, 1));
+                    //vbPts.addBack(new VisPoints(vvd, pointCloud.vcd, 1));
+                    vbPts.addBack(new VzPoints(vvd, new VzPoints.Style(pointCloud.vcd, 1)));
 
                     vbPts.swap();
                 }
