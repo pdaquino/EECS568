@@ -7,44 +7,77 @@ import kinect.*;
 
 public class RANSAC
 {
-    final double MIN_DIST = .5; // In meters
+    final double MIN_DIST = .5;  // In meters, min distance for two features to be compared
+    final int DOF = 3;           // Degrees of freedom
+    final int NUM_ITER = 100000;
+    final double BIN_SIZE = 0.1;
 
-    public RANSAC(ArrayList<Feature> framea, ArrayList<Feature> frameb)
+    public double[][] RANSAC(ArrayList<Feature> framea, ArrayList<Feature> frameb, ArrayList<double[]> pointsa, ArrayList<double[]> pointsb)
     {
+        double[][] bestTransform = new double[3][3];
+        if(framea.size() < DOF || frameb.size() < DOF){ 
+            return bestTransform;
+        }
+
 	Random rand = new Random(83247983);
-	Feature fa1, fa2, fa3, fb1, fb2, fb3;
+        double bestConsensus = 0;
+ 
+       // XXX Not sure this belongs here, could we pass in bins instead?
+        BinPoints binb = new BinPoints(pointsb, BIN_SIZE);
+        BinPoints bina = new BinPoints(pointsa, BIN_SIZE);       
 
-	for(int i=0; i<10000; i++)
+	for(int iter=0; iter<NUM_ITER; iter++)
 	{
-	    // Get three different features
-	    int idx1, idx2, idx3;
-            idx1 = rand.nextInt(frameb.size());
-            do {
-                idx2 = rand.nextInt(frameb.size());
-            } while (idx2 == idx1);
-            do {
-                idx3 = rand.nextInt(frameb.size());
-            } while (idx3 == idx1 && idx3 == idx2);
+	    // Get DOF number of different features
+	    int[] idx = new int[DOF];
+            for(int i=0; i<DOF; i++){
+                boolean copy;
+                do{
+                    idx[i] = rand.nextInt(frameb.size());
 
-	    fb1 = frameb.get(idx1);
-	    fb2 = frameb.get(idx2);
-	    fb3 = frameb.get(idx3);
+                    copy = false;
+                    for(int j=0; j<i; j++){
+                        if( idx[i] == idx[j]) { 
+                            copy = true;
+                        }
+                    }
+                } while(copy == true);
+            }
 
-	    fa1 = getCorresponding(framea, fb1);
-	    fa2 = getCorresponding(framea, fb2);
-	    fa3 = getCorresponding(framea, fb3);
+            // Find corresponding locations and 3D transform
+            ArrayList<double[]> cora = new ArrayList<double[]>();
+            ArrayList<double[]> corb = new ArrayList<double[]>();
 
-	    ArrayList<double[]> pointsa = new ArrayList<double[]>();
-	    ArrayList<double[]> pointsb = new ArrayList<double[]>();
-	    pointsa.add(fa1.getLoc());
-	    pointsa.add(fa2.getLoc());
-	    pointsa.add(fa3.getLoc());
-	    pointsb.add(fb1.getLoc());
-	    pointsb.add(fb2.getLoc());
-	    pointsb.add(fb3.getLoc());
+            for(int i=0; i<DOF; i++){
+                Feature b = frameb.get(idx[i]);
+                corb.add(b.getLoc());
+                cora.add(getCorresponding(framea, b).getLoc());
+            }
+	    double[][] transform = AlignPoints3D.align(cora, corb);
 
-	    double[][] transfrom = AlignPoints3D.align(pointsa, pointsb);
+
+            // Transform points in a and b and check bins
+            // XXX not sure if we want to stick with this - gonna take forever
+            int score = 0;
+            for (double[] a: pointsa) {
+                if (binb.hit(LinAlg.transform(transform, a)))
+                    score++;
+            }
+            for (double[] b: pointsb) {
+                if (bina.hit(LinAlg.transformInverse(transform, b)))
+                    score++;
+            }
+            if (score > bestConsensus) {
+                System.out.printf("score: %d\n", score);
+                bestConsensus = score;
+                bestTransform = transform;
+            }
+            if (bestConsensus >= .8*(pointsa.size()+pointsb.size())) {
+                return bestTransform;
+            }
 	}
+
+        return bestTransform;
     }
 
     private Feature getCorresponding(ArrayList<Feature> features, Feature f)
