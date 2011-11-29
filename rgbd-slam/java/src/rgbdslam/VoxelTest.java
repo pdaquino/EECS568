@@ -86,9 +86,9 @@ public class VoxelTest
         VisLayer vl;
         VisCanvas vc;
 
-        double[] lookAtOffset = new double[] {0, 0, 1};
         int dir;
-        double vel = 1.0; // m/s
+        double vel = 5.0; // m/s
+        double theta_vel = Math.toRadians(30);  // rad/sec
         int fps = 30;
 
         final int UP = 1;
@@ -148,7 +148,7 @@ public class VoxelTest
             DefaultCameraManager dcm = new DefaultCameraManager();
             dcm.UI_ANIMATE_MS = 0;
             vl.cameraManager = dcm;
-            vl.cameraManager.setDefaultPosition(new double[] {0, 0, -1}, lookAtOffset, new double[] {0, -1, 0});
+            vl.cameraManager.setDefaultPosition(new double[] {-5, 0, 0}, new double[] {5, 0, 0}, new double[] {0, 0, 1});
             vl.cameraManager.uiDefault();
             vl.addEventHandler(new MyEventAdapter());
 
@@ -216,7 +216,7 @@ public class VoxelTest
                         dir &= ~BACK;
                     break;
             }
-            System.out.println(Integer.toBinaryString(dir));
+            //System.out.println(Integer.toBinaryString(dir));
         }
 
         synchronized public void updateVoxelRes(double res)
@@ -233,12 +233,12 @@ public class VoxelTest
 
         private double[] getCameraTranslation(double dt)
         {
-            double x = 0, y = 0, z = 0;
+            double x = 0, y = 0, z = 0, t = 0;
             if ((dir & UP) > 0) {
-                y += 1;
+                y -= 1;
             }
             if ((dir & DOWN) > 0) {
-                y -= 1;
+                y += 1;
             }
 
             if ((dir & FORWARD) > 0) {
@@ -256,8 +256,14 @@ public class VoxelTest
             }
 
             // Add turning XXX
+            if ((dir & TURN_L) > 0) {
+                t += 1;
+            }
+            if ((dir & TURN_R) > 0) {
+                t -= 1;
+            }
 
-            return new double[] {x*vel*dt, y*vel*dt, z*vel*dt};
+            return new double[] {x*vel*dt, y*vel*dt, z*vel*dt, 0, 0, t*theta_vel*dt};
         }
 
         synchronized public void run()
@@ -267,22 +273,34 @@ public class VoxelTest
             Tic tic = new Tic();
             while (true) {
                 // Move camera
-                double[] xyz_trans = getCameraTranslation(tic.toctic());
+                double[] xyzrpy = getCameraTranslation(tic.toctic());
                 // XXX Note: this will make normal vis controls wacky
                 if (vc.getLastRenderInfo() != null) {
                     VisCameraManager.CameraPosition cpos = vc.getLastRenderInfo().cameraPositions.get(vl);
+
+                    double[] rpy = new double[] {xyzrpy[3], xyzrpy[4], xyzrpy[5]};
+
+                    vl.cameraManager.uiRotate(LinAlg.rollPitchYawToQuat(rpy));
+
                     double[] eye, lookat;
                     eye = LinAlg.copy(cpos.eye);
                     lookat = LinAlg.copy(cpos.lookat);
 
                     double[] vec = LinAlg.normalize(LinAlg.subtract(lookat, eye));
-                    double[] xy0 = LinAlg.copy(xyz_trans);
 
-                    eye[2] += xyz_trans[2];
-                    lookat[2] += xyz_trans[2];
+                    // XXX This part totally doesn't work worth shit
+                    /*double[] q = LinAlg.quatCompute(new double[] {0, 0, -1}, vec);
 
-                    vl.cameraManager.uiLookAt(eye, lookat, cpos.up, false);
-                    // XXX uiRotate
+                    // Translate camera in coordinates relative to its current orientation
+                    double[][] cam_trans = LinAlg.translate(LinAlg.resize(xyzrpy, 3));
+                    double[][] cam_xform = LinAlg.quatToMatrix(q);
+
+                    LinAlg.timesEquals(cam_trans, cam_xform);
+
+                    eye = LinAlg.transform(cam_trans, eye);
+                    lookat = LinAlg.transform(cam_trans, lookat);
+                    vl.cameraManager.uiLookAt(eye, lookat, cpos.up, false);*/
+
                 }
 
                 if (lastFrame != null) {
@@ -312,7 +330,6 @@ public class VoxelTest
             // XXX Key events are broken
             public boolean keyPressed(VisCanvas vc, VisLayer vl, VisCanvas.RenderInfo rinfo, KeyEvent e)
             {
-                System.out.println("K");
                 int vk = e.getKeyCode();
                 toggleDirection(vk, true);
 
@@ -321,7 +338,6 @@ public class VoxelTest
 
             public boolean keyReleased(VisCanvas vc, VisLayer vl, VisCanvas.RenderInfo rinfo, KeyEvent e)
             {
-                System.out.println("L");
                 int vk = e.getKeyCode();
                 toggleDirection(vk, false);
 
