@@ -16,8 +16,14 @@ public class ColorPointCloud
 
     static double dfx = 5.8e+02;
     static double dfy = 5.8e+02;
-    static double dcx = 3.1553578317293898e+02;    
-    static double dcy = 2.4608755771403534e+02;
+  //  static double dcx = 3.1553578317293898e+02; \\Lauren's +right    
+  //  static double dcy = 2.4608755771403534e+02; \\Lauren's
+    static double dcx = 3.2353578317293898e+02;    
+    static double dcy = 2.608755771403534e+02;
+    double rfx = 5.25e+02;
+    double rfy = 5.25e+02;
+    double rcx = 3.1924870232372928e+02;                                                                                                       
+    double rcy = 2.6345521395833958e+02;
 
     static double[] t = new double[]{-1.5e-02, 2.5073334719943473e-03,-1.2922411623995907e-02};
 
