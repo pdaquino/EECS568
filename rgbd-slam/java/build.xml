@@ -3,7 +3,7 @@
 <project name="rgbdslam" default="build" basedir=".">
 
   <!-- Build everything -->
-  <target name="build" depends="build-java,build-jar"/>
+  <target name="build" depends="build-java,build-jar,build-kinect"/>
 
   <!-- Clean everything -->
   <target name="clean" depends="clean-java"/>
@@ -62,6 +62,13 @@
       <fileset dir="." includes="**/*~" defaultexcludes="no"/>
       <fileset dir="." includes="rgbdslam.jar"/>
     </delete>
+  </target>
+
+  <target name="build-kinect">
+    <ant
+        antfile="${basedir}/../kinect/java/build.xml"
+        useNativeBasedir="true"
+        />
   </target>
 
 </project>
