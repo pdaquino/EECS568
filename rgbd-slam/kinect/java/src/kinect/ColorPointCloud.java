@@ -65,23 +65,28 @@ public class ColorPointCloud
                 double m = frame.depthToMeters(frame.depth[y*frame.depthWidth + x]);
                 if (m < 0)
                     continue;
-		/*
+		
+                
 		// undistort depth information for projection into 3D
                 // formula courtesy of http://en.wikipedia.org/wiki/Distortion_(optics)
-		r_d = Math.sqrt((x - cx_d)*(x - cx_d) + (y - cy_d)*(y - cy_d));
-		xu = x + (x - cx_d)*(k1_d*r_d*r_d + k2_d*Math.pow(r_d,4) + k3_d*Math.pow(r_d,6)) +
-                     (p1_d*(r_d*r_d + 2*(x - cx_d)*(x - cx_d)) + 2*p2_d*(x - cx_d)*(y - cy_d));
-                yu = y + (y - cy_d)*(k1_d*r_d*r_d + k2_d*Math.pow(r_d,4) + k3_d*Math.pow(r_d,6)) +
-                     (p2_d*(r_d*r_d + 2*(y - cy_d)*(x - cx_d)) + 2*p1_d*(x - cx_d)*(y - cy_d));
+		double r_d = Math.sqrt((x - cx_d)*(x - cx_d) + (y - cy_d)*(y - cy_d));
+                double xu = x;
+		//double xu = x + (x - cx_d)*(k1_d*r_d*r_d + k2_d*Math.pow(r_d,4) + k3_d*Math.pow(r_d,6)) +
+                //     (p1_d*(r_d*r_d + 2*(x - cx_d)*(x - cx_d)) + 2*p2_d*(x - cx_d)*(y - cy_d));
+                double yu = y;
+                //double yu = y + (y - cy_d)*(k1_d*r_d*r_d + k2_d*Math.pow(r_d,4) + k3_d*Math.pow(r_d,6)) +
+                //     (p2_d*(r_d*r_d + 2*(y - cy_d)*(x - cx_d)) + 2*p1_d*(x - cx_d)*(y - cy_d));
                 
                 // points in 3D
                 double px = (xu - cx_d) * m/fx_d;
                 double py = (y - cy_d) * m/fy_d;
                 double pz = m;
-		*/
-                double px = (x - cx_d) * m/fx_d;
+		
+                
+                /*double px = (x - cx_d) * m/fx_d;
                 double py = (y - cy_d) * m/fy_d;
-                double pz = m;
+                double pz = m; */
+                
 
                 // Calculate color of point
                 int cx = 0, cy = 0;
