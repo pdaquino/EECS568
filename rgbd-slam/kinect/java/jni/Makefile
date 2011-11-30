@@ -4,6 +4,8 @@ KINECT_OBJS = Kinect.o
 LIB=libkinect.so
 DESTLIB=../../lib/$(LIB)
 
+.SUFFIXES: .java
+
 all: $(DESTLIB)
 
 $(DESTLIB): $(LIB)
@@ -11,7 +13,7 @@ $(DESTLIB): $(LIB)
 
 $(LIB): kinect_Kinect.h $(KINECT_OBJS)
 
-kinect_Kinect.h:
+kinect_Kinect.h: ../src/kinect/Kinect.java
 	echo "Rebuilding JNI headers. Ensure java file has been recently built."
 	javah -classpath ../kinect.jar kinect.Kinect
 
