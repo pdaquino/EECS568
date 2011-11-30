@@ -31,6 +31,8 @@ class Kinect
     static
     {
         System.loadLibrary("kinect");
+        
+        
     }
 
     public synchronized int init()
