@@ -28,7 +28,7 @@ class KinectDemo
 
     class KinectThread extends Thread
     {
-        int fps = 60;
+        int fps = 15;
         boolean closeFlag;
 
         public KinectThread()
