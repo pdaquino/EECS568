@@ -2,6 +2,8 @@ package kinect;
 
 import java.util.*;
 import java.awt.image.*;
+import javax.imageio.ImageIO;
+import java.io.*;
 
 class Kinect
 {
@@ -16,12 +18,17 @@ class Kinect
 
     int rgb_cnt = 0;
     int d_cnt = 0;
+    
+    int rgb_save_cnt = 0; // how many rgb images have we saved so far
+    int d_save_cnt = 0;  
 
     // Initialize the kinect device, returning a negative
     // error code upon failure
     public native int initKinect();
     public native int closeKinect();
     public native void startVideo();
+    public native void startRGBVideo();
+    public native void startIRVideo();
     public native void stopVideo();
     public native void startDepth();
     public native void stopDepth();
@@ -30,9 +37,7 @@ class Kinect
 
     static
     {
-        System.loadLibrary("kinect");
-        
-        
+        System.loadLibrary("kinect");      
     }
 
     public synchronized int init()
@@ -48,6 +53,17 @@ class Kinect
     public synchronized void start()
     {
         startVideo();
+        startDepth();
+    }
+    
+    // same as default above
+    public synchronized void startRGB() {
+        startRGBVideo();
+        startDepth();
+    }
+    
+    public synchronized void startIR() {
+        startIRVideo();
         startDepth();
     }
 
@@ -84,7 +100,33 @@ class Kinect
     {
         System.out.printf("rgb: %d depth: %d\n", rgb_cnt, d_cnt);
     }
-
+    
+    // saves picture of RGB image to file
+    public void saveRGB(Frame frame) 
+    {
+        BufferedImage Im = frame.makeRGB();
+        try {
+            File file = new File("Krgb" + Integer.toString(rgb_save_cnt) + ".png");
+            ImageIO.write(Im , "png", file);
+        } catch (IOException e) {
+            System.out.println("Failure to Save RGB!");  
+        }
+        rgb_save_cnt++;
+    }
+    
+    // saves depth image to file
+    public void saveD(Frame frame) 
+    {
+        BufferedImage Im = frame.makeDepth();
+        try {
+            File file = new File("Kdepth" + Integer.toString(d_save_cnt) + ".png");
+            ImageIO.write(Im , "png", file);
+        } catch (IOException e) {
+            System.out.println("Failure to Save Depth!");  
+        }
+        d_save_cnt++;
+    }
+    
     // Practical resolution of depth seems to be:
     // 632 x 480
     static public class Frame
