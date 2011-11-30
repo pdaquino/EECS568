@@ -18,8 +18,9 @@ kinect_Kinect.h:
 clean:
 	rm -f $(KINECT_OBJS) *~ kinect_Kinect.h *.so $(LIB) $(DESTLIB)
 
-JNI_INCLUDES = -I/usr/lib/jvm/java-6-usn/include/ -I/usr/lib/jvm/java-6-sun/include/linux -I/usr/lib/jvm/java-6-openjdk/include/
-KINECT_INCLUDES = -I$(HOME)/libfreenect/include
+JNI_INCLUDES = -I/usr/lib/jvm/java-6-usn/include/ -I/usr/lib/jvm/java-6-sun/include/linux -I/usr/lib/jvm/java-6-openjdk/include/ -I/System/Library/Frameworks/JavaVM.framework/Headers
+KINECT_INCLUDES = -I$(HOME)/libfreenect/include -I/usr/local/include/libfreenect
+
 KINECT_LIBS = -L$(HOME)/libfreenect/build/lib -lfreenect -lpthread
 
 %.o: %.cpp
