@@ -31,6 +31,7 @@ uint32_t d_time;
 
 bool got_rgb = false;
 bool got_depth = false;
+bool IR_mode = false;
 
 freenect_context *f_ctx = 0;
 freenect_device *f_dev = 0;
@@ -56,12 +57,26 @@ void video_cb(freenect_device *dev, void *v_rgb, uint32_t timestamp)
     pthread_mutex_lock(&video_mutex);
     rgbcnt++;
     uint8_t* temp = (uint8_t*)v_rgb;
-    for (int i = 0; i < W_VID*H_VID; i++) {
-        int argb = 0xff000000;
-        argb |= temp[3*i + 0] << 16;
-        argb |= temp[3*i + 1] << 8;
-        argb |= temp[3*i + 2];
-        rgb_buf[i] = argb;
+    // RGB Mode
+    if (IR_mode == false) {
+	printf("Oh noes");
+        for (int i = 0; i < W_VID*H_VID; i++) {
+             int argb = 0xff000000;
+             argb |= temp[3*i + 0] << 16;
+             argb |= temp[3*i + 1] << 8;
+             argb |= temp[3*i + 2];
+             rgb_buf[i] = argb;
+        }
+    } 
+    // IR Mode
+    else {
+        for (int i = 0; i < W_VID*H_VID; i++) {
+             int argb = 0xff000000;
+             argb |= temp[i] << 16;
+             argb |= temp[i] << 8;
+             argb |= temp[i];
+	     rgb_buf[i] = argb;
+        }
     }
     got_rgb = true;
     rgb_time = timestamp;
@@ -132,6 +147,33 @@ JNIEXPORT void JNICALL Java_kinect_Kinect_startVideo(JNIEnv *env, jobject obj)
     freenect_start_video(f_dev);
     pthread_mutex_unlock(&video_mutex);
 }
+
+// begin new code segments lifted from https://github.com/OpenKinect/libfreenect/blob/master/examples/hiview.c
+// RGB video
+JNIEXPORT void JNICALL Java_kinect_Kinect_startRGBVideo(JNIEnv *env, jobject obj)
+{
+    IR_mode = false;
+    printf("starting native RGB video\n");
+    freenect_set_video_mode(f_dev, freenect_find_video_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_VIDEO_RGB));
+    pthread_mutex_lock(&video_mutex);
+    rgb_buf = new uint32_t[W_VID*H_VID];
+    freenect_start_video(f_dev);
+    pthread_mutex_unlock(&video_mutex);
+}
+
+// IR video defaulting to 640x480 to avoid complexity
+JNIEXPORT void JNICALL Java_kinect_Kinect_startIRVideo(JNIEnv *env, jobject obj)
+{
+    IR_mode = true;
+    printf("starting native IR video\n");
+    freenect_set_video_mode(f_dev, freenect_find_video_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_VIDEO_IR_8BIT));
+    pthread_mutex_lock(&video_mutex);
+    rgb_buf = new uint32_t[W_VID*H_VID];
+    freenect_start_video(f_dev);
+    pthread_mutex_unlock(&video_mutex);
+}
+
+// end new code
 
 JNIEXPORT void JNICALL Java_kinect_Kinect_stopVideo(JNIEnv *env, jobject obj)
 {
