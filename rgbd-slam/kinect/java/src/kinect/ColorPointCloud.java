@@ -16,7 +16,7 @@ public class ColorPointCloud
 
     static double dfx = 5.8e+02;
     static double dfy = 5.8e+02;
-  //  static double dcx = 3.1553578317293898e+02; \\Lauren's +right    
+  //  static double dcx = 3.1553578317293898e+02; \\Lauren's    
   //  static double dcy = 2.4608755771403534e+02; \\Lauren's
     static double dcx = 3.2353578317293898e+02;    
     static double dcy = 2.608755771403534e+02;

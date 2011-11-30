@@ -4,31 +4,30 @@ import java.util.*;
 
 public class Feature
 {
-    private ArrayList<Double> features;
+    private double[] features;
     private double[] xyz; // XXX - need to get this somehow
 
-    public Feature(double[] xyz_, ArrayList<Double> features_)
+    public Feature(double[] xyz_, double[] features_)
     {
-	xyz = xyz_;
-	features = features_;
+        xyz = xyz_;
+        features = features_;
     }
 
-    public ArrayList<Double> getFeatures()
+    public double[] getFeatures()
     { 
-	return features;
+        return features;
     }
 
-    public ArrayList<Double> copyFeatures()
+    public double[] copyFeatures()
     {
-	ArrayList<Double> newf = new ArrayList<Double>();
-	for(Double f: features){
-	    newf.add(f);
-	}
-	return newf;
+        double[] copyF = new double[features.length];
+        System.arraycopy(features, 0, copyF, 0, features.length);
+
+        return copyF;
     }
 
-    public double[] getLoc()
+    public double[] getXYZ()
     {
-	return xyz;
+        return xyz;
     }
 }
