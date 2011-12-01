@@ -10,10 +10,10 @@ extern "C" {
 /*
  * Class:     rgbdslam_OpenCV
  * Method:    cvExtractFeatures
- * Signature: ([IIIDDI[I[I[[D)I
+ * Signature: ([IIIDDI[I[I[D)I
  */
 JNIEXPORT jint JNICALL Java_rgbdslam_OpenCV_cvExtractFeatures
-  (JNIEnv *, jobject, jintArray, jint, jint, jdouble, jdouble, jint, jintArray, jintArray, jobjectArray);
+  (JNIEnv *, jobject, jintArray, jint, jint, jdouble, jdouble, jint, jintArray, jintArray, jdoubleArray);
 
 #ifdef __cplusplus
 }
