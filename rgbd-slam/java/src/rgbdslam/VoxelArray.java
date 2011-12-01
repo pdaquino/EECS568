@@ -33,6 +33,23 @@ public class VoxelArray
         }
     }
 
+    public VzPoints getPointCloud()
+    {
+        ArrayList<double[]> points = new ArrayList<double[]>();
+        VisColorData vcd = new VisColorData();
+        for (VoxelKey vk: voxels.keySet()) {
+            Voxel voxel = voxels.get(vk);
+            double x = vk.xyz[0]*resolution + 0.5*resolution;
+            double y = vk.xyz[1]*resolution + 0.5*resolution;
+            double z = vk.xyz[2]*resolution + 0.5*resolution;
+            points.add(new double[] {x,y,z});
+            vcd.add(voxel.getABGR());
+        }
+
+        return new VzPoints(new VisVertexData(points),
+                            new VzPoints.Style(vcd, 2));
+    }
+
     public ArrayList<VisChain> getBoxes()
     {
         double[][] scale = LinAlg.scale(resolution);
