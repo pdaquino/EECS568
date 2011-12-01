@@ -13,6 +13,7 @@ import rgbdslam.*;
  * @author pdaquino
  */
 public class TestOpenCV {
+    // pass it the name of an image and it will compute the features in it
     public static void main(String[] args) throws IOException {
         BufferedImage im = ImageIO.read(new File(args[0]));
         BufferedImage rgbIm = new BufferedImage(im.getWidth(),
