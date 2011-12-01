@@ -94,14 +94,14 @@ class Kinect
 
     public synchronized Frame getFrame()
     {
-        int[] argb = rectifyRGB(getVideoFrame());
-        short[] depth = rectifyD(getDepthFrame());
+        int[] argb = getVideoFrame();
+        short[] depth = getDepthFrame();
         if (argb != null) {
-            rgb_buf = argb;
+            rgb_buf = rectifyRGB(argb);
             rgb_cnt++;
         }
         if (depth != null) {
-            d_buf = depth;
+            d_buf = rectifyD(depth);
             d_cnt++;
         }
 
