@@ -11,7 +11,20 @@ public class ColorPointCloud
     public ArrayList<double[]> points = new ArrayList<double[]>();
     public ArrayList<Integer> colors = new ArrayList<Integer>();
     public VisColorData vcd = new VisColorData();
+    
+    // RGB Intrinsic Camera Parameters
+    static final double Frgbx = 521.67090; // focal lengths
+    static final double Frgby = 521.23461;
+    static final double Crgbx = 300; // optial axis 312.82654
+    static final double Crgby = 272; //258.60812
+    
 
+    // IR Intrinsic Camera Parameters
+    static final double Firx = 583.56911; // focal lengths
+    static final double Firy = 582.28721; 
+    static final double Cirx = 317.73984; // optical axis
+    static final double Ciry = 248.91467;
+    
     // Camera calibration numbers courtesy of Nicolas Burrus
     // parameters for rgb color camera
     static double fx_rgb = 5.2921508098293293e2; // focal length
@@ -69,7 +82,7 @@ public class ColorPointCloud
                 
 		// undistort depth information for projection into 3D
                 // formula courtesy of http://en.wikipedia.org/wiki/Distortion_(optics)
-		double r_d = Math.sqrt((x - cx_d)*(x - cx_d) + (y - cy_d)*(y - cy_d));
+		//double r_d = Math.sqrt((x - cx_d)*(x - cx_d) + (y - cy_d)*(y - cy_d));
                 double xu = x;
 		//double xu = x + (x - cx_d)*(k1_d*r_d*r_d + k2_d*Math.pow(r_d,4) + k3_d*Math.pow(r_d,6)) +
                 //     (p1_d*(r_d*r_d + 2*(x - cx_d)*(x - cx_d)) + 2*p2_d*(x - cx_d)*(y - cy_d));
@@ -78,8 +91,8 @@ public class ColorPointCloud
                 //     (p2_d*(r_d*r_d + 2*(y - cy_d)*(x - cx_d)) + 2*p1_d*(x - cx_d)*(y - cy_d));
                 
                 // points in 3D
-                double px = (xu - cx_d) * m/fx_d;
-                double py = (y - cy_d) * m/fy_d;
+                double px = (xu - Cirx) * m/Firx;
+                double py = (y - Ciry) * m/Firy;
                 double pz = m;
 		
                 
@@ -96,8 +109,8 @@ public class ColorPointCloud
                 cxyz = LinAlg.transform(trans, cxyz);
 
                 // project 3D point into rgb image frame
-                cx = (int) ((cxyz[0] * fx_rgb / cxyz[2]) + cx_rgb);
-                cy = (int) ((cxyz[1] * fy_rgb / cxyz[2]) + cy_rgb);
+                cx = (int) ((cxyz[0] * Frgbx / cxyz[2]) + Crgbx);
+                cy = (int) ((cxyz[1] * Frgby / cxyz[2]) + Crgby);
   
                 /*
                 // now need to distort the points to see where they end up in the RGB image
