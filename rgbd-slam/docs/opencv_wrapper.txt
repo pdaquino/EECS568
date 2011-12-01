@@ -1,0 +1,7 @@
+To generate the header file for the JNI wrapper:
+
+1) cd rgbd-slam/java
+2) ant
+3) javah -classpath rgbdslam.jar -o OpenCVWrapper.h rgbdslam.OpenCV
+
+This will create a file OpenCVWrapper.h inside rgbd-slam/java.

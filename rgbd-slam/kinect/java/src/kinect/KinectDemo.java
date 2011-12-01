@@ -18,6 +18,9 @@ class KinectDemo
     RenderThread rt;
     KinectThread kt;
 
+    static final int WIDTH = Kinect.WIDTH;
+    static final int HEIGHT = Kinect.HEIGHT;
+
     public KinectDemo(GetOpt opts)
     {
         rt = new RenderThread(opts);
@@ -55,7 +58,7 @@ class KinectDemo
                 }
                 
                 if (f != null) {}
-                    rt.render(f);
+                rt.render(f);
                 TimeUtil.sleep(1000/fps);
             }
 
@@ -92,16 +95,16 @@ class KinectDemo
             JFrame jf = new JFrame("Kinect Demo");
             jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             jf.addWindowListener(new WindowAdapter() {
-                synchronized public void windowClosing(WindowEvent e) {
-                    System.out.println("Closing kinect...");
-                    kt.close();
-                    while (!clearToClose) {
-                        try {
-                            wait();
-                        } catch (InterruptedException ex) {}
+                    synchronized public void windowClosing(WindowEvent e) {
+                        System.out.println("Closing kinect...");
+                        kt.close();
+                        while (!clearToClose) {
+                            try {
+                                wait();
+                            } catch (InterruptedException ex) {}
+                        }
                     }
-                }
-            });
+                });
             jf.setLayout(new BorderLayout());
             jf.setSize(1280, 500);
 
@@ -109,6 +112,11 @@ class KinectDemo
             vw = new VisWorld();
             vl = new VisLayer(vw);
             vc = new VisCanvas(vl);
+            //vl.cameraManager.setDefaultPosition(new double[] {10.0, 5.0, 5.0},               // Camera position in xyz
+            //new double[] {0.0, 0.0, 0.0},               // Point the camera is looking at in xyz
+                  //                            new double[] {-1.0, -1.0, 1.0});
+
+
             jf.add(vc, BorderLayout.CENTER);
 
             jf.setVisible(true);
@@ -137,24 +145,24 @@ class KinectDemo
                     BufferedImage depth = currFrame.makeDepth();
 
                     double[] xy0 = new double[2];
-                    double[] xy1 = new double[] {currFrame.rgbWidth, currFrame.rgbHeight};
-                    double[] xy2 = new double[] {currFrame.rgbWidth, 0};
-                    double[] xy3 = new double[] {currFrame.rgbWidth+currFrame.depthWidth, currFrame.depthHeight};
+                    double[] xy1 = new double[] {WIDTH, HEIGHT};
+                    double[] xy2 = new double[] {WIDTH, 0};
+                    double[] xy3 = new double[] {2*WIDTH, HEIGHT};
 
                     double[][] rgbvert = new double[][] {{0,0,0},
-                                                         {currFrame.rgbWidth,0,0},
-                                                         {currFrame.rgbWidth,currFrame.rgbHeight,0},
-                                                         {0,currFrame.rgbHeight,0}};
-                    double[][] depthvert = new double[][] {{currFrame.rgbWidth,0,0},
-                                                           {currFrame.rgbWidth+currFrame.depthWidth,0,0},
-                                                           {currFrame.rgbWidth+currFrame.depthWidth,currFrame.depthHeight,0},
-                                                           {currFrame.rgbWidth,currFrame.depthHeight,0}};
+                                                         {WIDTH,0,0},
+                                                         {WIDTH,HEIGHT,0},
+                                                         {0,HEIGHT,0}};
+                    double[][] depthvert = new double[][] {{HEIGHT,0,0},
+                                                           {2*WIDTH,0,0},
+                                                           {2*WIDTH,HEIGHT,0},
+                                                           {WIDTH,HEIGHT,0}};
                     double[][] texcoords = new double[][] {{0,1},
                                                            {1,1},
                                                            {1,0},
                                                            {0,0}};
 
-                    double[] translate = new double[] {currFrame.rgbWidth, 0, 0};
+                    double[] translate = new double[] {WIDTH, 0, 0};
 
 
                     /*vbIm.addBack(new VisImage(new VisTexture(rgb, false),

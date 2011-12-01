@@ -5,12 +5,15 @@ import java.awt.image.*;
 import javax.imageio.ImageIO;
 import java.io.*;
 
-class Kinect
+public class Kinect
 {
     static final int RGB_WIDTH = 640;
     static final int RGB_HEIGHT = 480;
     static final int DEPTH_WIDTH = 632;
     static final int DEPTH_HEIGHT = 480;
+    
+    static final int WIDTH = 640;
+    static final int HEIGHT = 480;
 
     // RGB Intrinsic Camera Parameters
     static final double Frgbx = 521.67090; // focal lengths
@@ -295,13 +298,18 @@ class Kinect
             if (t_gamma == null) {
                 this.t_gamma = new double[2048];
 
-                // From Stephane Magnenat
-                double k1 = 1.1863;
-                double k2 = 2842.5;
-                double k3 = 0.1236;
+                // From Daniel Shiffman
                 for (int i = 0; i < 2048; i++) {
-                    t_gamma[i] = k3*Math.tan(i/k2 + k1);
+                    t_gamma[i] = 1.0/(i*-0.0030711016 + 3.3309495161);
                 }
+
+                // From Stephane Magnenat
+                //double k1 = 1.1863;
+                //double k2 = 2842.5;
+                //double k3 = 0.1236;
+                //for (int i = 0; i < 2048; i++) {
+                //    t_gamma[i] = k3*Math.tan(i/k2 + k1);
+                //}
 
                 // From Willow Garage
                 //for (i = 0; i < 2048; i++) {
@@ -315,15 +323,15 @@ class Kinect
         public double depthToMeters(short depth)
         {
             // Throw away extreme values
-            if ((int) depth == 2048)
+            if ((int) depth >= 2048)
                 return -1;
             return t_gamma[depth];
         }
 
         public BufferedImage makeRGB()
         {
-            assert (argb.length == rgbHeight*rgbWidth);
-            BufferedImage im = new BufferedImage(rgbWidth, rgbHeight, BufferedImage.TYPE_INT_RGB);
+            assert (argb.length == WIDTH*HEIGHT);
+            BufferedImage im = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
             int[] buf = ((DataBufferInt)(im.getRaster().getDataBuffer())).getData();
             for (int i = 0; i < buf.length; i++) {
                 buf[i] = argb[i];
@@ -334,8 +342,8 @@ class Kinect
 
         public BufferedImage makeDepth()
         {
-            assert (depth.length == depthHeight*depthWidth);
-            BufferedImage im = new BufferedImage(depthWidth, depthHeight, BufferedImage.TYPE_INT_RGB);
+            assert (depth.length == WIDTH*HEIGHT);
+            BufferedImage im = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
             int[] buf = ((DataBufferInt)(im.getRaster().getDataBuffer())).getData();
             double[] cutoffs = new double[] {1.0, 1.75, 2.5, 3.25, 4.0, 5.0};
             for (int i = 0; i < buf.length; i++) {

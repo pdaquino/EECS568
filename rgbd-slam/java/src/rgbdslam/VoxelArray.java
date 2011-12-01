@@ -1,8 +1,10 @@
 package rgbdslam;
 
 import java.util.*;
+import java.awt.*;
 
 import april.jmat.*;
+import april.vis.*;
 
 import kinect.*;
 
@@ -29,6 +31,26 @@ public class VoxelArray
             else
                 voxels.get(vk).addSample(cpc.colors.get(i));
         }
+    }
+
+    public ArrayList<VisChain> getBoxes()
+    {
+        double[][] scale = LinAlg.scale(resolution);
+
+        ArrayList<VisChain> boxes = new ArrayList<VisChain>();
+        for (VoxelKey vk: voxels.keySet()) {
+            Voxel voxel = voxels.get(vk);
+            VzBox box = new VzBox(new VzMesh.Style(new Color(voxel.getARGB())));
+            double x = vk.xyz[0]*resolution + 0.5*resolution;
+            double y = vk.xyz[1]*resolution + 0.5*resolution;
+            double z = vk.xyz[2]*resolution + 0.5*resolution;
+            double[][] translate = LinAlg.translate(x, y, z);
+            boxes.add(new VisChain(translate,
+                                   scale,
+                                   box));
+        }
+
+        return boxes;
     }
 
     // XXX Needs verification. Unit tests...go!
@@ -68,7 +90,7 @@ public class VoxelArray
 
     class VoxelKey
     {
-        int[] xyz;
+        public int[] xyz;
 
         public VoxelKey(double[] xyz_)
         {
