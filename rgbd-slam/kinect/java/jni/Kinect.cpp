@@ -59,8 +59,7 @@ void video_cb(freenect_device *dev, void *v_rgb, uint32_t timestamp)
     uint8_t* temp = (uint8_t*)v_rgb;
     // RGB Mode
     if (IR_mode == false) {
-	printf("Oh noes");
-        for (int i = 0; i < W_VID*H_VID; i++) {
+	for (int i = 0; i < W_VID*H_VID; i++) {
              int argb = 0xff000000;
              argb |= temp[3*i + 0] << 16;
              argb |= temp[3*i + 1] << 8;
