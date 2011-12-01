@@ -5,6 +5,7 @@ import java.awt.image.*;
 import java.awt.event.*;
 import javax.swing.*;
 import java.util.*;
+import java.lang.Integer;
 
 import april.jmat.*;
 import april.util.*;
@@ -29,6 +30,7 @@ class KinectDemo
     class KinectThread extends Thread
     {
         int fps = 15;
+        int rate = 240; // capture rate for images
         boolean closeFlag;
 
         public KinectThread()
@@ -41,10 +43,17 @@ class KinectDemo
             System.out.println("Starting kinect thread");
             kinect.init();
             kinect.start();
+            
+            int counter = 0; // for taking picture files every x frames
 
             Kinect.Frame f = null;
             while (!closeFlag) {
                 f = kinect.getFrame();
+                
+                if ((counter%rate == 0) && (f != null)) {
+                    //kinect.saveRGB(f);
+                }
+                
                 if (f != null) {}
                     rt.render(f);
                 TimeUtil.sleep(1000/fps);
@@ -75,6 +84,9 @@ class KinectDemo
 
         public RenderThread(GetOpt opts)
         {
+            
+
+            
             this.opts = opts;
             System.out.println("Starting render thread");
             JFrame jf = new JFrame("Kinect Demo");
@@ -92,6 +104,7 @@ class KinectDemo
             });
             jf.setLayout(new BorderLayout());
             jf.setSize(1280, 500);
+
 
             vw = new VisWorld();
             vl = new VisLayer(vw);
