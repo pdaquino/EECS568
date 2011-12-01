@@ -1,0 +1,60 @@
+Kinect Calibration
+
+To calibrate your kinect using the procedure that I followed you will need a few things.  The Kinect, Matlab, a copy of the Camera Calibration Toolbox for Matlab available at http://www.vision.caltech.edu/bouguetj/calib_doc/download/index.html, a calibration pattern available at http://www.vision.caltech.edu/bouguetj/calib_doc/htmls/pattern.pdf, and a flat rigid easy to hold surface to tape the pattern to (like a cutting board)
+
+Instructions for use of this toolbox are located at http://www.vision.caltech.edu/bouguetj/calib_doc/index.html#examples
+
+Step 1: Print and secure the pattern to the board.  For calibration accuracy you must know the dimensions of the squares visible on the pattern.  If you are printing on normal 8.5 x 11 inch paper than this pattern should be 30mm by 30 mm.  Make note of these dimensions for later.  Note that you must measure then inner squares, not the ones on the edge, since we will not be using those in the calibration. 
+
+Step 2: Now we must enable image capture within the KinectDemo. Within KinectDemo.java at line 54 in run() in KinectThread
+
+if ((counter%rate == 0) && (f != null)) {
+                    //kinect.saveRGB(f);
+}
+
+uncomment the line kinect.saveRGB(f);  Also note further up the variable rate sets the capture rate for images, a higher number will capture less frequently.  In this case we are simply capturing images at a fixed rate rather than having a fancy button. 
+
+Also note the line slightly further up kinect.start();  As it is currently set, our video stream that we will capture will be the RGB video,  When we want to capture the IR image for depth calibration, we will come back and change this line to kinect.startIR();
+
+Step 3: After making the above change to enable image capture compile and make sure to change directories to a folder where you want these images to end up, since the images will be saved directly to your current location.  Get the calibration target handy for the next step.
+
+Step 4: Then java kinect.KinectDemo to start the program.  Now pose with the target in front of the kinect taking care to try and make the target fill a decent portion of the image frame.  Make sure to hold it at different orientations and also try to cover most of the frame.  After about a minute stop the program and you should find many images labeled Krgb#.jpg have been created in your current directory.  
+
+Step 5: Image selection and renaming.  
+Unfortunately not all of these images will be that great and there are probably too many, so go through and select more than 10 of these images to be the ones that you calibrate on.  Remember you want frames where the checker board pattern is sharp, well illuminated, fills up most of the image without getting cut off and you want an assortment of orientations.  Put these files aside in their own folder.  Now I'm sure there is a way, but I think it is necessary for the files to be sequentially named, perhaps not, but I renumbered from 1 upwards just to be sure.
+
+Step 6: Matlab time
+Unzip the matlab files from earlier and add them to a convenient location.  Add this location to your Matlab path, and then change your matlab working directory to the location of your good images that you picked out in step 5.  On the interactive matlab prompt type calib_gui  This program is really easy to use.
+
+In the window select the standard memory setting unless you anticipate running out of memory.
+
+Once the main window comes up, it should have several buttons, click Read images.  Next you are prompted for the base name, type "Krgb" without the quotes,  you also need to specify jpg so when prompted type "j" again without the quotes.  It should be clear when it was successful at reading the images.  
+
+Next click Extract grid corners and hit enter at the prompt to use all the images.  This will bring up a series of windows where you must specify the 4 corners of the coordinate frame defined by the grid when doing this a few things are crucial to keep in mind.
+
+The first corner is the origin.  This must be the same physical corner on the board across all images.  
+
+You want to select 4 corners to complete a box so select 4 corners on the picture of the board to define a rectangle on the board which will result in a different shape to the camera. (projective geometry)
+
+Pick corners in the same order every time!  So go clockwise which seems to yield the right results.
+
+Don't misclick.  Do not push any keys or click anywhere except at the corners you want.  I haven't figured out how to undo so just don't mess up.
+
+After you have selected the 4 corners the shape should automatically complete and small red crosses should appear on the image at the locations of the corners within the rectangle you have defined.  If it looks good hit enter to move past the distortion prompt.  Repeat for all of your images
+
+Once you have completed the corner selection click Calibration to get the intrinsic camera parameters.  
+
+Step 7: Repeat steps 3-6 but substitute kinect.startIR() for kinect.start()  Also Important note, you need a diffuse IR light source for this step, the projector on the kinect will mess up the corner detection.  Conveniently if you place a piece of plastic, like from a bag over the projector, you will get a diffuse enough pattern that the calibration program seems to be happy.  
+
+Now you have your calibration parameters for both cameras remember to turn off image capture or you may be greeted by a folder full of images.  
+
+ Things to note: 
+
+The principal point is the optical center, this is apparently hard to estimate well so your numbers might not be exactly the center of the image.  
+
+The distortion parameters are as follows: the first two are radial distortion terms (r^2 and r^4) the second two are for tangential, and the 5th term which will be 0 by default is the 6th order radial distortion term.
+
+
+
+
+
