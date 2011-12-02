@@ -42,6 +42,20 @@ public class Voxel
                (b & 0xff);
     }
 
+    public int getABGR()
+    {
+        if (hitCount == 0)
+            return 0;
+        int a = aTot/hitCount;
+        int r = rTot/hitCount;
+        int g = gTot/hitCount;
+        int b = bTot/hitCount;
+        return ((a & 0xff) << 24) |
+               ((b & 0xff) << 16) |
+               ((g & 0xff) << 8)  |
+               (r & 0xff);
+    }
+
     public Voxel merge(Voxel v)
     {
         Voxel voxel = new Voxel();

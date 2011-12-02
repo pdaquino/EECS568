@@ -29,7 +29,7 @@ public class VoxelTest
 
     class KinectThread extends Thread
     {
-        int fps = 60;
+        int fps = 15;
         boolean closeSignal = false;
         boolean closed = false;
 
@@ -80,16 +80,19 @@ public class VoxelTest
     {
         // Kinect Thread
         Kinect.Frame lastFrame = null;
+        Kinect.Frame renderFrame = null;
 
         // Vis
         VisWorld vw;
         VisLayer vl;
         VisCanvas vc;
 
+        // Flying around stuff
+        double xticks, yticks, zticks, tticks;
         int dir;
-        double vel = 5.0; // m/s
-        double theta_vel = Math.toRadians(30);  // rad/sec
-        int fps = 30;
+        double vel = 1.0; // m/s
+        double theta_vel = Math.toRadians(15);  // rad/sec
+        int fps = 15;
 
         final int UP = 1;
         final int DOWN = 2;
@@ -137,6 +140,7 @@ public class VoxelTest
                         updateVoxelRes(pg.gd("res"));
                     } else if (name.equals("reset")) {
                         updateVoxelRes(pg.gd("res"));
+                        renderFrame = lastFrame;
                     }
                 }
             });
@@ -146,17 +150,17 @@ public class VoxelTest
             vc = new VisCanvas(vl);
 
             DefaultCameraManager dcm = new DefaultCameraManager();
-            dcm.UI_ANIMATE_MS = 0;
+            dcm.UI_ANIMATE_MS = 50;
             vl.cameraManager = dcm;
-            vl.cameraManager.setDefaultPosition(new double[] {-5, 0, 0}, new double[] {5, 0, 0}, new double[] {0, 0, 1});
+            vl.cameraManager.setDefaultPosition(new double[] {0, 0, 5}, new double[] {0, 0, 0}, new double[] {0, 1, 0});
             vl.cameraManager.uiDefault();
             vl.addEventHandler(new MyEventAdapter());
 
-            {
+            /*{
                 VisWorld.Buffer vb = vw.getBuffer("grid");
                 vb.addBack(new VzGrid(new VzLines.Style(Color.gray, 1)));
                 vb.swap();
-            }
+            }*/
 
             jf.add(vc, BorderLayout.CENTER);
             jf.add(pg, BorderLayout.SOUTH);
@@ -164,59 +168,36 @@ public class VoxelTest
             jf.setVisible(true);
         }
 
-        synchronized public void toggleDirection(int vk, boolean press)
+        synchronized public void toggleDirection(int vk)
         {
-            switch (vk) {
-                case KeyEvent.VK_UP:
-                    if (press)
-                        dir |= UP;
-                    else
-                        dir &= ~UP;
-                    break;
-                case KeyEvent.VK_DOWN:
-                    if (press)
-                        dir |= DOWN;
-                    else
-                        dir &= ~DOWN;
-                    break;
-                case KeyEvent.VK_LEFT:
-                    if (press)
-                        dir |= TURN_L;
-                    else
-                        dir &= ~TURN_L;
-                    break;
-                case KeyEvent.VK_RIGHT:
-                    if (press)
-                        dir |= TURN_R;
-                    else
-                        dir &= ~TURN_R;
-                    break;
-                case KeyEvent.VK_A:
-                    if (press)
-                        dir |= LEFT;
-                    else
-                        dir &= ~LEFT;
-                    break;
-                case KeyEvent.VK_D:
-                    if (press)
-                        dir |= RIGHT;
-                    else
-                        dir &= ~RIGHT;
-                    break;
-                case KeyEvent.VK_W:
-                    if (press)
-                        dir |= FORWARD;
-                    else
-                        dir &= ~FORWARD;
-                    break;
-                case KeyEvent.VK_S:
-                    if (press)
-                        dir |= BACK;
-                    else
-                        dir &= ~BACK;
-                    break;
+            if (vk == KeyEvent.VK_DOWN) {
+                yticks -= 1;
             }
-            //System.out.println(Integer.toBinaryString(dir));
+            if (vk == KeyEvent.VK_UP) {
+                yticks += 1;
+            }
+
+            if (vk == KeyEvent.VK_W) {
+                zticks += 1;
+            }
+            if (vk == KeyEvent.VK_S) {
+                zticks -= 1;
+            }
+
+            if (vk == KeyEvent.VK_D) {
+                xticks += 1;
+            }
+            if (vk == KeyEvent.VK_A) {
+                xticks -= 1;
+            }
+
+            if (vk == KeyEvent.VK_LEFT) {
+                tticks += 1;
+            }
+            if (vk == KeyEvent.VK_RIGHT) {
+                tticks -= 1;
+            }
+            System.out.printf("[x:%f] [y:%f] [z:%f] [t:%f]\n", xticks, yticks, zticks, tticks);
         }
 
         synchronized public void updateVoxelRes(double res)
@@ -228,42 +209,13 @@ public class VoxelTest
         {
             assert (f != null);
             lastFrame = f;
-            notify();
+            //notify();
         }
 
         private double[] getCameraTranslation(double dt)
         {
-            double x = 0, y = 0, z = 0, t = 0;
-            if ((dir & UP) > 0) {
-                y -= 1;
-            }
-            if ((dir & DOWN) > 0) {
-                y += 1;
-            }
 
-            if ((dir & FORWARD) > 0) {
-                z += 1;
-            }
-            if ((dir & BACK) > 0) {
-                z -= 1;
-            }
-
-            if ((dir & RIGHT) > 0) {
-                x += 1;
-            }
-            if ((dir & LEFT) > 0) {
-                x -= 1;
-            }
-
-            // Add turning XXX
-            if ((dir & TURN_L) > 0) {
-                t += 1;
-            }
-            if ((dir & TURN_R) > 0) {
-                t -= 1;
-            }
-
-            return new double[] {x*vel*dt, y*vel*dt, z*vel*dt, 0, 0, t*theta_vel*dt};
+            return new double[] {xticks*vel*dt, yticks*vel*dt, zticks*vel*dt, 0, 0, tticks*theta_vel*dt};
         }
 
         synchronized public void run()
@@ -278,43 +230,48 @@ public class VoxelTest
                 if (vc.getLastRenderInfo() != null) {
                     VisCameraManager.CameraPosition cpos = vc.getLastRenderInfo().cameraPositions.get(vl);
 
-                    double[] rpy = new double[] {xyzrpy[3], xyzrpy[4], xyzrpy[5]};
+                    double[] yaxis = LinAlg.normalize(cpos.up);
+                    double[] nzaxis = LinAlg.normalize(LinAlg.subtract(cpos.lookat, cpos.eye));
+                    double[] xaxis = LinAlg.normalize(LinAlg.crossProduct(nzaxis, yaxis));
 
-                    vl.cameraManager.uiRotate(LinAlg.rollPitchYawToQuat(rpy));
+                    double[][] rotation = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[5], yaxis));
 
-                    double[] eye, lookat;
-                    eye = LinAlg.copy(cpos.eye);
-                    lookat = LinAlg.copy(cpos.lookat);
+                    // Translation
+                    double[] eye = LinAlg.copy(cpos.eye);
+                    double[] lookat = LinAlg.copy(cpos.lookat);
+                    double x = xyzrpy[0];
+                    double y = xyzrpy[1];
+                    double z = xyzrpy[2];
+                    double[] dx = new double[] {x*xaxis[0], x*xaxis[1], x*xaxis[2]};
+                    double[] dy = new double[] {y*yaxis[0], y*yaxis[1], y*yaxis[2]};
+                    double[] dz = new double[] {z*nzaxis[0], z*nzaxis[1], z*nzaxis[2]};
+                    eye = LinAlg.add(dx, LinAlg.add(dy, LinAlg.add(dz, eye)));
+                    lookat = LinAlg.add(dx, LinAlg.add(dy, LinAlg.add(dz, lookat)));
 
-                    double[] vec = LinAlg.normalize(LinAlg.subtract(lookat, eye));
+                    // Rotation
+                    double[][] eye_trans = LinAlg.translate(eye);
+                    double[][] eye_inv = LinAlg.inverse(eye_trans);
+                    LinAlg.timesEquals(eye_trans, rotation);
+                    LinAlg.timesEquals(eye_trans, eye_inv);
+                    lookat = LinAlg.transform(eye_trans, lookat);
 
-                    // XXX This part totally doesn't work worth shit
-                    /*double[] q = LinAlg.quatCompute(new double[] {0, 0, -1}, vec);
-
-                    // Translate camera in coordinates relative to its current orientation
-                    double[][] cam_trans = LinAlg.translate(LinAlg.resize(xyzrpy, 3));
-                    double[][] cam_xform = LinAlg.quatToMatrix(q);
-
-                    LinAlg.timesEquals(cam_trans, cam_xform);
-
-                    eye = LinAlg.transform(cam_trans, eye);
-                    lookat = LinAlg.transform(cam_trans, lookat);
-                    vl.cameraManager.uiLookAt(eye, lookat, cpos.up, false);*/
-
+                    vl.cameraManager.uiLookAt(eye, lookat, cpos.up, false);
                 }
 
-                if (lastFrame != null) {
+                if (renderFrame != null) {
                     VisWorld.Buffer vb = vw.getBuffer("voxels");
 
-                    ColorPointCloud cpc = new ColorPointCloud(lastFrame);
+                    ColorPointCloud cpc = new ColorPointCloud(renderFrame);
                     va.voxelizePointCloud(cpc, i4);
 
-                    ArrayList<VisChain> voxels = va.getBoxes();
+
+                    /*ArrayList<VisChain> voxels = va.getBoxes();
                     //System.out.println(voxels.size());
 
                     for (VisChain vc: voxels) {
-                        vb.addBack(vc);
-                    }
+                        vb.addBack(new VisLighting(false, vc));
+                    }*/
+                    vb.addBack(va.getPointCloud());
 
                     vb.swap();
                 }
@@ -327,19 +284,26 @@ public class VoxelTest
 
         class MyEventAdapter extends VisEventAdapter
         {
-            // XXX Key events are broken
+            // Deal with repeated key presses
             public boolean keyPressed(VisCanvas vc, VisLayer vl, VisCanvas.RenderInfo rinfo, KeyEvent e)
             {
                 int vk = e.getKeyCode();
-                toggleDirection(vk, true);
+                toggleDirection(vk);
 
                 return true;
+            }
+
+            public boolean keyTyped(VisCanvas vc, VisLayer vl, VisCanvas.RenderInfo rinfo, KeyEvent e)
+            {
+                int vk = e.getKeyCode();
+
+                return false;
             }
 
             public boolean keyReleased(VisCanvas vc, VisLayer vl, VisCanvas.RenderInfo rinfo, KeyEvent e)
             {
                 int vk = e.getKeyCode();
-                toggleDirection(vk, false);
+                //toggleDirection(vk, false);
 
                 return true;
             }
