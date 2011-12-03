@@ -7,6 +7,7 @@ import april.jmat.geom.*;
 
 import java.lang.Double;
 import java.util.ArrayList;
+import rgbdslam.KdTree.Entry;
 
 public class ICP
 {
@@ -14,6 +15,7 @@ public class ICP
     final static int MAX_ITERATIONS = 50; // maximum number of iteration for ICP
     final static double THRESHOLD = 0.1; // threshold for convergence change in normalized error
     final static double DISCARD_D = 10; // threshold for outlier rejection
+    final static double ALPHA = 0.75; // relative weighting between initial estimate and new rbt estimate
     
     private KdTree.SqrEuclid<double[]> kdtree; // kdtree for storing points in B
     
@@ -22,7 +24,7 @@ public class ICP
         
         ArrayList<double[]> PB = cpcB.points;
         
-        // XXX downsample paper claimed downsampling was good
+        // XXX downsample? paper claimed downsampling was good
         
         if (PB.size() > 0) {
            kdtree = new KdTree.SqrEuclid<double[]>(3,PB.size()); // points are in 3 space
@@ -40,10 +42,11 @@ public class ICP
     
     // refines initial estimate of an RBT that alligns points in A with points in B
     // in frame B
-    public double[][] match(ColorPointCloud cpcA, double[][] rbt) {
+    public double[][] match(ColorPointCloud cpcA, double[][] Irbt) {
         int cntr = 0;
         double curerror = 0; // these values will represent an average error
         double preverror = Double.MAX_VALUE;
+        double[][] rbt = Irbt;
         
         // get points stored in colored point clouds
         ArrayList<double[]> PA = cpcA.points;
@@ -65,10 +68,13 @@ public class ICP
             for (double[] A : PAinB) {
             
                 // find nearest point in B for each in A using K-D tree
-                double[] B = kdtree.nearestNeighbor(A,1,false).get(0);
+		// wierd K-D tree object
+                Entry<double[]> BE = kdtree.nearestNeighbor(A,1,false).get(0);
+		double[] B = BE.value; 
             
                 // compute distance between A and B
-                double d = LinAlg.distance(A,B);
+                //double d = LinAlg.distance(A,B);
+		double d = BE.distance;
                 
                 // if distance is small enough, then not an outlier
                 // need this to handle parts that will never overlap
@@ -86,12 +92,30 @@ public class ICP
             curerror = totalError/GoodA.size(); // maintaining an average error
             
             // use these lists to compute updated RBT
-            rbt = AlignPoints3D.align(cora, corb);
+            // http://www.cs.duke.edu/courses/spring07/cps296.2/scribe_notes/lecture24.pdf
+            // this seems to do what I need
+            rbt = weightedSum(AlignPoints3D.align(GoodA,GoodB),Irbt,ALPHA);
             
             cntr++;
         } 
         
         return rbt;
+    }
+    
+    // weight A by alpha and B by 1-alpha
+    // if alpha == 1 then returns A
+    private double[][] weightedSum(double[][] A, double[][] B, double alpha) {
+        
+        assert ((A.length == B.length) && (A[0].length == B[0].length) && (alpha <= 1) && (alpha >= 0));
+        
+        double[][] C = new double[A.length][A[0].length];
+        for (int i = 0; i < A.length; i++) {
+            for (int j = 0; j < A[0].length; j++) {
+                C[i][j] = alpha*A[i][j] + (1-alpha)*B[i][j];
+            }
+        }
+        
+        return C;
     }
     
             
