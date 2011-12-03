@@ -221,23 +221,53 @@ class KinectDemo
                                                            {1,0},
                                                            {0,0}};
 
-                    double[] translate = new double[] {WIDTH, 0, 0};
+                    double[] translateH = new double[] {WIDTH, 0, 0};
+                    double[] translateV = new double[] {0, -HEIGHT, 0};
+
+                    // Plot features
+                    for(int i=0; i<featuresC.size(); i++){
+                        int[] xy = featuresC.get(i).xy();
+                        for(int j=-2; j<3; j++){
+                            for(int k=-2; k<3; k++){     
+                                rgbC.setRGB(xy[0]+j, xy[1]+k, Color.RED.getRGB());
+                            }
+                        }                           
+                    }
+                    for(int i=0; i<featuresL.size(); i++){
+                      int[] xy = featuresL.get(i).xy();
+                      for(int j=-2; j<3; j++){
+                            for(int k=-3; k<3; k++){     
+                                rgbL.setRGB(xy[0]+j, xy[1]+k, Color.BLUE.getRGB());
+                            }
+                        }
+                    }
 
                     // Lines between corresponding features
                     ArrayList<double[]> correspondences = new ArrayList<double[]>();
+                    ArrayList<double[]> features = new ArrayList<double[]>();
                     for(DescriptorMatcher.Match m: matches){
-                      correspondences.add(LinAlg.copyDoubles(m.feature1.xy()));
-                      correspondences.add(LinAlg.copyDoubles(m.feature2.xy()));
+                        double[] f1 = LinAlg.copyDoubles(m.feature1.xy());
+                        double[] f2 = LinAlg.copyDoubles(m.feature2.xy());
+                        f1 = LinAlg.transform(translateH, f1);
+                     
+                        correspondences.add(f1);
+                        correspondences.add(f2);
                     }
+
+                    VisColorData vcd = new VisColorData();
+                    for(int i=0; i<correspondences.size()/2; i++){
+                      vcd.add(ColorUtil.randomColor().getRGB());
+                    }
+
                     VzLines lines = new VzLines(new VisVertexData(correspondences), 
                                                 VzLines.LINES,
-                                                new VzLines.Style(Color.GREEN, 1));
+                                                new VzLines.Style(vcd, 1));
 
 
                     vbIm.addBack(new VzImage(rgbC, VzImage.FLIP));
-                    vbIm.addBack(new VisChain(LinAlg.translate(translate),
+                    vbIm.addBack(new VisChain(LinAlg.translate(translateH),
                                               new VzImage(rgbL, VzImage.FLIP)));
-                    vbIm.addBack(lines);
+                    vbIm.addBack(new VisChain(LinAlg.scale(1, -1, 1), LinAlg.translate(translateV),lines));
 
                     vbIm.swap();
                 } else if (currFrame != null && opts.getBoolean("point-cloud")) {

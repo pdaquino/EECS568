@@ -31,7 +31,7 @@ public class DescriptorMatcher {
      * Constructs a DescriptorMatcher that matches to the features in features1.
      * @param features1 the features in the 1st image
      */
-    public DescriptorMatcher(ArrayList<ImageFeature> features1) {
+    public DescriptorMatcher(List<ImageFeature> features1) {
         if (features1.size() > 0) {
             int descriptorSize = features1.get(0).getDescriptor().length;
             kdtree = new KdTree.SqrEuclid<ImageFeature>(descriptorSize, features1.size());
