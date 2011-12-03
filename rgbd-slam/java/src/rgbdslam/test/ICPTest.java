@@ -43,13 +43,26 @@ public class ICPTest {
             while (true) {
                 if ((this.curCPC != null) && (this.prevCPC != null)) {
                     resetRBT();
-
+                    
+                    double timeInit = 0;
+                    double timeMatch = 0;
+                    
+                    System.out.println("Attempting to match " 
+                            + curCPC.points.size() + " points.");
+                    
+                    
                     // the actual test!
+                    Tic tic = new Tic();
                     icp = new ICP(prevCPC);
+                    timeInit = tic.toc();
+                    tic = new Tic();
                     RBT = icp.match(curCPC, RBT);
+                    timeMatch = tic.toc();
 
                     LinAlg.print(RBT);
                     System.out.print("\n");
+                    System.out.println("KD construction time " + timeInit);
+                    System.out.println("Matching time " + timeMatch);
                 }
 
                 try {
@@ -70,12 +83,12 @@ public class ICPTest {
 
         synchronized public void accumulateFrame(Kinect.Frame frame) {
             if (this.curCPC == null) {
-                ColorPointCloud pointCloud = new ColorPointCloud(frame);
+                ColorPointCloud pointCloud = new ColorPointCloud(frame,10);
                 this.curCPC = pointCloud;
                 this.prevCPC = pointCloud;
             } else {
                 this.prevCPC = curCPC;
-                this.curCPC = new ColorPointCloud(frame);
+                this.curCPC = new ColorPointCloud(frame,10); // need to play with this decimation factor
             }
             notify();
         }
