@@ -2,6 +2,7 @@ package kinect;
 
 import java.util.*;
 import java.lang.Math; // for undistortion
+import java.lang.Double;
 
 import april.jmat.*;
 import april.vis.*;
@@ -62,6 +63,9 @@ public class ColorPointCloud
     static double p2_d = 5.0350940090814270e-3;
     static double k3_d = -1.3053628089976321;
     */
+    
+    // hash map storing mapping between rgb image and depth
+    HashMap<int[], Double> rgbDmap = new HashMap<int[], Double>();
 
     // rotation transformation between IR depth camera and RGB color camera
     static double[][] rotate = new double[][] {{9.9984628826577793e-1, 1.2635359098409581e-3, -1.7487233004436643e-2, 0},
@@ -133,6 +137,9 @@ public class ColorPointCloud
                 points.add(new double[] {px, py, pz});
                 int argb = frame.argb[cy*frame.rgbWidth + cx]; // get the rgb data for the calculated pixel location
 
+                // add to hashmap cx cy which maps to m
+                rgbDmap.put(new int[] {cx, cy}, m);
+                
                 // Lauren's Code
                 /*
                 double px = ((x - dcx) * m/dfx)  + t[0];
@@ -200,6 +207,39 @@ public class ColorPointCloud
             }
         }
     }
+    
+    // projects image coordinates in rgb image into 3D space
+    public double[] Project(double[] Xrgb) {
+        
+        assert (Xrgb.length == 2);
+        int[] key = new int[2];
+        key[0] = (int) Xrgb[0];
+        key[1] = (int) Xrgb[1];
+        
+        if (rgbDmap.containsKey(key)) {
+            double m = rgbDmap.get(key);
+            
+            double[] P = new double[3];
+            P[0] = (Xrgb[0] - Crgbx) * m/Frgbx;
+            P[1] = (Xrgb[1] - Crgby) * m/Frgby;
+            P[2] = m;
+            
+            return P;    
+        } else {
+            return new double[] {-1, -1, -1};
+        }
+    }
+    
+    public ArrayList<double[]> Project(List<double[]> XRGB) {
+        
+        ArrayList<double[]> P = new ArrayList<double[]>();
+        
+        for (double[] Xrgb: XRGB) {
+            double[] p = Project(Xrgb);
+            P.add(p);
+        }
+        return P;
+    } 
 
     public int numPoints()
     {
