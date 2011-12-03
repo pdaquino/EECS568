@@ -8,7 +8,7 @@ import java.util.List;
  * @author pdaquino
  */
 public class OpenCV {
-    private native int cvExtractFeatures(
+    private static native int cvExtractFeatures(
             // in (see cv::GoodFeaturesToTrack)
             int[] image, int imageWidth,
             int maxFeatures, double minQuality, double minDistance,
@@ -27,12 +27,12 @@ public class OpenCV {
     public final static int DEFAULT_BLOCK_SIZE = 3;
 
 
-    public List<ImageFeature> extractFeatures(int[] img, int width) {
+    public static ArrayList<ImageFeature> extractFeatures(int[] img, int width) {
         return extractFeatures(img, width, DEFAULT_MAX_FEATURES,
                 DEFAULT_MIN_QUALITY, DEFAULT_MIN_DISTANCY, DEFAULT_BLOCK_SIZE);
     }
 
-    public List<ImageFeature> extractFeatures(int[] img, int width, int maxFeatures,
+    public static ArrayList<ImageFeature> extractFeatures(int[] img, int width, int maxFeatures,
             double minQuality, int minDistancy, int blockSize) {
         int[] featuresX = new int[maxFeatures];
         int[] featuresY = new int[maxFeatures];
@@ -45,7 +45,7 @@ public class OpenCV {
             throw new OpenCVException("cvExtractFeatures returned " + nFeatures);
         }
 
-        List<ImageFeature> features = new ArrayList<ImageFeature>(nFeatures);
+        ArrayList<ImageFeature> features = new ArrayList<ImageFeature>(nFeatures);
         for(int i = 0; i < nFeatures; i++) {
             int x = featuresX[i];
             int y = featuresY[i];

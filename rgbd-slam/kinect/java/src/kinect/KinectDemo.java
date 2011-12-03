@@ -13,6 +13,8 @@ import april.jmat.*;
 import april.util.*;
 import april.vis.*;
 
+import rgbdslam.*;
+
 class KinectDemo
 {
     Kinect kinect = new Kinect();
@@ -84,14 +86,13 @@ class KinectDemo
         boolean clearToClose = false;
 
         Kinect.Frame currFrame = null;
+        Kinect.Frame lastFrame = null;
 
         GetOpt opts;
 
         public RenderThread(GetOpt opts)
         {
-            
-
-            
+                      
             this.opts = opts;
             System.out.println("Starting render thread");
             JFrame jf = new JFrame("Kinect Demo");
@@ -132,6 +133,7 @@ class KinectDemo
 
         synchronized public void render(Kinect.Frame frame)
         {
+            lastFrame = currFrame;
             currFrame = frame;
             notify();
         }
@@ -142,7 +144,7 @@ class KinectDemo
             VisWorld.Buffer vbPts = vw.getBuffer("points");
 
             while (true) {
-                if (currFrame != null && !opts.getBoolean("point-cloud")) {
+                if (currFrame != null && !opts.getBoolean("point-cloud") && !opts.getBoolean("alignment")) {
                     BufferedImage rgb = currFrame.makeRGB();
                     BufferedImage depth = currFrame.makeDepth();
 
@@ -150,9 +152,8 @@ class KinectDemo
                     int[] argb = currFrame.argb;
                     ArrayList<ImageFeature> features = OpenCV.extractFeatures(argb, 640);
                     for(int i=0; i<features.size(); i++){
-                      int x = features.get(i).x();
-                      int y = features.get(i).y();
-                      rgb.setRGB(x, y, Color.GREEN.getRGB());
+                        int[] xy = features.get(i).xy();
+                        rgb.setRGB(xy[0], xy[1], Color.GREEN.getRGB());
                     }
 
                     double[] xy0 = new double[2];
@@ -187,6 +188,58 @@ class KinectDemo
                     vbIm.addBack(new VzImage(rgb, VzImage.FLIP));
                     vbIm.addBack(new VisChain(LinAlg.translate(translate),
                                               new VzImage(depth, VzImage.FLIP)));
+
+                    vbIm.swap();
+                }
+                else if (currFrame != null && lastFrame != null && !opts.getBoolean("alignment")) {
+                    BufferedImage rgbC = currFrame.makeRGB();
+                    BufferedImage depthC = currFrame.makeDepth();
+                    BufferedImage rgbL = currFrame.makeRGB();
+                    BufferedImage depthL = currFrame.makeDepth();
+
+                    double[] xy0 = new double[2];
+                    double[] xy1 = new double[] {WIDTH, HEIGHT};
+                    double[] xy2 = new double[] {WIDTH, 0};
+                    double[] xy3 = new double[] {2*WIDTH, HEIGHT};
+                    
+                    // Get each frame's features
+                    int[] argbC = currFrame.argb;
+                    int[] argbL = lastFrame.argb;
+                    ArrayList<ImageFeature> featuresC = OpenCV.extractFeatures(argbC, 640);
+                    ArrayList<ImageFeature> featuresL = OpenCV.extractFeatures(argbL, 640);
+                    DescriptorMatcher dm = new DescriptorMatcher(featuresL);
+                    ArrayList<DescriptorMatcher.Match> matches = dm.match(featuresC);
+
+                    double[][] rgbvert = new double[][] {{0,0,0},
+                                                         {WIDTH,0,0},
+                                                         {WIDTH,HEIGHT,0},
+                                                         {0,HEIGHT,0}};
+                    double[][] depthvert = new double[][] {{HEIGHT,0,0},
+                                                           {2*WIDTH,0,0},
+                                                           {2*WIDTH,HEIGHT,0},
+                                                           {WIDTH,HEIGHT,0}};
+                    double[][] texcoords = new double[][] {{0,1},
+                                                           {1,1},
+                                                           {1,0},
+                                                           {0,0}};
+
+                    double[] translate = new double[] {WIDTH, 0, 0};
+
+                    // Lines between corresponding features
+                    ArrayList<double[]> correspondences = new ArrayList<double[]>();
+                    for(DescriptorMatcher.Match m: matches){
+                      correspondences.add(LinAlg.copyDoubles(m.feature1.xy()));
+                      correspondences.add(LinAlg.copyDoubles(m.feature2.xy()));
+                    }
+                    VzLines lines = new VzLines(new VisVertexData(correspondences), 
+                                                VzLines.LINES,
+                                                new VzLines.Style(Color.GREEN, 1));
+
+
+                    vbIm.addBack(new VzImage(rgbC, VzImage.FLIP));
+                    vbIm.addBack(new VisChain(LinAlg.translate(translate),
+                                              new VzImage(rgbL, VzImage.FLIP)));
+                    vbIm.addBack(lines);
 
                     vbIm.swap();
                 } else if (currFrame != null && opts.getBoolean("point-cloud")) {
