@@ -263,7 +263,7 @@ public class VoxelTest
                     VisWorld.Buffer vb = vw.getBuffer("voxels");
 
                     ColorPointCloud cpc = new ColorPointCloud(renderFrame);
-                    va.voxelizePointCloud(cpc, i4);
+                    va.voxelizePointCloud(cpc);//, i4);
 
 
                     ArrayList<VisChain> voxels = va.getBoxes();

@@ -92,6 +92,7 @@ public class ColorPointCloud
 
     public ColorPointCloud(Kinect.Frame frame)
     {
+        assert (frame != null);
         for (int y = 0; y < frame.depthHeight; y++) {
             for (int x = 0; x < frame.depthWidth; x++) {
         /*
