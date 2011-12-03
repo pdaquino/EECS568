@@ -54,7 +54,7 @@ public class ColorPointCloud
     */
     
     // hash map storing mapping between rgb image and depth
-    HashMap<int[], Double> rgbDmap = new HashMap<int[], Double>();
+    static HashMap<int[], Double> rgbDmap = new HashMap<int[], Double>();
 
     // rotation transformation between IR depth camera and RGB color camera
     static double[][] rotate = new double[][] {{9.9984628826577793e-1, 1.2635359098409581e-3, -1.7487233004436643e-2, 0},
@@ -197,7 +197,7 @@ public class ColorPointCloud
     }
     
     // projects image coordinates in rgb image into 3D space
-    public double[] Project(double[] Xrgb) {
+    public static double[] Project(double[] Xrgb) {
         
         assert (Xrgb.length == 2);
         int[] key = new int[2];
@@ -218,7 +218,7 @@ public class ColorPointCloud
         }
     }
     
-    public ArrayList<double[]> Project(List<double[]> XRGB) {
+    public static ArrayList<double[]> Project(List<double[]> XRGB) {
         
         ArrayList<double[]> P = new ArrayList<double[]>();
         
