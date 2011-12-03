@@ -26,7 +26,6 @@ public class RANSAC {
         // computing the model that generates the highest consensus among all points.
         // In our case, the model needs DOF points.
 
-        double[][] bestTransform = new double[3][3];
         List<Match> bestInliers = new ArrayList<Match>();
         double bestConsensus = 0;
 
@@ -64,7 +63,6 @@ public class RANSAC {
 
             if (score > bestConsensus) {
                 bestConsensus = score;
-                bestTransform = transform;
                 bestInliers = currentInliers;
             }
             if (inliers.size() >= MIN_BREAK_EARLY_INLIERS_PERCENTAGE * matches.size()) {
