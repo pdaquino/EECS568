@@ -5,6 +5,8 @@ import java.awt.image.*;
 import javax.imageio.ImageIO;
 import java.io.*;
 
+import april.jmat.*;
+
 public class Kinect
 {    
     static final int WIDTH = 640;
@@ -308,8 +310,8 @@ public class Kinect
         static double[] t_gamma = null;
         public Frame(int argb[], short[] depth)
         {
-            this.argb = argb;
-            this.depth = depth;
+            this.argb = LinAlg.copy(argb);
+            this.depth = Arrays.copyOf(depth, depth.length);
 
             if (t_gamma == null) {
                 this.t_gamma = new double[2048];
