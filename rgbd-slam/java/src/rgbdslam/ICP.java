@@ -9,12 +9,18 @@ import java.lang.Double;
 import java.util.ArrayList;
 import rgbdslam.KdTree.Entry;
 
+/* ICP does no internal downsampling so it assumes that it has been given a 
+ * down sampled point cloud, using all points takes about 1 second for initialization
+ * and 17 seconds to match, using decimation of 10, takes 0.002 seconds to construct
+ * and 0.04 seconds to match
+ */
+
 public class ICP
 {
     // XXX No clue if these are the right values
     final static int MAX_ITERATIONS = 50; // maximum number of iteration for ICP
-    final static double THRESHOLD = 0.1; // threshold for convergence change in normalized error
-    final static double DISCARD_D = 10; // threshold for outlier rejection
+    final static double THRESHOLD = 0.000005; // threshold for convergence change in normalized error
+    final static double DISCARD_D = 0.2; // threshold for outlier rejection
     final static double ALPHA = 0.75; // relative weighting between initial estimate and new rbt estimate
     
     private KdTree.SqrEuclid<double[]> kdtree; // kdtree for storing points in B
@@ -23,8 +29,6 @@ public class ICP
     public ICP(ColorPointCloud cpcB) {
         
         ArrayList<double[]> PB = cpcB.points;
-        
-        // XXX downsample? paper claimed downsampling was good
         
         if (PB.size() > 0) {
            kdtree = new KdTree.SqrEuclid<double[]>(3,PB.size()); // points are in 3 space
@@ -44,14 +48,12 @@ public class ICP
     // in frame B
     public double[][] match(ColorPointCloud cpcA, double[][] Irbt) {
         int cntr = 0;
-        double curerror = 0; // these values will represent an average error
+        double curerror = Double.MAX_VALUE/2; // these values will represent an average error
         double preverror = Double.MAX_VALUE;
         double[][] rbt = Irbt;
         
         // get points stored in colored point clouds
         ArrayList<double[]> PA = cpcA.points;
-        
-        // XXX downsample? paper claimed downsampling was good
                 
         // itterate until change in error becomes small or reach max iterations
         while (((preverror - curerror) > THRESHOLD) && (cntr < MAX_ITERATIONS)) {
@@ -89,7 +91,9 @@ public class ICP
             
             // reassign errors
             preverror = curerror;
+            //System.out.println("Preverror = " + preverror);
             curerror = totalError/GoodA.size(); // maintaining an average error
+            //System.out.println("Curerror = " + curerror);
             
             // use these lists to compute updated RBT
             // http://www.cs.duke.edu/courses/spring07/cps296.2/scribe_notes/lecture24.pdf
@@ -102,7 +106,8 @@ public class ICP
             
             cntr++;
         } 
-        
+        //System.out.println("Performed " + cntr + " Iterations.");
+        //System.out.println("Normalized Error Change: " + (preverror - curerror));
         return rbt;
     }
     

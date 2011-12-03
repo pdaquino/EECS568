@@ -104,19 +104,9 @@ public class ColorPointCloud
                 if (m < 0)
                     continue;
 
-		// undistort depth information for projection into 3D
-                // formula courtesy of http://en.wikipedia.org/wiki/Distortion_(optics)
-		//double r_d = Math.sqrt((x - cx_d)*(x - cx_d) + (y - cy_d)*(y - cy_d));
-                double xu = x;
-		//double xu = x + (x - cx_d)*(k1_d*r_d*r_d + k2_d*Math.pow(r_d,4) + k3_d*Math.pow(r_d,6)) +
-                //     (p1_d*(r_d*r_d + 2*(x - cx_d)*(x - cx_d)) + 2*p2_d*(x - cx_d)*(y - cy_d));
-                double yu = y;
-                //double yu = y + (y - cy_d)*(k1_d*r_d*r_d + k2_d*Math.pow(r_d,4) + k3_d*Math.pow(r_d,6)) +
-                //     (p2_d*(r_d*r_d + 2*(y - cy_d)*(x - cx_d)) + 2*p1_d*(x - cx_d)*(y - cy_d));
-
                 // points in 3D
-                double px = (xu - Cirx) * m/Firx;
-                double py = (yu - Ciry) * m/Firy;
+                double px = (x - Cirx) * m/Firx;
+                double py = (y - Ciry) * m/Firy;
                 double pz = m;
 
 
@@ -135,22 +125,6 @@ public class ColorPointCloud
                 // project 3D point into rgb image frame
                 cx = (int) ((cxyz[0] * Frgbx / cxyz[2]) + Crgbx);
                 cy = (int) ((cxyz[1] * Frgby / cxyz[2]) + Crgby);
-
-                /*
-                // now need to distort the points to see where they end up in the RGB image
-                // or could undistort all of the RGB image and then do the pixel correspondance <= this is better
-                // the below implementation attempts to reverse the distortion equation using the actual pixel location
-                // as an approximation of the distorted location but this isn't as accurate
-                r_rgb = Math.sqrt((cx - cx_rgb)*(cx - cx_rgb) + (cy - cy_rgb)*(cy - cy_rgb));
-		cxd = cx - (cx - cx_rgb)*(k1_rgb*r_rgb*r_rgb + k2_rgb*Math.pow(r_rgb,4) + k3_rgb*Math.pow(r_rgb,6)) -
-                     (p1_rgb*(r_rgb*r_rgb + 2*(cx - cx_rgb)*(cx - cx_rgb)) + 2*p2_rgb*(cx - cx_rgb)*(cy - cy_rgb));
-	        cyd = cy - (cy - cy_rgb)*(k1_rgb*r_rgb*r_rgb + k2_rgb*Math.pow(r_rgb,4) + k3_rgb*Math.pow(r_rgb,6)) -
-                     (p1_rgb*(r_rgb*r_rgb + 2*(cy - cy_rgb)*(cy - cy_rgb)) + 2*p2_rgb*(cx - cx_rgb)*(cy - cy_rgb));
-                cx = cxd;
-                cy = cyd;
-                // need a way to handle points that end up outside of the color image, could return just a gray value
-                // and also want a way to handle points from color image that don't get depth information
-                */
 
                 assert (!(cx < 0 || cx > frame.rgbWidth));
                 assert (!(cy < 0 || cy > frame.rgbHeight));
@@ -177,6 +151,48 @@ public class ColorPointCloud
                     argb = frame.argb[mody*WIDTH + modx];
                 }
                 */
+                colors.add(argb);
+                int abgr = (argb & 0xff000000) | ((argb & 0xff) << 16) | (argb & 0xff00) | ((argb >> 16) & 0xff);
+                vcd.add(abgr);
+            }
+        }
+    }
+
+    // alternate constructor for making a decimated point cloud
+    // 1 is full resolution, 10 would be every 10 pixels
+    // XXX fix for aliasing!
+    public ColorPointCloud(Kinect.Frame frame, int Dfactor) {
+
+        for (int y = 0; y < frame.depthHeight; y = y + Dfactor) {
+            for (int x = 0; x < frame.depthWidth; x = x + Dfactor) {
+
+                // Calculate point place in world
+                double m = frame.depthToMeters(frame.depth[y*frame.depthWidth + x]);
+                if (m < 0)
+                    continue;
+
+                // points in 3D
+                double px = (x - Cirx) * m/Firx;
+                double py = (y - Ciry) * m/Firy;
+                double pz = m;
+
+                // Calculate color of point
+                int cx = 0, cy = 0;
+                // rotation transformation to transform from IR frame to RGB frame
+                double[] xyz = new double[] {px, py, pz};
+                double[] cxyz = LinAlg.transform(rotate, xyz);
+                cxyz = LinAlg.transform(trans, cxyz);
+
+                // project 3D point into rgb image frame
+                cx = (int) ((cxyz[0] * Frgbx / cxyz[2]) + Crgbx);
+                cy = (int) ((cxyz[1] * Frgby / cxyz[2]) + Crgby);
+
+                assert (!(cx < 0 || cx > frame.rgbWidth));
+                assert (!(cy < 0 || cy > frame.rgbHeight));
+
+                points.add(new double[] {px, py, pz});
+                int argb = frame.argb[cy*frame.rgbWidth + cx]; // get the rgb data for the calculated pixel location
+
                 colors.add(argb);
                 int abgr = (argb & 0xff000000) | ((argb & 0xff) << 16) | (argb & 0xff00) | ((argb >> 16) & 0xff);
                 vcd.add(abgr);
