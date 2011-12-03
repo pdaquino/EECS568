@@ -1,5 +1,7 @@
 package kinect;
 
+import rgbdslam.*;
+
 import java.awt.*;
 import java.awt.image.*;
 import java.awt.event.*;
@@ -143,6 +145,15 @@ class KinectDemo
                 if (currFrame != null && !opts.getBoolean("point-cloud")) {
                     BufferedImage rgb = currFrame.makeRGB();
                     BufferedImage depth = currFrame.makeDepth();
+
+                    // Plot features as green pixels
+                    int[] argb = currFrame.argb;
+                    ArrayList<ImageFeature> features = OpenCV.extractFeatures(argb, 640);
+                    for(int i=0; i<features.size(); i++){
+                      int x = features.get(i).x();
+                      int y = features.get(i).y();
+                      rgb.setRGB(x, y, Color.GREEN.getRGB());
+                    }
 
                     double[] xy0 = new double[2];
                     double[] xy1 = new double[] {WIDTH, HEIGHT};
