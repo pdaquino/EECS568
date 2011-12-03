@@ -41,7 +41,6 @@ public class ICPTest {
 
         synchronized public void run() {
             while (true) {
-                System.out.print("bob");
                 if ((this.curCPC != null) && (this.prevCPC != null)) {
                     resetRBT();
 
@@ -50,7 +49,6 @@ public class ICPTest {
                     RBT = icp.match(curCPC, RBT);
 
                     LinAlg.print(RBT);
-                    System.out.println("Oh hai");
                     System.out.print("\n");
                 }
 
@@ -63,7 +61,11 @@ public class ICPTest {
 
         // reset RBT estimate to identity
         synchronized private void resetRBT() {
-            RBT = new double[][]{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}};
+            RBT = new double[][] 
+                {{0.9848, -0.1736, 0, 0}, 
+                {0.1736, 0.9848, 0, 0}, 
+                {0, 0, 1, 0}, 
+                {0, 0, 0, 1}};
         }
 
         synchronized public void accumulateFrame(Kinect.Frame frame) {
