@@ -5,14 +5,18 @@ import java.util.List;
 import rgbdslam.KdTree.Entry;
 
 /**
- * Class that matches SIFT descriptors between two frames.
+ * Class that matches feature descriptors between two frames.
  * @author pdaquino
  */
-public class SiftMatcher {
+public class DescriptorMatcher {
 
     private KdTree.SqrEuclid<ImageFeature> kdtree;
     
-    public class Match {
+    /**
+     * Represents a match between features in two images. We are matching
+     * features in features2 to features1.
+     */
+    public static class Match {
         public ImageFeature feature1;
         public ImageFeature feature2;
         public double distance;
@@ -23,8 +27,11 @@ public class SiftMatcher {
         }
     }
 
-    // Constructs a SiftMatcher that matches to the features in features1
-    public SiftMatcher(List<ImageFeature> features1) {
+    /**
+     * Constructs a DescriptorMatcher that matches to the features in features1.
+     * @param features1 the features in the 1st image
+     */
+    public DescriptorMatcher(List<ImageFeature> features1) {
         if (features1.size() > 0) {
             int descriptorSize = features1.get(0).getDescriptor().length;
             kdtree = new KdTree.SqrEuclid<ImageFeature>(descriptorSize, features1.size());
@@ -37,7 +44,11 @@ public class SiftMatcher {
         }
     }
     
-    // Return the matches of features2 in features1
+    /**
+     * Return the matches of features2 in features1
+     * @param features2 the features that are going to be matched in feature1
+     * @return a list of matches
+     */
     public List<Match> match(List<ImageFeature> features2) {
         List<Match> matches = new ArrayList<Match>(features2.size());
         

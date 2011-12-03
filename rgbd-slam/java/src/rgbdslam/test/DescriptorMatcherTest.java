@@ -12,7 +12,7 @@ import rgbdslam.*;
  *
  * @author pdaquino
  */
-public class SiftMatcherTest {
+public class DescriptorMatcherTest {
     // pass it the name of an image and it will compute the features in it
 
     public static void main(String[] args) throws IOException {
@@ -43,8 +43,8 @@ public class SiftMatcherTest {
             System.out.println(features1.size() + " features found.");
 
             tic = new Tic();
-            List<SiftMatcher.Match> matches = new SiftMatcher(features1).match(features2);
-            for (SiftMatcher.Match match : matches) {
+            List<DescriptorMatcher.Match> matches = new DescriptorMatcher(features1).match(features2);
+            for (DescriptorMatcher.Match match : matches) {
                 if (!Arrays.equals(match.feature1.xy(), match.feature2.xy())) {
                     System.err.println("Wrong match!");
                 }
