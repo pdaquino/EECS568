@@ -13,8 +13,8 @@ public class ICP
 {
     // XXX No clue if these are the right values
     final static int MAX_ITERATIONS = 50; // maximum number of iteration for ICP
-    final static double THRESHOLD = 0.1; // threshold for convergence change in normalized error
-    final static double DISCARD_D = 10; // threshold for outlier rejection
+    final static double THRESHOLD = 0.000005; // threshold for convergence change in normalized error
+    final static double DISCARD_D = 0.2; // threshold for outlier rejection
     final static double ALPHA = 0.75; // relative weighting between initial estimate and new rbt estimate
     
     private KdTree.SqrEuclid<double[]> kdtree; // kdtree for storing points in B
@@ -44,7 +44,7 @@ public class ICP
     // in frame B
     public double[][] match(ColorPointCloud cpcA, double[][] Irbt) {
         int cntr = 0;
-        double curerror = 0; // these values will represent an average error
+        double curerror = Double.MAX_VALUE/2; // these values will represent an average error
         double preverror = Double.MAX_VALUE;
         double[][] rbt = Irbt;
         
@@ -89,7 +89,9 @@ public class ICP
             
             // reassign errors
             preverror = curerror;
+            //System.out.println("Preverror = " + preverror);
             curerror = totalError/GoodA.size(); // maintaining an average error
+            //System.out.println("Curerror = " + curerror);
             
             // use these lists to compute updated RBT
             // http://www.cs.duke.edu/courses/spring07/cps296.2/scribe_notes/lecture24.pdf
@@ -102,7 +104,8 @@ public class ICP
             
             cntr++;
         } 
-        
+        //System.out.println("Performed " + cntr + " Iterations.");
+        //System.out.println("Normalized Error Change: " + (preverror - curerror));
         return rbt;
     }
     
