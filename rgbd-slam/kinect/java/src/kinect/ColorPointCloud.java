@@ -149,6 +149,7 @@ public class ColorPointCloud
     
     // alternate constructor for making a decimated point cloud
     // 1 is full resolution, 10 would be every 10 pixels
+    // XXX fix for aliasing!
     public ColorPointCloud(Kinect.Frame frame, int Dfactor) {
         
         for (int y = 0; y < frame.depthHeight; y = y + Dfactor) {
