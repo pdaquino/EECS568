@@ -13,8 +13,6 @@ import april.jmat.*;
 import april.util.*;
 import april.vis.*;
 
-import rgbdslam.*;
-
 class KinectDemo
 {
     Kinect kinect = new Kinect();
@@ -191,7 +189,7 @@ class KinectDemo
 
                     vbIm.swap();
                 }
-                else if (currFrame != null && lastFrame != null && !opts.getBoolean("alignment")) {
+                else if (currFrame != null && lastFrame != null && opts.getBoolean("alignment")) {
                     BufferedImage rgbC = currFrame.makeRGB();
                     BufferedImage depthC = currFrame.makeDepth();
                     BufferedImage rgbL = currFrame.makeRGB();
@@ -270,6 +268,7 @@ class KinectDemo
     {
         GetOpt opts = new GetOpt();
         opts.addBoolean((char)0,"point-cloud",false,"Render colored point cloud");
+        opts.addBoolean((char)0,"alignment",false,"Show alignment between features");
         opts.addBoolean('h', "help", false, "Show this help screen");
 
         if (!opts.parse(args)) {
