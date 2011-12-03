@@ -94,7 +94,11 @@ public class ICP
             // use these lists to compute updated RBT
             // http://www.cs.duke.edu/courses/spring07/cps296.2/scribe_notes/lecture24.pdf
             // this seems to do what I need
-            rbt = weightedSum(AlignPoints3D.align(GoodA,GoodB),Irbt,ALPHA);
+	    rbt = AlignPoints3D.align(GoodA,GoodB);
+
+	    // XXX Paper uses the below formulation for their estimate of the rbt, but this will 
+	    // yield a different formulation for the error above
+            //rbt = weightedSum(AlignPoints3D.align(GoodA,GoodB),Irbt,ALPHA);
             
             cntr++;
         } 
