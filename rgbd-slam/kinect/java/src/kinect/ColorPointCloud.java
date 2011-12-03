@@ -13,6 +13,7 @@ public class ColorPointCloud
     public VisColorData vcd = new VisColorData();
 
     // John's Calibration Data
+    /*
     // RGB Intrinsic Camera Parameters
     static final double Frgbx = 521.67090; // focal lengths
     static final double Frgby = 521.23461;
@@ -23,9 +24,20 @@ public class ColorPointCloud
     static final double Firy = 582.28721;
     static final double Cirx = 317.73984; // optical axis
     static final double Ciry = 248.91467;
+    */
 
     // Camera calibration numbers courtesy of Nicolas Burrus
     // parameters for rgb color camera
+    static double Frgbx = 5.2921508098293293e2; // focal length
+    static double Frgby = 5.2556393630057437e2;
+    static double Crgbx = 3.2894272028759258e2; // camera center in pixels
+    static double Crgby = 2.6748068171871557e2;
+    // parameters for IR depth camera
+    static double Firx = 5.9421434211923247e2; // focal length
+    static double Firy = 5.9104053696870778e2;
+    static double Cirx = 3.3930780975300314e2; // camera center in pixels
+    static double Ciry = 2.4273913761751615e2;
+
     /*
     static double fx_rgb = 5.2921508098293293e2; // focal length
     static double fy_rgb = 5.2556393630057437e2;
@@ -58,7 +70,8 @@ public class ColorPointCloud
                                         {0,0,0,1}};
     static double[][] trans = LinAlg.translate(new double[] {1.9985242312092553e-2,
                                                       -7.4423738761617583e-4,
-                                                      -1.0916736334336222e-2});    // Lauren's Code
+                                                      -1.0916736334336222e-2});
+     // Lauren's Code
     /*
     static final int WIDTH = Kinect.WIDTH;
     static final int HEIGHT = Kinect.HEIGHT;

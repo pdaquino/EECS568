@@ -6,15 +6,12 @@ import javax.imageio.ImageIO;
 import java.io.*;
 
 public class Kinect
-{
-    static final int RGB_WIDTH = 640;
-    static final int RGB_HEIGHT = 480;
-    static final int DEPTH_WIDTH = 632;
-    static final int DEPTH_HEIGHT = 480;
-    
+{    
     static final int WIDTH = 640;
     static final int HEIGHT = 480;
 
+    // John's Calibration Data
+    /*
     // RGB Intrinsic Camera Parameters
     static final double Frgbx = 521.67090; // focal lengths
     static final double Frgby = 521.23461;
@@ -32,6 +29,25 @@ public class Kinect
     // assume 0 skew
     // distortion parameters 1 2 and 5 are radial terms, 3 and 4 are tangential
     static final double[] Kir = {-0.09234, 0.31571, 0.00037, -0.00425, 0};
+    */
+
+    // Camera calibration numbers courtesy of Nicolas Burrus
+    // parameters for rgb color camera
+    static double Frgbx = 5.2921508098293293e2; // focal length
+    static double Frgby = 5.2556393630057437e2; 
+    static double Crgbx = 3.2894272028759258e2; // camera center in pixels
+    static double Crgby = 2.6748068171871557e2;
+    static double[] Krgb = {2.6451622333009589e-1,  -8.3990749424620825e-1, 
+	-1.9922302173693159e-3, 1.4371995932897616e-3, 9.1192465078713847e-1};
+
+    // parameters for IR depth camera
+    static double Firx = 5.9421434211923247e2; // focal length
+    static double Firy = 5.9104053696870778e2;
+    static double Cirx = 3.3930780975300314e2; // camera center in pixels
+    static double Ciry = 2.4273913761751615e2;
+    static double[] Kir = {-2.6386489753128833e-1, 9.9966832163729757e-1,-7.6275862143610667e-4, 
+	5.0350940090814270e-3, -1.3053628089976321};  
+   
     
     // Frame buffers
     int[] rgb_buf = null;
@@ -121,20 +137,20 @@ public class Kinect
     // rectifies distorted image from color camera using camera parameters
     public synchronized int[] rectifyRGB(int[] Dargb) {
         
-        int[] Rargb = new int[RGB_WIDTH*RGB_HEIGHT]; // recified image
+        int[] Rargb = new int[WIDTH*HEIGHT]; // recified image
         // for every pixel in Rargb 
-        for (int xp = 0; xp < RGB_WIDTH; xp++) {
+        for (int xp = 0; xp < WIDTH; xp++) {
             double x = (xp-Crgbx)/Frgbx; // compute normalized point x
-            for (int yp = 0; yp < RGB_HEIGHT; yp++) {
+            for (int yp = 0; yp < HEIGHT; yp++) {
                 double y = (yp - Crgby)/Frgby; // compute normalized point y
                 double[] XND = compXNDrgb(x,y); // apply distortion model
                 int xdp = (int) Math.floor(Frgbx*XND[0] + Crgbx); // compute pixel location
                 int ydp = (int) Math.floor(Frgby*XND[1] + Crgby); 
                 // if we have ended up outside of the image
-                if ((xdp < 0) || (xdp >= RGB_WIDTH) || (ydp < 0) || (ydp >= RGB_HEIGHT)) {
-                    Rargb[RGB_WIDTH*yp+xp] = 0xff000000; // set to black
+                if ((xdp < 0) || (xdp >= WIDTH) || (ydp < 0) || (ydp >= HEIGHT)) {
+                    Rargb[WIDTH*yp+xp] = 0xff000000; // set to black
                 } else {
-                    Rargb[RGB_WIDTH*yp+xp] = Dargb[RGB_WIDTH*ydp+xdp];
+                    Rargb[WIDTH*yp+xp] = Dargb[WIDTH*ydp+xdp];
                 }
             }
         }
@@ -146,19 +162,19 @@ public class Kinect
     // parameters were obtained from the 640x480 so should be able to modify this image
     private synchronized short[] rectifyD(short[] Dd) {
         
-        short[] Rd = new short[RGB_WIDTH*RGB_HEIGHT]; // rectified image
-        for (int xp = 0; xp < RGB_WIDTH; xp++) {
+        short[] Rd = new short[WIDTH*HEIGHT]; // rectified image
+        for (int xp = 0; xp < WIDTH; xp++) {
             double x = (xp-Cirx)/Firx; // compute normalized point x
-            for (int yp = 0; yp < RGB_HEIGHT; yp++) {
+            for (int yp = 0; yp < HEIGHT; yp++) {
                 double y = (yp - Ciry)/Firy; // compute normalized point y
                 double[] XND = compXNDrgb(x,y); // apply distortion model
                 int xdp = (int) Math.floor(Firx*XND[0] + Cirx); // compute pixel location
                 int ydp = (int) Math.floor(Firy*XND[1] + Ciry); 
                 // if we have ended up outside of the image
-                if ((xdp < 0) || (xdp >= RGB_WIDTH) || (ydp < 0) || (ydp >= RGB_HEIGHT)) {
-                    Rd[RGB_WIDTH*yp+xp] = 2047; // set to no information
+                if ((xdp < 0) || (xdp >= WIDTH) || (ydp < 0) || (ydp >= HEIGHT)) {
+                    Rd[WIDTH*yp+xp] = 2047; // set to no informatiom
                 } else {
-                    Rd[RGB_WIDTH*yp+xp] = Dd[RGB_WIDTH*ydp+xdp];
+                    Rd[WIDTH*yp+xp] = Dd[WIDTH*ydp+xdp];
                 }
             }
         }

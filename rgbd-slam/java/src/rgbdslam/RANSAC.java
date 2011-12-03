@@ -3,169 +3,120 @@ package rgbdslam;
 import java.util.*;
 import april.jmat.*;
 import april.jmat.geom.*;
-import kinect.*;
+import rgbdslam.DescriptorMatcher.Match;
 
-public class RANSAC
-{
+public class RANSAC {
+
     final static double MIN_DIST = 5;  // In meters, min distance for two features to be compared
     final static int DOF = 3;           // Degrees of freedom
-    final static int NUM_ITER = 100000;
-    final static double BIN_SIZE = 0.1;
+    final static int NUM_ITER = 1000;
+    final static double MAX_SQ_CONSENSUS_DISTANCE = 100; // XXX does this make sense? I'm thinking 10cm of error, but gotta check the units
+    final static double MIN_BREAK_EARLY_INLIERS_PERCENTAGE = 0.8;
+    private static Random rand = new Random(83247983);
 
-    public static double[][] RANSAC(ArrayList<Feature> framea, ArrayList<Feature> frameb)//, ArrayList<double[]> pointsa, ArrayList<double[]> pointsb)
-    {
+    /**
+     * Computes the best RBT between the ImageFeatures in the list matches, trying to identify
+     * and exclude outliers. The RBT returned is the one that fits all inliers best.
+     * @param matches the ImageFeature matches that are to be aligned
+     * @param inliers this list, which must not be null, will be filled with the inliers
+     * @return the RBT that best aligns all of the inlier matches
+     */
+    public static double[][] RANSAC(List<Match> matches, List<Match> inliers) {
+        // RANSAC works by choosing the minimum number of points needed to fit a model, and then
+        // computing the model that generates the highest consensus among all points.
+        // In our case, the model needs DOF points.
+
         double[][] bestTransform = new double[3][3];
-        if(framea.size() < DOF || frameb.size() < DOF){ 
-        return bestTransform;
-    }
+        List<Match> bestInliers = new ArrayList<Match>();
+        double bestConsensus = 0;
 
-    Random rand = new Random(83247983);
-    double bestConsensus = 0;
+        // The loop stops either at NUM_ITER iterations, or when MIN_BREAK_EARLY_INLIERS_PERCENTAGE of
+        // the whole data set is considered to be an inlier.
+        for (int iter = 0; iter < NUM_ITER; iter++) {
 
-    // Get locations of all features
-    ArrayList<double[]> pointsa = new ArrayList<double[]>();
-    ArrayList<double[]> pointsb = new ArrayList<double[]>();
-    for(Feature f: framea){
-        pointsa.add(f.getXYZ());
-    }
-    for(Feature f: frameb){
-        pointsb.add(f.getXYZ());
-    }
- 
-    // XXX Not sure this belongs here, could we pass in bins instead?
-    BinPoints binb = new BinPoints(pointsb, BIN_SIZE);
-    BinPoints bina = new BinPoints(pointsa, BIN_SIZE);       
+            // gets DOF indices out of the whole list of matches
+            int[] idx = getRandomIndices(matches.size());
+            List<Match> currentInliers = new ArrayList<Match>(matches.size());
 
-    for(int iter=0; iter<NUM_ITER; iter++)
-    {
-        // Get DOF number of different features
-        int[] idx = new int[DOF];
-        for(int i=0; i<DOF; i++){
-            boolean copy;
-            do{
-                idx[i] = rand.nextInt(frameb.size());
-                    
-                copy = false;
-                for(int j=0; j<i; j++){
-                    if( idx[i] == idx[j]) { 
-                        copy = true;
-                    }
-                }
-            } while(copy == true);
-        }
+            // Find corresponding locations and 3D transform for the points forming the model
+            ArrayList<double[]> cora = new ArrayList<double[]>();
+            ArrayList<double[]> corb = new ArrayList<double[]>();
 
-        // Find corresponding locations and 3D transform
-        ArrayList<double[]> cora = new ArrayList<double[]>();
-        ArrayList<double[]> corb = new ArrayList<double[]>();
-
-        for(int i=0; i<DOF; i++){
-            Feature b = frameb.get(idx[i]);
-            corb.add(b.getXYZ());
-            cora.add(getCorresponding(framea, b).getXYZ());
-        }
-        double[][] transform = AlignPoints3D.align(cora, corb);
-
-        // Transform points in a and b and check bins
-        // XXX not sure if we want to stick with this - gonna take forever
-        int score = 0;
-        for (double[] a: pointsa) {
-            if (binb.hit(LinAlg.transform(transform, a)))
-            score++;
-        }
-        for (double[] b: pointsb) {
-            if (bina.hit(LinAlg.transformInverse(transform, b)))
-                score++;
+            for (int i = 0; i < DOF; i++) {
+                Match match = matches.get(idx[i]);
+                cora.add(match.feature1.xyz());
+                corb.add(match.feature2.xyz());
             }
+
+            // compute the RBT from feature1 to feature2
+            double[][] transform = AlignPoints3D.align(cora, corb);
+
+            // we now compute the score for this model. one match votes "yes" if the current RBT makes its
+            // feature on the first frame align with the one on the second frame.
+            int score = 0;
+            for (Match match : matches) {
+                double[] predictedFeature2 = LinAlg.transform(transform, match.feature1.xyz());
+                if (LinAlg.squaredDistance(predictedFeature2, match.feature2.xyz()) < MAX_SQ_CONSENSUS_DISTANCE) {
+                    score++;
+                    currentInliers.add(match);
+                }
+            }
+
             if (score > bestConsensus) {
                 bestConsensus = score;
                 bestTransform = transform;
+                bestInliers = currentInliers;
             }
-            if (bestConsensus >= .8*(pointsa.size()+pointsb.size())) {
-                return bestTransform;
+            if (inliers.size() >= MIN_BREAK_EARLY_INLIERS_PERCENTAGE * matches.size()) {
+                break;
             }
-        }
-        return bestTransform;
-    }
-
-    private static Feature getCorresponding(ArrayList<Feature> features, Feature f)
-    {
-        double[] fxyz = f.getXYZ();
-        double[] featureVec = f.getFeatures();
-
-        // XXX - Not sure about relationship between distance and feature distance
-        Feature best = null;
-        double bestDist = 1000000;
-        double minDiff = 1000000;
-        for(Feature fcompare: features){
-            if(LinAlg.distance(fxyz, fcompare.getXYZ()) < MIN_DIST){
-                if(featureDist(featureVec, fcompare.getFeatures()) < minDiff){
-                    best = fcompare;
-                    bestDist = LinAlg.distance(fxyz, fcompare.getXYZ());
-                    minDiff = featureDist(featureVec, fcompare.getFeatures());
-                }
-            }
-        }
-        return best;
-    }
-
-    // Returns sum of squared differences for each element in vector
-    private static double featureDist(double[] f1, double[] f2)
-    {
-        assert(f1.length == f2.length);
-
-        double dist = 0;
-        for(int i=0; i<f1.length; i++){
-            dist += (f1[i] - f2[i])*(f1[i] - f2[i]);
-        }
-
-        return dist;
-    }
-
-
-    public static void main(String[] args)
-    {
-        Random rand = new Random(3948723);
-        int numFeatures = 1000;
-        ArrayList<Feature> fakeFeatures = new ArrayList<Feature>();
-        ArrayList<Feature> fakeRotated = new ArrayList<Feature>();
-
-        double[] xyt = new double[3];
-        xyt[0] = .25;
-        xyt[1] = .35;
-        xyt[2] = Math.PI/3;
-        System.out.println("Actual transformation: "+xyt[0]+", "+xyt[1]+", "+xyt[2]);
-
-        for(int i=0; i<numFeatures; i++){
-            double[] featureVec = new double[128];
-            for(int j=0; j<featureVec.length; j++){
-                featureVec[j] = rand.nextDouble();
-            }
-
-            double[] xyz = new double[3];
-            xyz[0] = rand.nextDouble()*6 - 3;
-            xyz[1] = rand.nextDouble()*6 - 3;
-            xyz[2] = rand.nextDouble()*6 - 3;
-            double[] xyzR = LinAlg.transform(xyt, xyz);
-
-            Feature f = new Feature(xyz, featureVec);
-            Feature fR = new Feature(xyzR, featureVec);
-            fakeFeatures.add(f);
-            fakeRotated.add(fR);
         }
         
-        double[][] guess = RANSAC(fakeFeatures, fakeRotated);
-    
-        double ep = 0.000001; // Acceptable error
-        for(int i=0; i<numFeatures; i++){
-            double[] original = fakeFeatures.get(i).getXYZ();
-            double[] transformed = LinAlg.transform(guess, original);
-            double[] rotated = fakeRotated.get(i).getXYZ();
+        inliers.clear();
+        inliers.addAll(bestInliers);
+        return getAlignment(inliers);
+    }
 
-            double diff0 = Math.abs(transformed[0]-rotated[0]);
-            double diff1 = Math.abs(transformed[1]-rotated[1]);
-            double diff2 = Math.abs(transformed[2]-rotated[2]);
-            assert(diff0 < ep && diff1 < ep && diff2 < ep);
+    /**
+     * Computes the best alignment between a list of matches (used to compute the final RBT between all
+     * inliers).
+     * @param matches
+     * @return 
+     */
+    private static double[][] getAlignment(List<Match> matches) {
+        ArrayList<double[]> cora = new ArrayList<double[]>();
+        ArrayList<double[]> corb = new ArrayList<double[]>();
+
+        for (Match match : matches) {
+            cora.add(match.feature1.xyz());
+            corb.add(match.feature2.xyz());
         }
 
+        return AlignPoints3D.align(cora, corb);
     }
+
+    /**
+     * Returns a list of DOF indices between 0 and n.
+     * @param n
+     * @return 
+     */
+    protected static int[] getRandomIndices(int n) {
+        // Get DOF number of different features
+        int[] idx = new int[DOF];
+        for (int i = 0; i < DOF; i++) {
+            boolean copy;
+            do {
+                idx[i] = rand.nextInt(n);
+
+                copy = false;
+                for (int j = 0; j < i; j++) {
+                    if (idx[i] == idx[j]) {
+                        copy = true;
+                    }
+                }
+            } while (copy == true);
+        }
+        return idx;
+    }
+
 }

@@ -1,4 +1,4 @@
-package rgbdslam;
+package rgbdslam.test;
 
 import java.util.*;
 import java.awt.*;
@@ -11,6 +11,7 @@ import april.jmat.geom.*;
 import april.util.*;
 
 import kinect.*;
+import rgbdslam.VoxelArray;
 
 public class VoxelTest
 {
