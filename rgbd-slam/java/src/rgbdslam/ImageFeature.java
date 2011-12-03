@@ -36,6 +36,10 @@ public class ImageFeature {
         return xy;
     }
 
+    public double[] xyAsDouble() {
+        return new double[] { xy[0], xy[1] };
+    }
+
     /**
      * Returns the position of the feature in world coordinates, with depth
      * information.
