@@ -9,6 +9,12 @@ import java.lang.Double;
 import java.util.ArrayList;
 import rgbdslam.KdTree.Entry;
 
+/* ICP does no internal downsampling so it assumes that it has been given a 
+ * down sampled point cloud, using all points takes about 1 second for initialization
+ * and 17 seconds to match, using decimation of 10, takes 0.002 seconds to construct
+ * and 0.04 seconds to match
+ */
+
 public class ICP
 {
     // XXX No clue if these are the right values
@@ -23,8 +29,6 @@ public class ICP
     public ICP(ColorPointCloud cpcB) {
         
         ArrayList<double[]> PB = cpcB.points;
-        
-        // XXX downsample? paper claimed downsampling was good
         
         if (PB.size() > 0) {
            kdtree = new KdTree.SqrEuclid<double[]>(3,PB.size()); // points are in 3 space
@@ -50,8 +54,6 @@ public class ICP
         
         // get points stored in colored point clouds
         ArrayList<double[]> PA = cpcA.points;
-        
-        // XXX downsample? paper claimed downsampling was good
                 
         // itterate until change in error becomes small or reach max iterations
         while (((preverror - curerror) > THRESHOLD) && (cntr < MAX_ITERATIONS)) {
