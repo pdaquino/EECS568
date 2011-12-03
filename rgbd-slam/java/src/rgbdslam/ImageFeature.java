@@ -5,12 +5,11 @@ package rgbdslam;
  * @author pdaquino
  */
 public class ImageFeature {
-    private int x, y; // pixel coordinates
+    private int[] xy; // pixel coordinates
     private double[] descriptor; // sift descriptor;
     
     public ImageFeature(int x, int y, double[] descriptor) {
-        this.x = x;
-        this.y = y;
+        this.xy = new int[] { x, y };
         this.descriptor = descriptor;
     }
 
@@ -19,11 +18,15 @@ public class ImageFeature {
     }
 
     public int x() {
-        return x;
+        return xy[0];
     }
 
     public int y() {
-        return y;
+        return xy[1];
+    }
+    
+    public int[] xy() {
+        return xy;
     }
     
     
