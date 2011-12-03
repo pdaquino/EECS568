@@ -265,13 +265,14 @@ public class VoxelTest
                     va.voxelizePointCloud(cpc, i4);
 
 
-                    /*ArrayList<VisChain> voxels = va.getBoxes();
-                    //System.out.println(voxels.size());
+                    ArrayList<VisChain> voxels = va.getBoxes();
+                    System.out.println(voxels.size());
 
+                    /*
                     for (VisChain vc: voxels) {
                         vb.addBack(new VisLighting(false, vc));
                     }*/
-                    vb.addBack(va.getPointCloud());
+                    vb.addBack(new VisLighting(false, va.getPointCloud()));
 
                     vb.swap();
                 }

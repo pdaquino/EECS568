@@ -11,24 +11,24 @@ public class ColorPointCloud
     public ArrayList<double[]> points = new ArrayList<double[]>();
     public ArrayList<Integer> colors = new ArrayList<Integer>();
     public VisColorData vcd = new VisColorData();
-    
+
     // John's Calibration Data
     // RGB Intrinsic Camera Parameters
     static final double Frgbx = 521.67090; // focal lengths
     static final double Frgby = 521.23461;
     static final double Crgbx = 300; // optial axis 312.82654
-    static final double Crgby = 272; //258.60812 
+    static final double Crgby = 272; //258.60812
     // IR Intrinsic Camera Parameters
     static final double Firx = 583.56911; // focal lengths
-    static final double Firy = 582.28721; 
+    static final double Firy = 582.28721;
     static final double Cirx = 317.73984; // optical axis
     static final double Ciry = 248.91467;
-       
+
     // Camera calibration numbers courtesy of Nicolas Burrus
     // parameters for rgb color camera
     /*
     static double fx_rgb = 5.2921508098293293e2; // focal length
-    static double fy_rgb = 5.2556393630057437e2; 
+    static double fy_rgb = 5.2556393630057437e2;
     static double cx_rgb = 3.2894272028759258e2; // camera center in pixels
     static double cy_rgb = 2.6748068171871557e2;
     // the following may be terms in the Brown's Distortion model
@@ -65,20 +65,20 @@ public class ColorPointCloud
 
     static double dfx = 5.8e+02;
     static double dfy = 5.8e+02;
-    //  static double dcx = 3.1553578317293898e+02; \\Lauren's    
+    //  static double dcx = 3.1553578317293898e+02; \\Lauren's
     //  static double dcy = 2.4608755771403534e+02; \\Lauren's
-    static double dcx = 3.2353578317293898e+02;    
+    static double dcx = 3.2353578317293898e+02;
     static double dcy = 2.608755771403534e+02;
     double rfx = 5.25e+02;
     double rfy = 5.25e+02;
-    double rcx = 3.1924870232372928e+02;                                                                                                       
+    double rcx = 3.1924870232372928e+02;
     double rcy = 2.6345521395833958e+02;
 
     static double[] t = new double[]{-1.5e-02, 2.5073334719943473e-03,-1.2922411623995907e-02};
     */
 
     public ColorPointCloud(Kinect.Frame frame)
-    {       
+    {
         for (int y = 0; y < frame.depthHeight; y++) {
             for (int x = 0; x < frame.depthWidth; x++) {
         /*
@@ -89,8 +89,8 @@ public class ColorPointCloud
                 // Calculate point place in world
                 double m = frame.depthToMeters(frame.depth[y*frame.depthWidth + x]);
                 if (m < 0)
-                    continue;		
-                
+                    continue;
+
 		// undistort depth information for projection into 3D
                 // formula courtesy of http://en.wikipedia.org/wiki/Distortion_(optics)
 		//double r_d = Math.sqrt((x - cx_d)*(x - cx_d) + (y - cy_d)*(y - cy_d));
@@ -100,17 +100,17 @@ public class ColorPointCloud
                 double yu = y;
                 //double yu = y + (y - cy_d)*(k1_d*r_d*r_d + k2_d*Math.pow(r_d,4) + k3_d*Math.pow(r_d,6)) +
                 //     (p2_d*(r_d*r_d + 2*(y - cy_d)*(x - cx_d)) + 2*p1_d*(x - cx_d)*(y - cy_d));
-                
+
                 // points in 3D
                 double px = (xu - Cirx) * m/Firx;
-                double py = (y - Ciry) * m/Firy;
+                double py = (yu - Ciry) * m/Firy;
                 double pz = m;
-		
-                
+
+
                 /*double px = (x - cx_d) * m/fx_d;
                 double py = (y - cy_d) * m/fy_d;
                 double pz = m; */
-                
+
 
                 // Calculate color of point
                 int cx = 0, cy = 0;
@@ -122,7 +122,7 @@ public class ColorPointCloud
                 // project 3D point into rgb image frame
                 cx = (int) ((cxyz[0] * Frgbx / cxyz[2]) + Crgbx);
                 cy = (int) ((cxyz[1] * Frgby / cxyz[2]) + Crgby);
-  
+
                 /*
                 // now need to distort the points to see where they end up in the RGB image
                 // or could undistort all of the RGB image and then do the pixel correspondance <= this is better
@@ -134,7 +134,7 @@ public class ColorPointCloud
 	        cyd = cy - (cy - cy_rgb)*(k1_rgb*r_rgb*r_rgb + k2_rgb*Math.pow(r_rgb,4) + k3_rgb*Math.pow(r_rgb,6)) -
                      (p1_rgb*(r_rgb*r_rgb + 2*(cy - cy_rgb)*(cy - cy_rgb)) + 2*p2_rgb*(cx - cx_rgb)*(cy - cy_rgb));
                 cx = cxd;
-                cy = cyd; 
+                cy = cyd;
                 // need a way to handle points that end up outside of the color image, could return just a gray value
                 // and also want a way to handle points from color image that don't get depth information
                 */
@@ -150,7 +150,7 @@ public class ColorPointCloud
                 double px = ((x - dcx) * m/dfx)  + t[0];
                 double py = ((y - dcy) * m/dfy) + t[1];
                 double pz = m + t[2];
-                points.add(new double[] {pz, -px, -py});     
+                points.add(new double[] {pz, -px, -py});
 
                 // Calculate color of point
                 int modx = ((int)(px * rfx/pz + rcx));
