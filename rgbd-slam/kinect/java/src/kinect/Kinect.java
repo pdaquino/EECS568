@@ -10,69 +10,6 @@ import april.jmat.*;
 
 public class Kinect
 {
-    public static final int WIDTH = 640;
-    public static final int HEIGHT = 480;
-
-    // John's Calibration Data
-    /*
-    // RGB Intrinsic Camera Parameters
-    static final double Frgbx = 521.67090; // focal lengths
-    static final double Frgby = 521.23461;
-    static final double Crgbx = 312.82654; // optial axis
-    static final double Crgby = 258.60812;
-    // assume 0 skew
-    // distortion parameters 1 2 and 5 are radial terms, 3 and 4 are tangential
-    static final double[] Krgb = {0.18993, -0.52470, 0.00083, 0.00480, 0};
-    
-    // IR Intrinsic Camera Parameters
-    static final double Firx = 583.56911; // focal lengths
-    static final double Firy = 582.28721;
-    static final double Cirx = 317.73984; // optical axis
-    static final double Ciry = 248.91467;
-    // assume 0 skew
-    // distortion parameters 1 2 and 5 are radial terms, 3 and 4 are tangential
-    static final double[] Kir = {-0.09234, 0.31571, 0.00037, -0.00425, 0};
-     */
-    
-    // using many more images
-    // RGB Intrinsic Camera Parameters
-    /*
-    static final double Frgbx = 523.06864; // focal lengths
-    static final double Frgby = 522.62898;
-    static final double Crgbx = 309.46501; // optial axis
-    static final double Crgby = 256.30813;
-    // assume 0 skew
-    // distortion parameters 1 2 and 5 are radial terms, 3 and 4 are tangential
-    static final double[] Krgb = {0.19117,   -0.44270,   -0.00323,   0.00064,  0.00000};
-    
-    // IR Intrinsic Camera Parameters
-    static final double Firx = 583.17822; // focal lengths
-    static final double Firy = 581.88746; 
-    static final double Cirx = 319.98857; // optical axis
-    static final double Ciry = 243.38230;
-    // assume 0 skew
-    // distortion parameters 1 2 and 5 are radial terms, 3 and 4 are tangential
-    static final double[] Kir = {-0.07415, 0.17787, 0.00168, -0.00245, 0.00000};
-     */
-    
-    // Camera calibration numbers courtesy of Nicolas Burrus
-    // parameters for rgb color camera
-    
-    static double Frgbx = 5.2921508098293293e2; // focal length
-    static double Frgby = 5.2556393630057437e2;
-    static double Crgbx = 3.2894272028759258e2; // camera center in pixels
-    static double Crgby = 2.6748068171871557e2;
-    static double[] Krgb = {2.6451622333009589e-1,  -8.3990749424620825e-1,
-	-1.9922302173693159e-3, 1.4371995932897616e-3, 9.1192465078713847e-1};
-
-    // parameters for IR depth camera
-    static double Firx = 5.9421434211923247e2; // focal length
-    static double Firy = 5.9104053696870778e2;
-    static double Cirx = 3.3930780975300314e2; // camera center in pixels
-    static double Ciry = 2.4273913761751615e2;
-    static double[] Kir = {-2.6386489753128833e-1, 9.9966832163729757e-1,-7.6275862143610667e-4,
-	5.0350940090814270e-3, -1.3053628089976321};
-
     // Frame buffers
     int[] rgb_buf = null;
     short[] d_buf = null;
@@ -162,24 +99,24 @@ public class Kinect
     }
 
     // rectifies distorted image from color camera using camera parameters
-    public synchronized int[] rectifyRGB(int[] Dargb) {
+    private synchronized int[] rectifyRGB(int[] Dargb) {
 
-        int[] Rargb = new int[WIDTH * HEIGHT]; // recified image
+        int[] Rargb = new int[Constants.WIDTH * Constants.HEIGHT]; // recified image
         // for every pixel in Rargb 
 
-        for (int xp = 0; xp < WIDTH; xp++) {
-            double x = (xp - Crgbx) / Frgbx; // compute normalized point x
-            for (int yp = 0; yp < HEIGHT; yp++) {
-                double y = (yp - Crgby) / Frgby; // compute normalized point y
+        for (int xp = 0; xp < Constants.WIDTH; xp++) {
+            double x = (xp - Constants.Crgbx) / Constants.Frgbx; // compute normalized point x
+            for (int yp = 0; yp < Constants.HEIGHT; yp++) {
+                double y = (yp - Constants.Crgby) / Constants.Frgby; // compute normalized point y
                 double[] XND = compXNDrgb(x, y); // apply distortion model
-                int xdp = (int) Math.floor(Frgbx * XND[0] + Crgbx); // compute pixel location
-                int ydp = (int) Math.floor(Frgby * XND[1] + Crgby);
+                int xdp = (int) Math.floor(Constants.Frgbx * XND[0] + Constants.Crgbx); // compute pixel location
+                int ydp = (int) Math.floor(Constants.Frgby * XND[1] + Constants.Crgby);
 
                 // if we have ended up outside of the image
-                if ((xdp < 0) || (xdp >= WIDTH) || (ydp < 0) || (ydp >= HEIGHT)) {
-                    Rargb[WIDTH * yp + xp] = 0xff000000; // set to black
+                if ((xdp < 0) || (xdp >= Constants.WIDTH) || (ydp < 0) || (ydp >= Constants.HEIGHT)) {
+                    Rargb[Constants.WIDTH * yp + xp] = 0xff000000; // set to black
                 } else {
-                    Rargb[WIDTH * yp + xp] = Dargb[WIDTH * ydp + xdp];
+                    Rargb[Constants.WIDTH * yp + xp] = Dargb[Constants.WIDTH * ydp + xdp];
                 }
             }
         }
@@ -191,20 +128,20 @@ public class Kinect
     // parameters were obtained from the 640x480 so should be able to modify this image
     private synchronized short[] rectifyD(short[] Dd) {
 
-        short[] Rd = new short[WIDTH * HEIGHT]; // rectified image
+        short[] Rd = new short[Constants.WIDTH * Constants.HEIGHT]; // rectified image
 
-        for (int xp = 0; xp < WIDTH; xp++) {
-            double x = (xp - Cirx) / Firx; // compute normalized point x
-            for (int yp = 0; yp < HEIGHT; yp++) {
-                double y = (yp - Ciry) / Firy; // compute normalized point y
-                double[] XND = compXNDrgb(x, y); // apply distortion model
-                int xdp = (int) Math.floor(Firx * XND[0] + Cirx); // compute pixel location
-                int ydp = (int) Math.floor(Firy * XND[1] + Ciry);
+        for (int xp = 0; xp < Constants.WIDTH; xp++) {
+            double x = (xp - Constants.Cirx) / Constants.Firx; // compute normalized point x
+            for (int yp = 0; yp < Constants.HEIGHT; yp++) {
+                double y = (yp - Constants.Ciry) / Constants.Firy; // compute normalized point y
+                double[] XND = compXNDir(x, y); // apply distortion model
+                int xdp = (int) Math.floor(Constants.Firx * XND[0] + Constants.Cirx); // compute pixel location
+                int ydp = (int) Math.floor(Constants.Firy * XND[1] + Constants.Ciry);
                 // if we have ended up outside of the image
-                if ((xdp < 0) || (xdp >= WIDTH) || (ydp < 0) || (ydp >= HEIGHT)) {
-                    Rd[WIDTH * yp + xp] = 2048; // set to no informatiom
+                if ((xdp < 0) || (xdp >= Constants.WIDTH) || (ydp < 0) || (ydp >= Constants.HEIGHT)) {
+                    Rd[Constants.WIDTH * yp + xp] = 2048; // set to no informatiom
                 } else {
-                    Rd[WIDTH * yp + xp] = Dd[WIDTH * ydp + xdp];
+                    Rd[Constants.WIDTH * yp + xp] = Dd[Constants.WIDTH * ydp + xdp];
                 }
             }
         }
@@ -221,12 +158,11 @@ public class Kinect
 
         // full expression
         double r2 = x * x + y * y;
-
         // radial component
-        double KR = 1 + Krgb[0] * r2 + Krgb[1] * r2 * r2 + Krgb[4] * r2 * r2 * r2;
+        double KR = 1 + Constants.Krgb[0] * r2 + Constants.Krgb[1] * r2 * r2 + Constants.Krgb[4] * r2 * r2 * r2;
         // tangential component
-        double dx = 2 * Krgb[2] * x * y + Krgb[3] * (r2 + 2 * x * x);
-        double dy = Krgb[2] * (r2 + 2 * y * y) + 2 * Krgb[3] * x * y;
+        double dx = 2 * Constants.Krgb[2] * x * y + Constants.Krgb[3] * (r2 + 2 * x * x);
+        double dy = Constants.Krgb[2] * (r2 + 2 * y * y) + 2 * Constants.Krgb[3] * x * y;
 
         XND[0] = KR * x + dx;
         XND[1] = KR * y + dy;
@@ -235,59 +171,23 @@ public class Kinect
     }
 
     // given a normalized point x, y computes the normalized distorted location
-    private synchronized double[] compXNDdepth(double x, double y) {
+    private synchronized double[] compXNDir(double x, double y) {
         double[] XND = new double[2];
         // simplified expression
-        XND[0] = x;
-        XND[1] = y;
+        //XND[0] = x;
+        //XND[1] = y;
 
         // full expression
-        /*
         double r2 = x*x + y*y;
         // radial component
-        double KR = 1 + Kir[0]*r2 + Kir[1]*r2*r2 + Kir[4]*r2*r2*r2;
+        double KR = 1 + Constants.Kir[0]*r2 + Constants.Kir[1]*r2*r2 + Constants.Kir[4]*r2*r2*r2;
         // tangential component
-        double dx = 2*Kir[2]*x*y + Kir[3]*(r2+2*x*x);
-        double dy = Kir[2]*(r2+2*y*y) + 2*Kir[3]*x*y;
+        double dx = 2*Constants.Kir[2]*x*y + Constants.Kir[3]*(r2+2*x*x);
+        double dy = Constants.Kir[2]*(r2+2*y*y) + 2*Constants.Kir[3]*x*y;
         XND[0] = KR*x + dx;
         XND[1] = KR*y + dy;
-         */
 
         return XND;
-    }
-
-    // compute the jacobian for the equations Xd = F(x,y) probably not needed
-    private synchronized double[][] compJXNDrgb(double x, double y) {
-        double[][] JXND = new double[2][2];
-        // simplified expression
-        // Dxd/Dx
-        double DxdDx = 1;
-        // Dxd/Dy
-        double DxdDy = 0;
-        // Dyd/Dx
-        double DydDx = 0;
-        // Dyd/Dy
-        double DydDy = 1;
-
-        /* full expression neglects the 6th order radial component Krgb[5]
-         * // Dxd/Dx
-         * double DxdDx = 1 + 3*Krgb[1]*x*x + Krgb[1]*y*y + 5*Krgb[2]*Math.pow(x,4) + 6*Krgb[2]*y*y*x*x + Krgb[2]*Math.pow(y,4) +
-         * 2*Krgb[3]*y + 2*Krgb[4]*x + 4*Krgb[4]*x;
-         * // Dxd/Dy
-         * double DxdDy = 2*Krgb[1]*x*y + 4*Krgb[2]*Math.pow(x,3)*y + 4*Krgb[2]*x*Math.pow(y,3) + 2*Krgb[3]*x + 2*Krgb[4]*y;
-         * // Dyd/Dx
-         * double DydDx = 2*Krgb[1]*x*y + 4*Krgb[2]*Math.pow(x,3)*y + 4*Krgb[2]*x*Math.pow(y,3) + 2*Krgb[3]*x + 2*Krgb[4]*y
-         * // Dyd/Dy
-         * double DydDy = 1 + Krgb[1]*x*x + 3*Krgb[1]*y*y + Krgb[2]*Math.pow(x,4) + 6*Krgb[2]*y*y*x*x + 5*Krgb[2]*Math.pow(y,4) +
-         * 2*Krgb[3]*y + 4*Krgb[3]*y + 2*Krgb[4]*x;
-         */
-
-        JXND[0][0] = DxdDx;
-        JXND[0][1] = DxdDy;
-        JXND[1][0] = DydDx;
-        JXND[1][1] = DydDy;
-
-        return JXND;
     }
 
     public synchronized void printCount() {
@@ -300,7 +200,7 @@ public class Kinect
     {
         BufferedImage Im = frame.makeRGB();
         try {
-            File file = new File("Krgb" + Integer.toString(rgb_save_cnt) + ".jpg");
+            File file = new File("Constants.Krgb" + Integer.toString(rgb_save_cnt) + ".jpg");
             ImageIO.write(Im, "jpg", file);
         } catch (IOException e) {
             System.out.println("Failure to Save RGB!");
@@ -326,10 +226,6 @@ public class Kinect
     static public class Frame {
         // Not an ideal location for more constants
 
-        static final public int rgbWidth = 640;
-        static final public int rgbHeight = 480;
-        static final public int depthWidth = 640;
-        static final public int depthHeight = 480;
         public int[] argb;
         public short[] depth;
         static double[] t_gamma = null;
@@ -374,8 +270,8 @@ public class Kinect
         }
 
         public BufferedImage makeRGB() {
-            assert (argb.length == WIDTH * HEIGHT);
-            BufferedImage im = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+            assert (argb.length == Constants.WIDTH * Constants.HEIGHT);
+            BufferedImage im = new BufferedImage(Constants.WIDTH, Constants.HEIGHT, BufferedImage.TYPE_INT_RGB);
             int[] buf = ((DataBufferInt) (im.getRaster().getDataBuffer())).getData();
             for (int i = 0; i < buf.length; i++) {
                 buf[i] = argb[i];
@@ -385,8 +281,8 @@ public class Kinect
         }
 
         public BufferedImage makeDepth() {
-            assert (depth.length == WIDTH * HEIGHT);
-            BufferedImage im = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+            assert (depth.length == Constants.WIDTH * Constants.HEIGHT);
+            BufferedImage im = new BufferedImage(Constants.WIDTH, Constants.HEIGHT, BufferedImage.TYPE_INT_RGB);
             int[] buf = ((DataBufferInt) (im.getRaster().getDataBuffer())).getData();
             double[] cutoffs = new double[]{1.0, 1.75, 2.5, 3.25, 4.0, 5.0};
             for (int i = 0; i < buf.length; i++) {
