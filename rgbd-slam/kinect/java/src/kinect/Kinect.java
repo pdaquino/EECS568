@@ -263,7 +263,7 @@ public class Kinect
 
         public double depthToMeters(short depth) {
             // Throw away extreme values
-            if ((int) depth >= 2048) {
+            if ((int) depth >= 2047) {
                 return -1;
             }
             return t_gamma[depth];
