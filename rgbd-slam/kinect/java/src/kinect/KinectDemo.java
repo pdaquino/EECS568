@@ -263,8 +263,9 @@ class KinectDemo
                     }
                     
                     VisColorData vcd = new VisColorData();
-                    for(int i=0; i<correspondences.size(); i++){
-                      vcd.add(ColorUtil.randomColor().getRGB());
+                    for(int i=0; i<correspondences.size()/2; i++){
+                      int color = ColorUtil.randomColor().getRGB();
+                      vcd.add(color); vcd.add(color);
                     }
 
                     VzLines lines = new VzLines(new VisVertexData(correspondences), 
