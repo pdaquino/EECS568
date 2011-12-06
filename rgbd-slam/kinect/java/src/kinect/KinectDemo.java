@@ -23,6 +23,9 @@ class KinectDemo
     static final int WIDTH = Kinect.WIDTH;
     static final int HEIGHT = Kinect.HEIGHT;
 
+    double[] translateH = new double[] {WIDTH, 0, 0};
+    double[] translateV = new double[] {0, -HEIGHT, 0};
+
     public KinectDemo(GetOpt opts)
     {
         rt = new RenderThread(opts);
@@ -205,25 +208,28 @@ class KinectDemo
                     int[] argbL = lastFrame.argb;
                     ArrayList<ImageFeature> featuresC = OpenCV.extractFeatures(argbC, 640);
                     ArrayList<ImageFeature> featuresL = OpenCV.extractFeatures(argbL, 640);
+
+                    // Set xyz (world) coordinates
+                    for(ImageFeature fc: featuresC){
+                        fc.setXyz(ColorPointCloud.Project(LinAlg.copyDoubles(fc.xy())));
+                    }
+                    for(ImageFeature fl: featuresL){
+                        fl.setXyz(ColorPointCloud.Project(LinAlg.copyDoubles(fl.xy())));
+                    }
+
+                    // Match SIFT features -> RANSAC
                     DescriptorMatcher dm = new DescriptorMatcher(featuresL);
                     ArrayList<DescriptorMatcher.Match> matches = dm.match(featuresC);
-
-                    double[][] rgbvert = new double[][] {{0,0,0},
-                                                         {WIDTH,0,0},
-                                                         {WIDTH,HEIGHT,0},
-                                                         {0,HEIGHT,0}};
-                    double[][] depthvert = new double[][] {{HEIGHT,0,0},
-                                                           {2*WIDTH,0,0},
-                                                           {2*WIDTH,HEIGHT,0},
-                                                           {WIDTH,HEIGHT,0}};
-                    double[][] texcoords = new double[][] {{0,1},
-                                                           {1,1},
-                                                           {1,0},
-                                                           {0,0}};
-
-                    double[] translateH = new double[] {WIDTH, 0, 0};
-                    double[] translateV = new double[] {0, -HEIGHT, 0};
-
+                    ArrayList<DescriptorMatcher.Match> inliers = new ArrayList<DescriptorMatcher.Match>();
+                    double[][] transform = RANSAC.RANSAC(matches, inliers);
+                    for(int i=0; i<transform.length; i++){
+                      for (int j=0; j<transform[0].length; j++){
+                        System.out.print(transform[i][j]+"\t");
+                      }
+                      System.out.println();
+                    }
+                    //LinAlg.print(transform);
+                    
                     // Plot features
                     for(int i=0; i<featuresC.size(); i++){
                         int[] xy = featuresC.get(i).xy();
@@ -245,17 +251,19 @@ class KinectDemo
                     // Lines between corresponding features
                     ArrayList<double[]> correspondences = new ArrayList<double[]>();
                     ArrayList<double[]> features = new ArrayList<double[]>();
-                    for(DescriptorMatcher.Match m: matches){
-                        double[] f1 = LinAlg.copyDoubles(m.feature1.xy());
-                        double[] f2 = LinAlg.copyDoubles(m.feature2.xy());
-                        f1 = LinAlg.transform(translateH, f1);
-                     
-                        correspondences.add(f1);
-                        correspondences.add(f2);
+                    for(DescriptorMatcher.Match m: inliers){
+                      //if(m.distance < 1.5E29){
+                            double[] f1 = LinAlg.copyDoubles(m.feature1.xy());
+                            double[] f2 = LinAlg.copyDoubles(m.feature2.xy());
+                            f1 = LinAlg.transform(translateH, f1);
+                        
+                            correspondences.add(f1);
+                            correspondences.add(f2);
+                            //}
                     }
-
+                    
                     VisColorData vcd = new VisColorData();
-                    for(int i=0; i<correspondences.size()/2; i++){
+                    for(int i=0; i<correspondences.size(); i++){
                       vcd.add(ColorUtil.randomColor().getRGB());
                     }
 

@@ -3,7 +3,7 @@
 <project name="rgbdslam" default="build" basedir=".">
 
   <!-- Build everything -->
-  <target name="build" depends="build-java,build-jar,build-kinect"/>
+  <target name="build" depends="build-kinect,build-java,build-jar"/>
 
   <!-- Clean everything -->
   <target name="clean" depends="clean-java"/>
