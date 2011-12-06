@@ -21,10 +21,16 @@ public class VoxelArray
         resolution = resolution_;
     }
 
-    public void voxelizePointCloud(ColorPointCloud cpc, Matrix rbt)
+    public int size()
+    {
+        return voxels.keySet().size();
+    }
+
+    public void voxelizePointCloud(ColorPointCloud cpc)
     {
         for (int i = 0; i < cpc.numPoints(); i++) {
-            double[] xyz = LinAlg.transform(rbt, cpc.points.get(i));
+            double[] xyz = cpc.points.get(i);
+            //double[] xyz = LinAlg.transform(rbt, cpc.points.get(i));
             VoxelKey vk = new VoxelKey(xyz);
             if (!voxels.containsKey(vk))
                 voxels.put(vk, new Voxel(cpc.colors.get(i)));

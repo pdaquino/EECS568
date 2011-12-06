@@ -8,7 +8,7 @@ public class ImageFeature {
     private int[] xy; // pixel coordinates
     private double[] descriptor; // sift descriptor;
     private double[] xyz; // world coordinates
-    
+
     /**
      * Constructs an image feature.
      * @param x the x coordinate of the feature, in the image coordinate frame (pixels)
@@ -22,41 +22,41 @@ public class ImageFeature {
 
     /**
      * Returns the feature descriptor (e.g. SIFT descriptor).
-     * @return 
+     * @return
      */
     public double[] getDescriptor() {
         return descriptor;
     }
-    
+
     /**
      * Returns the pixel coordinates of the feature in the image.
-     * @return 
+     * @return
      */
     public int[] xy() {
         return xy;
     }
-    
+
     public double[] xyAsDouble() {
         return new double[] { xy[0], xy[1] };
     }
-    
+
     /**
      * Returns the position of the feature in world coordinates, with depth
      * information.
-     * @return 
+     * @return
      */
     public double[] xyz() {
         return xyz;
     }
-    
+
     /**
      * Sets the world coordinates of the feature.
-     * @param xyz 
+     * @param xyz
      */
     public void setXyz(double[] xyz) {
         this.xyz = xyz;
     }
-    
-    
-    
+
+
+
 }
