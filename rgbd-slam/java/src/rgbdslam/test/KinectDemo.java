@@ -1,15 +1,17 @@
-package kinect;
+package rgbdslam.test;
+
+import rgbdslam.*;
 
 import java.awt.*;
 import java.awt.image.*;
 import java.awt.event.*;
 import javax.swing.*;
 import java.util.*;
-import java.lang.Integer;
 
 import april.jmat.*;
 import april.util.*;
 import april.vis.*;
+import kinect.*;
 
 class KinectDemo
 {
@@ -20,6 +22,9 @@ class KinectDemo
 
     static final int WIDTH = Kinect.WIDTH;
     static final int HEIGHT = Kinect.HEIGHT;
+
+    double[] translateH = new double[] {WIDTH, 0, 0};
+    double[] translateV = new double[] {0, -HEIGHT, 0};
 
     public KinectDemo(GetOpt opts)
     {
@@ -82,14 +87,13 @@ class KinectDemo
         boolean clearToClose = false;
 
         Kinect.Frame currFrame = null;
+        Kinect.Frame lastFrame = null;
 
         GetOpt opts;
 
         public RenderThread(GetOpt opts)
         {
-            
-
-            
+                      
             this.opts = opts;
             System.out.println("Starting render thread");
             JFrame jf = new JFrame("Kinect Demo");
@@ -130,6 +134,7 @@ class KinectDemo
 
         synchronized public void render(Kinect.Frame frame)
         {
+            lastFrame = currFrame;
             currFrame = frame;
             notify();
         }
@@ -140,9 +145,17 @@ class KinectDemo
             VisWorld.Buffer vbPts = vw.getBuffer("points");
 
             while (true) {
-                if (currFrame != null && !opts.getBoolean("point-cloud")) {
+                if (currFrame != null && !opts.getBoolean("point-cloud") && !opts.getBoolean("alignment")) {
                     BufferedImage rgb = currFrame.makeRGB();
                     BufferedImage depth = currFrame.makeDepth();
+
+                    // Plot features as green pixels
+                    int[] argb = currFrame.argb;
+                    ArrayList<ImageFeature> features = OpenCV.extractFeatures(argb, 640);
+                    for(int i=0; i<features.size(); i++){
+                        int[] xy = features.get(i).xy();
+                        rgb.setRGB(xy[0], xy[1], Color.GREEN.getRGB());
+                    }
 
                     double[] xy0 = new double[2];
                     double[] xy1 = new double[] {WIDTH, HEIGHT};
@@ -178,6 +191,94 @@ class KinectDemo
                                               new VzImage(depth, VzImage.FLIP)));
 
                     vbIm.swap();
+                }
+                else if (currFrame != null && lastFrame != null && opts.getBoolean("alignment")) {
+                    BufferedImage rgbC = currFrame.makeRGB();
+                    BufferedImage depthC = currFrame.makeDepth();
+                    BufferedImage rgbL = currFrame.makeRGB();
+                    BufferedImage depthL = currFrame.makeDepth();
+
+                    double[] xy0 = new double[2];
+                    double[] xy1 = new double[] {WIDTH, HEIGHT};
+                    double[] xy2 = new double[] {WIDTH, 0};
+                    double[] xy3 = new double[] {2*WIDTH, HEIGHT};
+                    
+                    // Get each frame's features
+                    int[] argbC = currFrame.argb;
+                    int[] argbL = lastFrame.argb;
+                    ArrayList<ImageFeature> featuresC = OpenCV.extractFeatures(argbC, 640);
+                    ArrayList<ImageFeature> featuresL = OpenCV.extractFeatures(argbL, 640);
+
+                    // Set xyz (world) coordinates
+                    for(ImageFeature fc: featuresC){
+                        fc.setXyz(ColorPointCloud.Project(LinAlg.copyDoubles(fc.xy())));
+                    }
+                    for(ImageFeature fl: featuresL){
+                        fl.setXyz(ColorPointCloud.Project(LinAlg.copyDoubles(fl.xy())));
+                    }
+
+                    // Match SIFT features -> RANSAC
+                    DescriptorMatcher dm = new DescriptorMatcher(featuresL, featuresC);
+                    ArrayList<DescriptorMatcher.Match> matches = dm.match();
+                    ArrayList<DescriptorMatcher.Match> inliers = new ArrayList<DescriptorMatcher.Match>();
+                    double[][] transform = RANSAC.RANSAC(matches, inliers);
+                    for(int i=0; i<transform.length; i++){
+                      for (int j=0; j<transform[0].length; j++){
+                        System.out.print(transform[i][j]+"\t");
+                      }
+                      System.out.println();
+                    }
+                    //LinAlg.print(transform);
+                    
+                    // Plot features
+                    for(int i=0; i<featuresC.size(); i++){
+                        int[] xy = featuresC.get(i).xy();
+                        for(int j=-2; j<3; j++){
+                            for(int k=-2; k<3; k++){     
+                                rgbC.setRGB(xy[0]+j, xy[1]+k, Color.RED.getRGB());
+                            }
+                        }                           
+                    }
+                    for(int i=0; i<featuresL.size(); i++){
+                      int[] xy = featuresL.get(i).xy();
+                      for(int j=-2; j<3; j++){
+                            for(int k=-3; k<3; k++){     
+                                rgbL.setRGB(xy[0]+j, xy[1]+k, Color.BLUE.getRGB());
+                            }
+                        }
+                    }
+
+                    // Lines between corresponding features
+                    ArrayList<double[]> correspondences = new ArrayList<double[]>();
+                    ArrayList<double[]> features = new ArrayList<double[]>();
+                    for(DescriptorMatcher.Match m: inliers){
+                      //if(m.distance < 1.5E29){
+                            double[] f1 = LinAlg.copyDoubles(m.feature1.xy());
+                            double[] f2 = LinAlg.copyDoubles(m.feature2.xy());
+                            f1 = LinAlg.transform(translateH, f1);
+                        
+                            correspondences.add(f1);
+                            correspondences.add(f2);
+                            //}
+                    }
+                    
+                    VisColorData vcd = new VisColorData();
+                    for(int i=0; i<correspondences.size()/2; i++){
+                      int color = ColorUtil.randomColor().getRGB();
+                      vcd.add(color); vcd.add(color);
+                    }
+
+                    VzLines lines = new VzLines(new VisVertexData(correspondences), 
+                                                VzLines.LINES,
+                                                new VzLines.Style(vcd, 1));
+
+
+                    vbIm.addBack(new VzImage(rgbC, VzImage.FLIP));
+                    vbIm.addBack(new VisChain(LinAlg.translate(translateH),
+                                              new VzImage(rgbL, VzImage.FLIP)));
+                    vbIm.addBack(new VisChain(LinAlg.scale(1, -1, 1), LinAlg.translate(translateV),lines));
+
+                    vbIm.swap();
                 } else if (currFrame != null && opts.getBoolean("point-cloud")) {
                     ColorPointCloud pointCloud = new ColorPointCloud(currFrame);
                     VisVertexData vvd = new VisVertexData(pointCloud.points);
@@ -206,6 +307,7 @@ class KinectDemo
     {
         GetOpt opts = new GetOpt();
         opts.addBoolean((char)0,"point-cloud",false,"Render colored point cloud");
+        opts.addBoolean((char)0,"alignment",false,"Show alignment between features");
         opts.addBoolean('h', "help", false, "Show this help screen");
 
         if (!opts.parse(args)) {
@@ -219,3 +321,4 @@ class KinectDemo
         KinectDemo kd = new KinectDemo(opts);
     }
 }
+

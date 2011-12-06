@@ -9,8 +9,8 @@ import april.jmat.*;
 
 public class Kinect
 {
-    static final int WIDTH = 640;
-    static final int HEIGHT = 480;
+    public static final int WIDTH = 640;
+    public static final int HEIGHT = 480;
 
     // John's Calibration Data
     /*
