@@ -218,8 +218,8 @@ class KinectDemo
                     }
 
                     // Match SIFT features -> RANSAC
-                    DescriptorMatcher dm = new DescriptorMatcher(featuresL);
-                    ArrayList<DescriptorMatcher.Match> matches = dm.match(featuresC);
+                    DescriptorMatcher dm = new DescriptorMatcher(featuresL, featuresC);
+                    ArrayList<DescriptorMatcher.Match> matches = dm.match();
                     ArrayList<DescriptorMatcher.Match> inliers = new ArrayList<DescriptorMatcher.Match>();
                     double[][] transform = RANSAC.RANSAC(matches, inliers);
                     for(int i=0; i<transform.length; i++){
