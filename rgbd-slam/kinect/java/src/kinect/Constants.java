@@ -13,8 +13,8 @@ package kinect;
 public class Constants {
     
     // image dimensions for both rgb and depth images
-    static final int WIDTH = 640;
-    static final int HEIGHT = 480;
+    public static final int WIDTH = 640;
+    public static final int HEIGHT = 480;
     
     // John's Calibration Data
     /*
