@@ -12,7 +12,7 @@ public class ColorPointCloud
     public ArrayList<double[]> points = new ArrayList<double[]>();
     public ArrayList<Integer> colors = new ArrayList<Integer>();
     public VisColorData vcd = new VisColorData();
-    
+
     // hash map storing mapping between rgb image and depth
     HashMap<int[], Double> rgbDmap = new HashMap<int[], Double>();
 
@@ -51,7 +51,7 @@ public class ColorPointCloud
 
                 // add to hashmap cx cy which maps to m
                 rgbDmap.put(new int[] {cx, cy}, m);
-                
+
                 colors.add(argb);
                 int abgr = (argb & 0xff000000) | ((argb & 0xff) << 16) | (argb & 0xff00) | ((argb >> 16) & 0xff);
                 vcd.add(abgr);
@@ -100,47 +100,53 @@ public class ColorPointCloud
             }
         }
     }
-    
+
     // projects image coordinates in rgb image into 3D space
     // XXX if ever make change to way color point cloud is projected into 3D
     // need to make that fix below
     public double[] Project(double[] Xrgb) {
-        
+
         assert (Xrgb.length == 2);
         int[] key = new int[2];
         key[0] = (int) Xrgb[0];
         key[1] = (int) Xrgb[1];
-        
+
         if (rgbDmap.containsKey(key)) {
             double m = rgbDmap.get(key);
-            
+
             // handle points in depth image without a depth value
             if (m < 0) {
                 return new double[] {-1, -1, -1};
             }
-            
+
             double[] P = new double[3];
             P[0] = (Xrgb[0] - Constants.Crgbx) * m/Constants.Frgbx;
             P[1] = (Xrgb[1] - Constants.Crgby) * m/Constants.Frgby;
             P[2] = m;
-            
-            return P;    
+
+            return P;
         // handle points without a mapping to the depth image
         } else {
             return new double[] {-1, -1, -1};
         }
     }
-    
+
     public ArrayList<double[]> Project(List<double[]> XRGB) {
-        
+
         ArrayList<double[]> P = new ArrayList<double[]>();
-        
+
         for (double[] Xrgb: XRGB) {
             double[] p = Project(Xrgb);
             P.add(p);
         }
         return P;
-    } 
+    }
+
+    public void rbt(double[][] transform){
+        for(double[] p: points){
+            LinAlg.transform(transform, p);
+        }
+    }
 
     public int numPoints()
     {
