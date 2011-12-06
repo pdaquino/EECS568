@@ -141,7 +141,7 @@ public class RGBDSLAM
             pg = new ParameterGUI();
             pg.addDoubleSlider("resolution", "Voxel Resolution (m)", 0.005, 0.5, DEFAULT_RES);
             pg.addIntSlider("kfps", "Kinect FPS", 1, 30, 5);
-            pg.addIntSlider("rfps", "Render FPS", 1, 60, 5);
+            pg.addIntSlider("rfps", "Render FPS", 1, 60, 15);
             pg.addListener(new ParameterListener() {
                 public void parameterChanged(ParameterGUI pg, String name) {
                     if (name.equals("resolution")) {
@@ -153,14 +153,17 @@ public class RGBDSLAM
             });
             updateFPS();
 
+            VzGrid.addGrid(vw);
+
+
             // XXX May need to change default position. Moving still
             // glitchy. Twitches and doesn't respect our axes
-            DefaultCameraManager dcm = new DefaultCameraManager();
+            /*DefaultCameraManager dcm = new DefaultCameraManager();
             dcm.UI_ANIMATE_MS = 25;
             vl.cameraManager = dcm;
             vl.cameraManager.setDefaultPosition(new double[] {0, 0, 5}, new double[] {0, 0, 0}, new double[] {0, 1, 0});
             vl.cameraManager.uiDefault();
-            vl.addEventHandler(new MyEventAdapter());
+            vl.addEventHandler(new MyEventAdapter());*/
 
             jf.add(vc, BorderLayout.CENTER);
             jf.add(pg, BorderLayout.SOUTH);
