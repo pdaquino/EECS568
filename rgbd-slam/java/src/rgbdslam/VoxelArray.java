@@ -2,6 +2,7 @@ package rgbdslam;
 
 import java.util.*;
 import java.awt.*;
+import java.io.*;
 
 import april.jmat.*;
 import april.vis.*;
@@ -26,12 +27,69 @@ public class VoxelArray
         return voxels.keySet().size();
     }
 
+    /** Write this voxel array to the specified filename */
+    public void writeToFile(String filename)
+    {
+        PrintWriter fout;
+        try {
+            fout = new PrintWriter(new File(filename));
+        } catch (IOException ioex) {
+            ioex.printStackTrace();
+            return;
+        }
+
+        fout.printf("RES %f\n", resolution);
+        for (VoxelKey vk: voxels.keySet()) {
+            Voxel v = voxels.get(vk);
+            fout.printf("VK %d %d %d %d\n", vk.xyz[0],
+                                            vk.xyz[1],
+                                            vk.xyz[2],
+                                            v.getARGB());
+        }
+
+        fout.close();
+    }
+
+    /** Return a voxel array built from the specified filename */
+    public static VoxelArray readFromFile(String filename)
+    {
+        Scanner s;
+        try {
+            s = new Scanner(new File(filename));
+        } catch (IOException ioex) {
+            ioex.printStackTrace();
+            return null;
+        }
+
+        String token = s.next();
+        assert (token.equals("RES"));
+        double r = s.nextDouble();
+
+        VoxelArray va = new VoxelArray(r);
+
+        while (s.hasNext()) {
+            token = s.next();
+            assert (token.equals("VK"));
+
+            int[] key = new int[] {s.nextInt(), s.nextInt(), s.nextInt()};
+            int argb = s.nextInt();
+
+            Voxel v = new Voxel(argb);
+            VoxelKey vk = new VoxelKey(key, r);
+            va.voxels.put(vk, v);
+        }
+
+        s.close();
+
+        return va;
+    }
+
     public void voxelizePointCloud(ColorPointCloud cpc)
     {
         for (int i = 0; i < cpc.numPoints(); i++) {
             double[] xyz = cpc.points.get(i);
             //double[] xyz = LinAlg.transform(rbt, cpc.points.get(i));
-            VoxelKey vk = new VoxelKey(xyz);
+            VoxelKey vk = new VoxelKey(xyz, resolution);
             if (!voxels.containsKey(vk))
                 voxels.put(vk, new Voxel(cpc.colors.get(i)));
             else
@@ -111,12 +169,20 @@ public class VoxelArray
         return va;
     }
 
-    class VoxelKey
+    static class VoxelKey
     {
         public int[] xyz;
+        double resolution;
 
-        public VoxelKey(double[] xyz_)
+        public VoxelKey(int[] xyz_, double resolution_)
         {
+            xyz = LinAlg.copy(xyz_);
+            resolution = resolution_;
+        }
+
+        public VoxelKey(double[] xyz_, double resolution_)
+        {
+            resolution = resolution_;
             xyz = new int[3];
             xyz[0] = (int)(xyz_[0]/resolution);
             xyz[1] = (int)(xyz_[1]/resolution);
@@ -130,7 +196,7 @@ public class VoxelArray
                                                xyz[2]+resolution/2};
             xyz_xform = LinAlg.transform(rbt, xyz_xform);
 
-            return new VoxelKey(xyz_xform);
+            return new VoxelKey(xyz_xform, resolution);
         }
 
         public int hashCode()

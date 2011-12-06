@@ -26,19 +26,34 @@ public class RGBDSLAM
     double currRes = DEFAULT_RES;
     VoxelArray globalVoxelFrame = new VoxelArray(DEFAULT_RES);
 
+    // State
+    boolean loadedFromFile = false;
+
     public RGBDSLAM(GetOpt opts)
     {
-        // XXX Load from file
+        // Load from file
+        System.out.println(opts.getString("file"));
         if (opts.getString("file") != null) {
-
+            System.out.println("Loading from file...");
+            VoxelArray va = VoxelArray.readFromFile(opts.getString("file"));
+            if (va != null) {
+                globalVoxelFrame = va;
+                loadedFromFile = true;
+                System.out.println("Successfully loaded!");
+            }
         }
 
         kt = new KinectThread();
         rt = new RenderThread();
         rgbd = new RGBDThread();
-        kt.start();
+
+        if (!loadedFromFile) {
+            kt.start();
+        }
         rt.start();
-        rgbd.start();
+        if (!loadedFromFile) {
+            rgbd.start();
+        }
     }
 
     class KinectThread extends Thread
@@ -46,10 +61,11 @@ public class RGBDSLAM
         int pollRate = 5;
 
         boolean closeSignal = false;
-        boolean closed = false;
+        boolean closed = true;
 
         public void run()
         {
+            closed = false;
             Kinect kinect = new Kinect();
 
             kinect.init();
@@ -142,10 +158,18 @@ public class RGBDSLAM
             pg.addDoubleSlider("resolution", "Voxel Resolution (m)", 0.005, 0.5, DEFAULT_RES);
             pg.addIntSlider("kfps", "Kinect FPS", 1, 30, 5);
             pg.addIntSlider("rfps", "Render FPS", 1, 60, 15);
+            pg.addButtons("save", "Save to file");
             pg.addListener(new ParameterListener() {
                 public void parameterChanged(ParameterGUI pg, String name) {
-                    if (name.equals("resolution")) {
+                    if (name.equals("resolution") && !loadedFromFile) {
                         //updateVoxelRes(pg.gd("resolution"));
+                    } else if (name.equals("save")) {
+                        long time = System.currentTimeMillis();
+                        synchronized (globalVoxelFrame) {
+                            String filename = "va_"+time+".vx";
+                            globalVoxelFrame.writeToFile(filename);
+                            System.out.println("Saved to "+filename);
+                        }
                     } else {
                         updateFPS();
                     }
@@ -162,8 +186,8 @@ public class RGBDSLAM
             dcm.UI_ANIMATE_MS = 25;
             vl.cameraManager = dcm;
             vl.cameraManager.setDefaultPosition(new double[] {0, 0, 5}, new double[] {0, 0, 0}, new double[] {0, 1, 0});
-            vl.cameraManager.uiDefault();
-            vl.addEventHandler(new MyEventAdapter());*/
+            vl.cameraManager.uiDefault();*/
+            vl.addEventHandler(new MyEventAdapter());
 
             jf.add(vc, BorderLayout.CENTER);
             jf.add(pg, BorderLayout.SOUTH);
@@ -173,7 +197,41 @@ public class RGBDSLAM
 
         synchronized public void run()
         {
+            Tic tic = new Tic();
             while (true) {
+                // XXX Some bugs
+                double[] xyzrpy = getCameraXYZRPY(tic.toctic());
+                if (vc.getLastRenderInfo() != null) {
+                    VisCameraManager.CameraPosition cpos = vc.getLastRenderInfo().cameraPositions.get(vl);
+
+                    double[] yaxis = LinAlg.normalize(cpos.up);
+                    double[] nzaxis = LinAlg.normalize(LinAlg.subtract(cpos.lookat, cpos.eye));
+                    double[] xaxis = LinAlg.normalize(LinAlg.crossProduct(nzaxis, yaxis));
+
+                    double[][] rotation = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[5], yaxis));
+
+                    // Translation
+                    double[] eye = LinAlg.copy(cpos.eye);
+                    double[] lookat = LinAlg.copy(cpos.lookat);
+                    double x = xyzrpy[0];
+                    double y = xyzrpy[1];
+                    double z = xyzrpy[2];
+                    double[] dx = new double[] {x*xaxis[0], x*xaxis[1], x*xaxis[2]};
+                    double[] dy = new double[] {y*yaxis[0], y*yaxis[1], y*yaxis[2]};
+                    double[] dz = new double[] {z*nzaxis[0], z*nzaxis[1], z*nzaxis[2]};
+                    eye = LinAlg.add(dx, LinAlg.add(dy, LinAlg.add(dz, eye)));
+                    lookat = LinAlg.add(dx, LinAlg.add(dy, LinAlg.add(dz, lookat)));
+
+                    // Rotation
+                    double[][] eye_trans = LinAlg.translate(eye);
+                    double[][] eye_inv = LinAlg.inverse(eye_trans);
+                    LinAlg.timesEquals(eye_trans, rotation);
+                    LinAlg.timesEquals(eye_trans, eye_inv);
+                    lookat = LinAlg.transform(eye_trans, lookat);
+
+                    vl.cameraManager.uiLookAt(eye, lookat, cpos.up, false);
+                }
+
                 synchronized (globalVoxelFrame) {
                     if (globalVoxelFrame.size() > 0) {
                         VisWorld.Buffer vb = vw.getBuffer("voxels");
@@ -193,8 +251,13 @@ public class RGBDSLAM
             kt.setPollRate(pg.gi("kfps"));
         }
 
+        private double[] getCameraXYZRPY(double dt)
+        {
 
-        synchronized public void toggleDirection(int vk)
+            return new double[] {xticks*vel*dt, yticks*vel*dt, zticks*vel*dt, 0, 0, tticks*theta_vel*dt};
+        }
+
+        public void toggleDirection(int vk)
         {
             if (vk == KeyEvent.VK_DOWN) {
                 yticks -= 1;
@@ -289,8 +352,14 @@ public class RGBDSLAM
         opts.addBoolean('h', "help", false, "Show this help screen");
         opts.addString('f', "file", null, "Load scene from file");
 
+        if (!opts.parse(args)) {
+            System.err.println("ERR: Opts error - " + opts.getReason());
+            System.exit(1);
+        }
+
         if (opts.getBoolean("help")) {
             opts.doHelp();
+            System.exit(1);
         }
 
         RGBDSLAM rgbdSLAM = new RGBDSLAM(opts);
