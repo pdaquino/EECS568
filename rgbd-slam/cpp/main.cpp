@@ -39,7 +39,7 @@ void runDetectorOnFeed() {
     Mat edges;
     int counter = 0;
     const std::string saveFilename = "savedImg.jpg";
-    //::FeatureDetector<cv::FastFeatureDetector> detector;
+
     cv::GoodFeaturesToTrackDetector baseDetector(100, 0.01, 1);
     ::FeatureDetector<cv::GoodFeaturesToTrackDetector> detector(baseDetector);
     for (;;) {
@@ -73,11 +73,9 @@ bool compareKeyPoint(const KeyPoint& k1, const KeyPoint& k2) {
 
 void compareImages() {
     Mat rn1 = imread("RN_1.jpg");
-    Mat rn2 = imread("RN_1.jpg");
+    Mat rn2 = imread("RN_2.jpg");
     if(rn1.data == NULL) { std::cerr << "oops! file not found\n"; return; }
-    //imshow("rn1", rn1); waitKey(0);
     
-    //::FeatureDetector<cv::SiftFeatureDetector> detector;
     cv::GoodFeaturesToTrackDetector baseDetector(100, 0.01, 1);
     ::FeatureDetector<cv::GoodFeaturesToTrackDetector> detector(baseDetector);
     
@@ -92,25 +90,17 @@ void compareImages() {
         std::cout << "feature sets are not equal\n";
     }
     
-    //FernDescriptorMatcher matcher;
-    VectorDescriptorMatcher matcher( new SiftDescriptorExtractor,
-                                 new BruteForceMatcher<L2<float> > );
-    //OneWayDescriptorMatcher matcher;
-    std::vector<Mat> trainingImages; trainingImages.push_back(rn1);
-    std::vector<std::vector<KeyPoint> > trainingFeatures; trainingFeatures.push_back(features1);
-    matcher.add(trainingImages, trainingFeatures);
+    SiftDescriptorExtractor siftExtractor;
+    Mat descriptors1, descriptors2;
+    siftExtractor.compute(rn1, features1, descriptors1);
+    siftExtractor.compute(rn2, features2, descriptors2);
+    
+    BruteForceMatcher<SL2<float> > matcher;
     std::vector<DMatch> matches;
-    matcher.match(rn2, features2, matches);
+    matcher.match(descriptors1, descriptors2, matches);
     
     for(std::vector<DMatch>::const_iterator it = matches.begin(); it != matches.end(); it++) { 
-        if(it->queryIdx != it->trainIdx) {
-            std::cout << "error!\n";
-        }
-        //std::cout << "queryIdx: " <<it->queryIdx << "\n";
-        //std::cout << "trainIdx: " <<it->trainIdx << "\n";
-        //std::cout << "imgIdx: " <<it->imgIdx << "\n";
-        //std::cout << "distance: " << it ->distance << "\n";
-        //std::cout << std::endl;
+        std::cout << it ->distance << "\n";
     }
     
     Mat outImage;

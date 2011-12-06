@@ -64,9 +64,9 @@ public class DescriptorMatcherTest {
         BufferedImage im1 = getRGBImage(args[0]);
         BufferedImage im2 = getRGBImage(args[1]);
 
-        List<ImageFeature> features1 = OpenCV.extractFeatures(getImageAsIntArray(im1), im1.getWidth());
-        List<ImageFeature> features2 = OpenCV.extractFeatures(getImageAsIntArray(im2), im2.getWidth());
-        List<Match> matches = new DescriptorMatcher(features1).match(features2);
+        List<ImageFeature> features1 = OpenCV.extractFeatures(getImageAsIntArray(im1), im1.getWidth(), 300, OpenCV.DEFAULT_MIN_QUALITY, OpenCV.DEFAULT_MIN_DISTANCY, OpenCV.DEFAULT_BLOCK_SIZE);
+        List<ImageFeature> features2 = OpenCV.extractFeatures(getImageAsIntArray(im2), im2.getWidth(), 300, OpenCV.DEFAULT_MIN_QUALITY, OpenCV.DEFAULT_MIN_DISTANCY, OpenCV.DEFAULT_BLOCK_SIZE);
+        List<Match> matches = new DescriptorMatcher(features1, features2).match();
 
         initFrame();
         int imageSeparation = im1.getWidth() + 10;
@@ -89,7 +89,10 @@ public class DescriptorMatcherTest {
 
             ArrayList<double[]> correspondences = new ArrayList<double[]>();
 
+            double avgDifference = 0;
             for (Match match : matches) {
+                System.out.println(match.distance);
+                avgDifference += match.distance;
                 double[] match1 = ImageUtil.flipXY(match.feature1.xyAsDouble(), im1.getHeight());
                 double[] match2 = ImageUtil.flipXY(match.feature2.xyAsDouble(), im2.getHeight());
                 match2[0] += imageSeparation;
@@ -97,9 +100,13 @@ public class DescriptorMatcherTest {
                 correspondences.add(match2);
             }
 
+            System.out.println("Matches: " + matches.size() + ". Average error: " + avgDifference/matches.size());
+            
             VisColorData vcd = new VisColorData();
-            for (int i = 0; i < correspondences.size(); i++) {
-                vcd.add(ColorUtil.randomColor(255).getRGB());
+            for (int i = 0; i < correspondences.size()/2; i++) {
+                int c = ColorUtil.randomColor(255).getRGB();
+                vcd.add(c);
+                vcd.add(c);
             }
 
             VzLines lines = new VzLines(new VisVertexData(correspondences),
@@ -141,7 +148,7 @@ public class DescriptorMatcherTest {
             System.out.println(features1.size() + " features found.");
 
             tic = new Tic();
-            List<DescriptorMatcher.Match> matches = new DescriptorMatcher(features1).match(features2);
+            List<DescriptorMatcher.Match> matches = new DescriptorMatcher(features1, features2).match();
             for (DescriptorMatcher.Match match : matches) {
                 if (!Arrays.equals(match.feature1.xy(), match.feature2.xy())) {
                     System.err.println("Wrong match!");

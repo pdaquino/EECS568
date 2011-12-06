@@ -218,8 +218,8 @@ class KinectDemo
                     }
 
                     // Match SIFT features -> RANSAC
-                    DescriptorMatcher dm = new DescriptorMatcher(featuresL);
-                    ArrayList<DescriptorMatcher.Match> matches = dm.match(featuresC);
+                    DescriptorMatcher dm = new DescriptorMatcher(featuresL, featuresC);
+                    ArrayList<DescriptorMatcher.Match> matches = dm.match();
                     ArrayList<DescriptorMatcher.Match> inliers = new ArrayList<DescriptorMatcher.Match>();
                     double[][] transform = RANSAC.RANSAC(matches, inliers);
                     for(int i=0; i<transform.length; i++){
@@ -263,8 +263,9 @@ class KinectDemo
                     }
                     
                     VisColorData vcd = new VisColorData();
-                    for(int i=0; i<correspondences.size(); i++){
-                      vcd.add(ColorUtil.randomColor().getRGB());
+                    for(int i=0; i<correspondences.size()/2; i++){
+                      int color = ColorUtil.randomColor().getRGB();
+                      vcd.add(color); vcd.add(color);
                     }
 
                     VzLines lines = new VzLines(new VisVertexData(correspondences), 

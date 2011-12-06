@@ -99,7 +99,7 @@ JNIEXPORT jint JNICALL Java_rgbdslam_OpenCV_cvExtractFeatures(JNIEnv *env, jobje
             featuresY.region[i] = features[i].pt.y;
             // copy the descriptor
             Mat descriptor = descriptors.row(i);
-            std::copy(descriptor.begin<double>(), descriptor.end<double>(),
+            std::copy(descriptor.begin<float>(), descriptor.end<float>(),
                     descriptorsArray.region + i*descriptorSize);
         }
         
