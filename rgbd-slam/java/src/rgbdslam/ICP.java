@@ -88,21 +88,18 @@ public class ICP
                     totalError = totalError + d;
                 }    
             }
+            // use these lists to compute updated RBT
+            // http://www.cs.duke.edu/courses/spring07/cps296.2/scribe_notes/lecture24.pdf
+            // this seems to do what I need
+            rbt = weightedSum(AlignPoints3D.align(GoodA,GoodB),Irbt,ALPHA);
             
             // reassign errors
             preverror = curerror;
             //System.out.println("Preverror = " + preverror);
+	    // XXX this error is actually the error for the previous RBT, since we are looping it might be ok, but for 
+            // small numbers of iterrations this might be a problem
             curerror = totalError/GoodA.size(); // maintaining an average error
             //System.out.println("Curerror = " + curerror);
-            
-            // use these lists to compute updated RBT
-            // http://www.cs.duke.edu/courses/spring07/cps296.2/scribe_notes/lecture24.pdf
-            // this seems to do what I need
-	    rbt = AlignPoints3D.align(GoodA,GoodB);
-
-	    // XXX Paper uses the below formulation for their estimate of the rbt, but this will 
-	    // yield a different formulation for the error above
-            //rbt = weightedSum(AlignPoints3D.align(GoodA,GoodB),Irbt,ALPHA);
             
             cntr++;
         } 

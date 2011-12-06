@@ -219,12 +219,18 @@ public class ColorPointCloud
         if (rgbDmap.containsKey(key)) {
             double m = rgbDmap.get(key);
             
+            // handle points in depth image without a depth value
+            if (m < 0) {
+                return new double[] {-1, -1, -1};
+            }
+            
             double[] P = new double[3];
             P[0] = (Xrgb[0] - Crgbx) * m/Frgbx;
             P[1] = (Xrgb[1] - Crgby) * m/Frgby;
             P[2] = m;
             
             return P;    
+        // handle points without a mapping to the depth image
         } else {
             return new double[] {-1, -1, -1};
         }
