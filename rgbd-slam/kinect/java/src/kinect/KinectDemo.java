@@ -18,9 +18,6 @@ class KinectDemo
     RenderThread rt;
     KinectThread kt;
 
-    static final int WIDTH = Kinect.WIDTH;
-    static final int HEIGHT = Kinect.HEIGHT;
-
     public KinectDemo(GetOpt opts)
     {
         rt = new RenderThread(opts);
@@ -145,24 +142,24 @@ class KinectDemo
                     BufferedImage depth = currFrame.makeDepth();
 
                     double[] xy0 = new double[2];
-                    double[] xy1 = new double[] {WIDTH, HEIGHT};
-                    double[] xy2 = new double[] {WIDTH, 0};
-                    double[] xy3 = new double[] {2*WIDTH, HEIGHT};
+                    double[] xy1 = new double[] {Constants.WIDTH, Constants.HEIGHT};
+                    double[] xy2 = new double[] {Constants.WIDTH, 0};
+                    double[] xy3 = new double[] {2*Constants.WIDTH, Constants.HEIGHT};
 
                     double[][] rgbvert = new double[][] {{0,0,0},
-                                                         {WIDTH,0,0},
-                                                         {WIDTH,HEIGHT,0},
-                                                         {0,HEIGHT,0}};
-                    double[][] depthvert = new double[][] {{HEIGHT,0,0},
-                                                           {2*WIDTH,0,0},
-                                                           {2*WIDTH,HEIGHT,0},
-                                                           {WIDTH,HEIGHT,0}};
+                                                         {Constants.WIDTH,0,0},
+                                                         {Constants.WIDTH,Constants.HEIGHT,0},
+                                                         {0,Constants.HEIGHT,0}};
+                    double[][] depthvert = new double[][] {{Constants.HEIGHT,0,0},
+                                                           {2*Constants.WIDTH,0,0},
+                                                           {2*Constants.WIDTH,Constants.HEIGHT,0},
+                                                           {Constants.WIDTH,Constants.HEIGHT,0}};
                     double[][] texcoords = new double[][] {{0,1},
                                                            {1,1},
                                                            {1,0},
                                                            {0,0}};
 
-                    double[] translate = new double[] {WIDTH, 0, 0};
+                    double[] translate = new double[] {Constants.WIDTH, 0, 0};
 
 
                     /*vbIm.addBack(new VisImage(new VisTexture(rgb, false),
