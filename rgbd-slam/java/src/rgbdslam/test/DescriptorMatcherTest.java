@@ -90,6 +90,7 @@ public class DescriptorMatcherTest {
             ArrayList<double[]> correspondences = new ArrayList<double[]>();
 
             for (Match match : matches) {
+                System.out.println(match.distance);
                 double[] match1 = ImageUtil.flipXY(match.feature1.xyAsDouble(), im1.getHeight());
                 double[] match2 = ImageUtil.flipXY(match.feature2.xyAsDouble(), im2.getHeight());
                 match2[0] += imageSeparation;
