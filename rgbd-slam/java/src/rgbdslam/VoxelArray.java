@@ -141,7 +141,7 @@ public class VoxelArray
      *  coodinate in va-local to our local), make
      *  a merged voxel array
      **/
-    public VoxelArray merge(VoxelArray va, Matrix rbt)
+    public VoxelArray merge(VoxelArray va, double[][] rbt)
     {
         assert (va.resolution == resolution);
 
@@ -189,7 +189,7 @@ public class VoxelArray
             xyz[2] = (int)(xyz_[2]/resolution);
         }
 
-        public VoxelKey transform(Matrix rbt)
+        public VoxelKey transform(double[][] rbt)
         {
             double[] xyz_xform = new double[] {xyz[0]*resolution+resolution/2,
                                                xyz[1]*resolution+resolution/2,

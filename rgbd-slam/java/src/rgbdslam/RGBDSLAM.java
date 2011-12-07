@@ -297,7 +297,7 @@ public class RGBDSLAM implements LCMSubscriber
 
         synchronized public void run()
         {
-            Matrix rbt = Matrix.identity(4,4);
+            double[][] rbt = Matrix.identity(4,4).copyArray();
 
             while (true) {
                 if (currFrame != null && lastFrame != null) {
@@ -307,20 +307,14 @@ public class RGBDSLAM implements LCMSubscriber
                     VoxelArray va = new VoxelArray(DEFAULT_RES); // XXX
 
                     // Extract features, perform RANSAC and ICP // XXX No ICP yet
-                    Matrix ransac = getTransform(cpc);
-                    //ransac.print();
-                    rbt = rbt.times(ransac);
+                    double[][] ransac = getTransform(cpc);
+                    LinAlg.timesEquals(ransac, rbt);
+                    rbt = ransac;
 
                     ICP icp = new ICP(new ColorPointCloud(lastFrame, 10));
                     double[][] transform = icp.match(new ColorPointCloud(currFrame, 10), Matrix.identity(4,4).copyArray());
-                    //cpc.rbt(transform);
-                    rbt = rbt.times(new Matrix(transform));
-                    /*for(int i=0; i<rbt.length; i++){
-                        for (int j=0; j[0].length; j++){
-                            System.out.print(transform[i][j]+"\t");
-                        }
-                        System.out.println();
-                        }*/
+                    LinAlg.timesEquals(transform, rbt);
+                    rbt = transform;
 
                     va.voxelizePointCloud(cpc);
 
@@ -343,7 +337,7 @@ public class RGBDSLAM implements LCMSubscriber
             notifyAll();
         }
 
-        private Matrix getTransform(ColorPointCloud cpc)
+        private double[][] getTransform(ColorPointCloud cpc)
         {
             int[] argbC = currFrame.argb;
             int[] argbL = lastFrame.argb;
@@ -363,7 +357,7 @@ public class RGBDSLAM implements LCMSubscriber
             ArrayList<DescriptorMatcher.Match> matches = dm.match();
             ArrayList<DescriptorMatcher.Match> inliers = new ArrayList<DescriptorMatcher.Match>();
 
-            return new Matrix(RANSAC.RANSAC(matches, inliers));
+            return RANSAC.RANSAC(matches, inliers);
         }
     }
 
