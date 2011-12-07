@@ -99,6 +99,9 @@ public class ColorPointCloud
 
                 points.add(new double[] {px, py, pz});
                 int argb = frame.argb[cy*Constants.WIDTH + cx]; // get the rgb data for the calculated pixel location
+                
+                // add to hashmap cx cy which maps to m
+                rgbDmap.put(new Pixel(cx,cy), m);
 
                 colors.add(argb);
                 int abgr = (argb & 0xff000000) | ((argb & 0xff) << 16) | (argb & 0xff00) | ((argb >> 16) & 0xff);
@@ -111,19 +114,17 @@ public class ColorPointCloud
     // XXX if ever make change to way color point cloud is projected into 3D
     // need to make that fix below
     public double[] Project(double[] Xrgb) {
-        
-        
-        // XXX rewrite to use point class that I need to make!! with equals and hashcode methods
-        
         assert (Xrgb.length == 2);
         Pixel key = new Pixel((int) Xrgb[0],(int) Xrgb[1]);
+        
+        assert (!rgbDmap.isEmpty());
         
         if (rgbDmap.containsKey(key)) {
             double m = rgbDmap.get(key);
             
             // handle points in depth image without a depth value
             if (m < 0) {
-                System.out.println("Depth less than 0!");
+                //System.out.println("Depth less than 0!");
                 return new double[] {-1, -1, -1};
             }
             
@@ -135,7 +136,7 @@ public class ColorPointCloud
             return P;    
         // handle points without a mapping to the depth image
         } else {
-            System.out.println("Couldn't find the key!");
+            //System.out.println("Couldn't find the key!");
             return new double[] {-1, -1, -1};
         }
     }
