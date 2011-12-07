@@ -65,7 +65,6 @@ public class ColorPointCloud {
         outertimer.addTask(new StopWatch.TaskInfo("hash map construction", hashmapconstruct));
 
         System.out.println(outertimer.prettyPrint());
-        System.out.println("hi there");
     }
 
     protected final long[] processPoint(Frame frame, int x, int y) {
@@ -111,7 +110,7 @@ public class ColorPointCloud {
         // add to hashmap cx cy which maps to m
         timer.start("hashmap");
         //rgbDmap.put(new Pixel(cx,cy), m);
-        pointmap[cy * Constants.WIDTH + cx] = y*Constants.WIDTH + x;
+        pointmap[cy * Constants.WIDTH + cx] = points.size()-1;
 
         timer.stop();
         values[3] = timer.getLastTaskTimeMillis();
@@ -127,14 +126,9 @@ public class ColorPointCloud {
     // need to make that fix below
     public double[] Project(double[] Xrgb) {
         assert (Xrgb.length == 2);
-        
-        System.out.println("X = " + Xrgb[0] + "Y = " +Xrgb[1]);
 
-        //assert (!rgbDmap.isEmpty());
         int index = pointmap[(int) (Xrgb[1] * Constants.WIDTH + Xrgb[0])];
         
-        
-
         double[] P = this.points.get(index);
 
         return P;
