@@ -51,8 +51,11 @@ public class ColorPointCloud
         int cx = 0, cy = 0;
         // rotation transformation to transform from IR frame to RGB frame
         double[] xyz = new double[] {px, py, pz};
+        double[] cxyz = LinAlg.transform(Constants.Transirtorgb, xyz);
+        /*
         double[] cxyz = LinAlg.transform(Constants.Rirtorgb, xyz);
         cxyz = LinAlg.transform(Constants.Tirtorgb, cxyz);
+         */
         // project 3D point into rgb image frame
         cx = (int) ((cxyz[0] * Constants.Frgbx / cxyz[2]) + Constants.Crgbx);
         cy = (int) ((cxyz[1] * Constants.Frgby / cxyz[2]) + Constants.Crgby);
