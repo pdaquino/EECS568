@@ -31,7 +31,7 @@ class KinectDemo {
         kt = new KinectThread();
         kt.start();
     }
-
+    
     class KinectThread extends Thread {
 
         int fps = 15;
@@ -157,6 +157,7 @@ class KinectDemo {
                     // Get each frame's features
                     int[] argbC = currFrame.argb;
                     int[] argbL = lastFrame.argb;
+
                     timer.start("Extracting features");
                     ArrayList<ImageFeature> allFeaturesC = OpenCV.extractFeatures(argbC, 640);
                     ArrayList<ImageFeature> allFeaturesL = OpenCV.extractFeatures(argbL, 640);
@@ -174,6 +175,7 @@ class KinectDemo {
                     timer.start("RANSAC");
                     ArrayList<DescriptorMatcher.Match> inliers = new ArrayList<DescriptorMatcher.Match>();
                     double[][] transform = RANSAC.RANSAC(matches, inliers);
+
                     timer.stop();
                     
                     System.out.printf("%d inliers/%d matches\n", inliers.size(), matches.size());

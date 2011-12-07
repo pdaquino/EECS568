@@ -191,9 +191,9 @@ public class VoxelArray
 
         public VoxelKey transform(Matrix rbt)
         {
-            double[] xyz_xform = new double[] {xyz[0]+resolution/2,
-                                               xyz[1]+resolution/2,
-                                               xyz[2]+resolution/2};
+            double[] xyz_xform = new double[] {xyz[0]*resolution+resolution/2,
+                                               xyz[1]*resolution+resolution/2,
+                                               xyz[2]*resolution+resolution/2};
             xyz_xform = LinAlg.transform(rbt, xyz_xform);
 
             return new VoxelKey(xyz_xform, resolution);
