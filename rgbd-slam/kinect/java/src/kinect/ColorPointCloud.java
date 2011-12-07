@@ -8,12 +8,12 @@ import kinect.Kinect.Frame;
 
 public class ColorPointCloud {
 
-    public ArrayList<double[]> points = new ArrayList<double[]>();
-    public ArrayList<Integer> colors = new ArrayList<Integer>();
+    public ArrayList<double[]> points = new ArrayList<double[]>(307200);
+    public ArrayList<Integer> colors = new ArrayList<Integer>(307200);
     public VisColorData vcd = new VisColorData();
     // hash map storing mapping between rgb image and depth
     //HashMap<Pixel, Double> rgbDmap = new HashMap<Pixel, Double>();
-    double[] rgbDmap = new double[Constants.HEIGHT * Constants.WIDTH];
+    int[] pointmap = new int[Constants.HEIGHT * Constants.WIDTH];
 
     public ColorPointCloud(Kinect.Frame frame) {
         assert (frame != null);
@@ -55,8 +55,6 @@ public class ColorPointCloud {
         long projection = 0;
         long backprojection = 0;
         long hashmapconstruct = 0;
-
-        outertimer.start("total time");
         for (int y = 0; y < Constants.HEIGHT; y = y + Dfactor) {
             for (int x = 0; x < Constants.WIDTH; x = x + Dfactor) {
                 long[] values = processPoint(frame, x, y);
@@ -66,7 +64,6 @@ public class ColorPointCloud {
                 hashmapconstruct += values[3];
             }
         }
-        outertimer.stop();
         outertimer.addTask(new StopWatch.TaskInfo("depthlookup", depthlookup));
         outertimer.addTask(new StopWatch.TaskInfo("projection", projection));
         outertimer.addTask(new StopWatch.TaskInfo("backprojection", backprojection));
@@ -119,16 +116,11 @@ public class ColorPointCloud {
         // add to hashmap cx cy which maps to m
         timer.start("hashmap");
         //rgbDmap.put(new Pixel(cx,cy), m);
-        rgbDmap[cy * Constants.WIDTH + cx] = m;
+        pointmap[cy * Constants.WIDTH + cx] = y*Constants.WIDTH + x;
 
         timer.stop();
         values[3] = timer.getLastTaskTimeMillis();
-        // this is a test of the mapping
-        /*
-        if (rgbDmap.containsKey(new Pixel(cx,cy))) {
-        double depth = rgbDmap.get(new Pixel(cx,cy));
-        System.out.println("Yep it works got D = " + depth);
-        } */
+        
         colors.add(argb);
         int abgr = (argb & 0xff000000) | ((argb & 0xff) << 16) | (argb & 0xff00) | ((argb >> 16) & 0xff);
         vcd.add(abgr);
@@ -142,18 +134,9 @@ public class ColorPointCloud {
         assert (Xrgb.length == 2);
 
         //assert (!rgbDmap.isEmpty());
-        double m = rgbDmap[(int) (Xrgb[0] * Constants.WIDTH + Xrgb[1])];
+        int index = pointmap[(int) (Xrgb[0] * Constants.WIDTH + Xrgb[1])];
 
-        // handle points in depth image without a depth value
-        if (m < 0) {
-            //System.out.println("Depth less than 0!");
-            return new double[]{-1, -1, -1};
-        }
-
-        double[] P = new double[3];
-        P[0] = (Xrgb[0] - Constants.Crgbx) * m / Constants.Frgbx;
-        P[1] = (Xrgb[1] - Constants.Crgby) * m / Constants.Frgby;
-        P[2] = m;
+        double[] P = this.points.get(index);
 
         return P;
     }
