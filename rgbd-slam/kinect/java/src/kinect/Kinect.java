@@ -102,7 +102,7 @@ public class Kinect
     private synchronized int[] rectifyRGB(int[] Dargb) {
 
         int[] Rargb = new int[Constants.WIDTH * Constants.HEIGHT]; // recified image
-        // for every pixel in Rargb 
+        // for every pixel in Rargb
 
         for (int xp = 0; xp < Constants.WIDTH; xp++) {
             double x = (xp - Constants.Crgbx) / Constants.Frgbx; // compute normalized point x
@@ -124,7 +124,7 @@ public class Kinect
         return Rargb;
     }
 
-    // rectifies distored depth image using parameters from IR camera, 
+    // rectifies distored depth image using parameters from IR camera,
     // parameters were obtained from the 640x480 so should be able to modify this image
     private synchronized short[] rectifyD(short[] Dd) {
 
@@ -259,7 +259,7 @@ public class Kinect
             }
         }
 
-        
+
 
         public double depthToMeters(short depth) {
             // Throw away extreme values
@@ -284,7 +284,7 @@ public class Kinect
             assert (depth.length == Constants.WIDTH * Constants.HEIGHT);
             BufferedImage im = new BufferedImage(Constants.WIDTH, Constants.HEIGHT, BufferedImage.TYPE_INT_RGB);
             int[] buf = ((DataBufferInt) (im.getRaster().getDataBuffer())).getData();
-            double[] cutoffs = new double[]{1.0, 1.75, 2.5, 3.25, 4.0, 5.0};
+            double[] cutoffs = new double[]{1.0, 2.5, 4.0, 5.5, 7.0, 8.5};
             for (int i = 0; i < buf.length; i++) {
                 // XXX Improved color mapping. Optimal range is ~0.8m - 3.5m
                 // white -> close
