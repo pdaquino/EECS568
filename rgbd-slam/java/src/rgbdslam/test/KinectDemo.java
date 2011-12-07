@@ -31,7 +31,7 @@ class KinectDemo {
         kt = new KinectThread();
         kt.start();
     }
-
+    
     class KinectThread extends Thread {
 
         int fps = 15;
@@ -142,8 +142,11 @@ class KinectDemo {
                     BufferedImage rgbL = currFrame.makeRGB();
                     BufferedImage depthL = currFrame.makeDepth();
                     
+                    Tic t = new Tic();
                     ColorPointCloud currPtCloud = new ColorPointCloud(currFrame);
                     ColorPointCloud lastPtCloud = new ColorPointCloud(lastFrame);
+                    double time = t.toc();
+                    System.out.println("Time for point cloud construction: " + time);
 
                     double[] xy0 = new double[2];
                     double[] xy1 = new double[]{WIDTH, HEIGHT};
@@ -153,16 +156,25 @@ class KinectDemo {
                     // Get each frame's features
                     int[] argbC = currFrame.argb;
                     int[] argbL = lastFrame.argb;
+                    t = new Tic();
                     ArrayList<ImageFeature> allFeaturesC = OpenCV.extractFeatures(argbC, 640);
                     ArrayList<ImageFeature> allFeaturesL = OpenCV.extractFeatures(argbL, 640);
+                    time = t.toc();
+                    System.out.println("Time for feature extraction: " + time);
+                    t = new Tic();
                     ArrayList<ImageFeature> featuresC = projectAndFilter(allFeaturesC, currPtCloud);
                     ArrayList<ImageFeature> featuresL = projectAndFilter(allFeaturesL, lastPtCloud);
+                    time = t.toc();
+                    System.out.println("Time for feature projection: " + time);
 
                     // Match SIFT features -> RANSAC
+                    t = new Tic();
                     DescriptorMatcher dm = new DescriptorMatcher(featuresL, featuresC);
                     ArrayList<DescriptorMatcher.Match> matches = dm.match();
                     ArrayList<DescriptorMatcher.Match> inliers = new ArrayList<DescriptorMatcher.Match>();
                     double[][] transform = RANSAC.RANSAC(matches, inliers);
+                    time = t.toc();
+                    System.out.println("Time for RANSAC: " + time);
                     /*
                     for (int i = 0; i < transform.length; i++) {
                         for (int j = 0; j < transform[0].length; j++) {
