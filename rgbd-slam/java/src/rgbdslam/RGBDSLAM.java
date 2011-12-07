@@ -1,33 +1,41 @@
 package rgbdslam;
 
-import java.util.*;
 
 import java.util.*;
+import java.io.*;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
+
+import lcm.lcm.*;
 
 import april.vis.*;
 import april.jmat.*;
 import april.jmat.geom.*;
 import april.util.*;
+import april.lcmtypes.*;
 
 import kinect.*;
 
 import rgbdslam.*;
 
-public class RGBDSLAM
+public class RGBDSLAM implements LCMSubscriber
 {
+    LCM lcm = LCM.getSingleton();
+
     KinectThread kt;
     RenderThread rt;
     RGBDThread rgbd;
 
-    double DEFAULT_RES = 0.05;
+    double DEFAULT_RES = 0.01;
     double currRes = DEFAULT_RES;
     VoxelArray globalVoxelFrame = new VoxelArray(DEFAULT_RES);
 
     // State
     boolean loadedFromFile = false;
+
+    // Gamepad_t
+    ExpiringMessageCache<gamepad_t> lgp = new ExpiringMessageCache<gamepad_t>(0.25);
 
     public RGBDSLAM(GetOpt opts)
     {
@@ -43,6 +51,8 @@ public class RGBDSLAM
             }
         }
 
+        lcm.subscribe("GAMEPAD", this);
+
         kt = new KinectThread();
         rt = new RenderThread();
         rgbd = new RGBDThread();
@@ -53,6 +63,19 @@ public class RGBDSLAM
         rt.start();
         if (!loadedFromFile) {
             rgbd.start();
+        }
+    }
+
+    /** Receive LCM messages from the Gamepad */
+    public void messageReceived(LCM lcm, String channel, LCMDataInputStream ins)
+    {
+        try {
+            if (channel.equals("GAMEPAD")) {
+                gamepad_t gp = new gamepad_t(ins);
+                lgp.put(gp, gp.utime);
+            }
+        } catch (IOException ex) {
+            System.err.println("ERR: Failed to decoded message on: "+channel);
         }
     }
 
@@ -89,7 +112,7 @@ public class RGBDSLAM
             System.out.println("Kinect stopped");
             System.out.println("Closing kinect...");
             kinect.close();
-            System.out.println("Kienct closed");
+            System.out.println("Kinect closed");
 
             closed = true;
         }
@@ -122,10 +145,10 @@ public class RGBDSLAM
         // Knobs
         ParameterGUI pg;
 
-        // Flying around stuff
-        double xticks, yticks, zticks, tticks;
-        double vel = 1.0; // m/s
-        double theta_vel = Math.toRadians(15);  // rad/sec
+        // Gamepad
+        boolean turbo = false;
+        double vel = 2.5;
+        double theta_vel = Math.toRadians(15);
 
         public RenderThread()
         {
@@ -177,17 +200,16 @@ public class RGBDSLAM
             });
             updateFPS();
 
-            VzGrid.addGrid(vw);
+            //VzGrid.addGrid(vw);
 
 
             // XXX May need to change default position. Moving still
             // glitchy. Twitches and doesn't respect our axes
-            /*DefaultCameraManager dcm = new DefaultCameraManager();
+            DefaultCameraManager dcm = new DefaultCameraManager();
             dcm.UI_ANIMATE_MS = 25;
             vl.cameraManager = dcm;
-            vl.cameraManager.setDefaultPosition(new double[] {0, 0, 5}, new double[] {0, 0, 0}, new double[] {0, 1, 0});
-            vl.cameraManager.uiDefault();*/
-            vl.addEventHandler(new MyEventAdapter());
+            vl.cameraManager.setDefaultPosition(new double[] {0, 0, -20}, new double[] {0, 0, -19}, new double[] {0, -1, 0});
+            vl.cameraManager.uiDefault();
 
             jf.add(vc, BorderLayout.CENTER);
             jf.add(pg, BorderLayout.SOUTH);
@@ -225,9 +247,6 @@ public class RGBDSLAM
                     // Rotation
                     double[][] eye_trans = LinAlg.translate(eye);
                     double[][] eye_inv = LinAlg.inverse(eye_trans);
-                    LinAlg.timesEquals(eye_trans, rotation);
-                    LinAlg.timesEquals(eye_trans, eye_inv);
-                    lookat = LinAlg.transform(eye_trans, lookat);
 
                     vl.cameraManager.uiLookAt(eye, lookat, cpos.up, false);
                 }
@@ -253,44 +272,21 @@ public class RGBDSLAM
 
         private double[] getCameraXYZRPY(double dt)
         {
+            gamepad_t gp = lgp.get();
+            if (gp == null)
+                return new double[6];
+            if ((gp.buttons & 0xF0) > 1 && !turbo) {
+                vel = 7.5;
+                theta_vel = Math.toRadians(45);
+                turbo = true;
+            } else if ((gp.buttons & 0xF0) > 1 && turbo) {
+                vel = 2.5;
+                theta_vel = Math.toRadians(15);
+                turbo = false;
+            }
 
-            return new double[] {xticks*vel*dt, yticks*vel*dt, zticks*vel*dt, 0, 0, tticks*theta_vel*dt};
+            return new double[] {gp.axes[0]*vel*dt, gp.axes[3]*-vel*dt, gp.axes[1]*-vel*dt, 0, 0, gp.axes[2]*-theta_vel*dt};
         }
-
-        public void toggleDirection(int vk)
-        {
-            if (vk == KeyEvent.VK_DOWN) {
-                yticks -= 1;
-            }
-            if (vk == KeyEvent.VK_UP) {
-                yticks += 1;
-            }
-
-            if (vk == KeyEvent.VK_W) {
-                zticks += 1;
-            }
-            if (vk == KeyEvent.VK_S) {
-                zticks -= 1;
-            }
-
-            if (vk == KeyEvent.VK_D) {
-                xticks += 1;
-            }
-            if (vk == KeyEvent.VK_A) {
-                xticks -= 1;
-            }
-
-            if (vk == KeyEvent.VK_LEFT) {
-                tticks += 1;
-            }
-            if (vk == KeyEvent.VK_RIGHT) {
-                tticks -= 1;
-            }
-            System.out.printf("[x:%f] [y:%f] [z:%f] [t:%f]\n", xticks, yticks, zticks, tticks);
-
-        }
-
-
     }
 
     class RGBDThread extends Thread
@@ -331,18 +327,6 @@ public class RGBDSLAM
         {
             currFrame = frame;
             notifyAll();
-        }
-    }
-
-    class MyEventAdapter extends VisEventAdapter
-    {
-        // Deal with repeated key presses
-        public boolean keyPressed(VisCanvas vc, VisLayer vl, VisCanvas.RenderInfo rinfo, KeyEvent e)
-        {
-            int vk = e.getKeyCode();
-            rt.toggleDirection(vk);
-
-            return false;
         }
     }
 

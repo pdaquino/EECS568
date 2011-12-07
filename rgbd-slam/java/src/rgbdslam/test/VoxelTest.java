@@ -81,7 +81,7 @@ public class VoxelTest
     {
         // Kinect Thread
         Kinect.Frame lastFrame = null;
-        Kinect.Frame renderFrame = null;
+        Kinect.Frame rFrame = null;
 
         // Vis
         VisWorld vw;
@@ -141,7 +141,7 @@ public class VoxelTest
                         updateVoxelRes(pg.gd("res"));
                     } else if (name.equals("reset")) {
                         updateVoxelRes(pg.gd("res"));
-                        renderFrame = lastFrame;
+                        rFrame = lastFrame;
                     }
                 }
             });
@@ -150,11 +150,13 @@ public class VoxelTest
             vl = new VisLayer(vw);
             vc = new VisCanvas(vl);
 
-            DefaultCameraManager dcm = new DefaultCameraManager();
-            dcm.UI_ANIMATE_MS = 50;
-            vl.cameraManager = dcm;
-            vl.cameraManager.setDefaultPosition(new double[] {0, 0, 5}, new double[] {0, 0, 0}, new double[] {0, 1, 0});
-            vl.cameraManager.uiDefault();
+            VzGrid.addGrid(vw);
+
+            //DefaultCameraManager dcm = new DefaultCameraManager();
+            //dcm.UI_ANIMATE_MS = 50;
+            //vl.cameraManager = dcm;
+            //vl.cameraManager.setDefaultPosition(new double[] {0, 0, 5}, new double[] {0, 0, 0}, new double[] {0, 1, 0});
+            //vl.cameraManager.uiDefault();
             vl.addEventHandler(new MyEventAdapter());
 
             /*{
@@ -210,7 +212,7 @@ public class VoxelTest
         {
             assert (f != null);
             lastFrame = f;
-            //notify();
+            notify();
         }
 
         private double[] getCameraTranslation(double dt)
@@ -228,7 +230,7 @@ public class VoxelTest
                 // Move camera
                 double[] xyzrpy = getCameraTranslation(tic.toctic());
                 // XXX Note: this will make normal vis controls wacky
-                if (vc.getLastRenderInfo() != null) {
+                /*if (vc.getLastRenderInfo() != null) {
                     VisCameraManager.CameraPosition cpos = vc.getLastRenderInfo().cameraPositions.get(vl);
 
                     double[] yaxis = LinAlg.normalize(cpos.up);
@@ -257,12 +259,13 @@ public class VoxelTest
                     lookat = LinAlg.transform(eye_trans, lookat);
 
                     vl.cameraManager.uiLookAt(eye, lookat, cpos.up, false);
-                }
+                }*/
 
-                if (renderFrame != null) {
+                if (rFrame != null) {
+                    System.out.println("voxels");
                     VisWorld.Buffer vb = vw.getBuffer("voxels");
 
-                    ColorPointCloud cpc = new ColorPointCloud(renderFrame);
+                    ColorPointCloud cpc = new ColorPointCloud(rFrame);
                     va.voxelizePointCloud(cpc);//, i4);
 
 
