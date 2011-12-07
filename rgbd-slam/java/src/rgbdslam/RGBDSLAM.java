@@ -310,9 +310,9 @@ public class RGBDSLAM
                     VoxelArray va = new VoxelArray(DEFAULT_RES); // XXX
 
                     // Extract features, perform RANSAC and ICP // XXX No ICP yet
-                    //Matrix transform = getTransform(cpc);
-                    //transform.print();
-                    //rbt = rbt.times(transform);
+                    Matrix ransac = getTransform(cpc);
+                    //ransac.print();
+                    rbt = rbt.times(ransac);
 
                     ICP icp = new ICP(new ColorPointCloud(lastFrame, 10));
                     double[][] transform = icp.match(new ColorPointCloud(currFrame, 10), Matrix.identity(4,4).copyArray());

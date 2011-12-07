@@ -20,40 +20,6 @@ public class ColorPointCloud
         assert (frame != null);
         for (int y = 0; y < Constants.HEIGHT; y++) {
             for (int x = 0; x < Constants.WIDTH; x++) {
-
-                // Calculate point place in world
-                double m = frame.depthToMeters(frame.depth[y*Constants.WIDTH + x]);
-                if (m < 0)
-                    continue;
-
-                // points in 3D
-                double px = (x - Constants.Cirx) * m/Constants.Firx;
-                double py = (y - Constants.Ciry) * m/Constants.Firy;
-                double pz = m;
-
-                // Calculate color of point
-                int cx = 0, cy = 0;
-                // rotation transformation to transform from IR frame to RGB frame
-                double[] xyz = new double[] {px, py, pz};
-                double[] cxyz = LinAlg.transform(Constants.Rirtorgb, xyz);
-                cxyz = LinAlg.transform(Constants.Tirtorgb, cxyz);
-
-                // project 3D point into rgb image frame
-                cx = (int) ((cxyz[0] * Constants.Frgbx / cxyz[2]) + Constants.Crgbx);
-                cy = (int) ((cxyz[1] * Constants.Frgby / cxyz[2]) + Constants.Crgby);
-
-                assert (!(cx < 0 || cx > Constants.WIDTH));
-                assert (!(cy < 0 || cy > Constants.HEIGHT));
-
-                points.add(new double[] {px, py, pz});
-                int argb = frame.argb[cy*Constants.WIDTH + cx]; // get the rgb data for the calculated pixel location
-
-                // add to hashmap cx cy which maps to m
-                rgbDmap.put(new int[] {cx, cy}, m);
-
-                colors.add(argb);
-                int abgr = (argb & 0xff000000) | ((argb & 0xff) << 16) | (argb & 0xff00) | ((argb >> 16) & 0xff);
-                vcd.add(abgr);
                 processPoint(frame, x, y);
             }
         }
@@ -101,7 +67,7 @@ public class ColorPointCloud
         if (rgbDmap.containsKey(new Pixel(cx,cy))) {
             double depth = rgbDmap.get(new Pixel(cx,cy));
             System.out.println("Yep it works got D = " + depth);
-        } */
+            } */
         colors.add(argb);
         int abgr = (argb & 0xff000000) | ((argb & 0xff) << 16) | (argb & 0xff00) | ((argb >> 16) & 0xff);
         vcd.add(abgr);
@@ -113,7 +79,6 @@ public class ColorPointCloud
     // XXX if ever make change to way color point cloud is projected into 3D
     // need to make that fix below
     public double[] Project(double[] Xrgb) {
-
         assert (Xrgb.length == 2);
         Pixel key = new Pixel((int) Xrgb[0],(int) Xrgb[1]);
 
@@ -134,7 +99,7 @@ public class ColorPointCloud
             P[2] = m;
 
             return P;
-        // handle points without a mapping to the depth image
+            // handle points without a mapping to the depth image
         } else {
             //System.out.println("Couldn't find the key!");
             return new double[] {-1, -1, -1};
@@ -145,17 +110,11 @@ public class ColorPointCloud
 
         ArrayList<double[]> P = new ArrayList<double[]>();
 
-        for (double[] Xrgb: XRGB) {
+       for (double[] Xrgb: XRGB) {
             double[] p = Project(Xrgb);
             P.add(p);
         }
         return P;
-    }
-
-    public void rbt(double[][] transform){
-        for(double[] p: points){
-            LinAlg.transform(transform, p);
-        }
     }
 
     public int numPoints()
