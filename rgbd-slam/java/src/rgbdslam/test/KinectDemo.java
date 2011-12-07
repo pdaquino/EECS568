@@ -136,7 +136,7 @@ class KinectDemo {
             VisWorld.Buffer vbPts = vw.getBuffer("points");
 
             while (true) {
-                if (currFrame != null && lastFrame != null && opts.getBoolean("alignment")) {
+                if (currFrame != null && lastFrame != null) {
                     BufferedImage rgbC = currFrame.makeRGB();
                     BufferedImage depthC = currFrame.makeDepth();
                     BufferedImage rgbL = currFrame.makeRGB();
@@ -153,29 +153,25 @@ class KinectDemo {
                     // Get each frame's features
                     int[] argbC = currFrame.argb;
                     int[] argbL = lastFrame.argb;
-                    ArrayList<ImageFeature> featuresC = OpenCV.extractFeatures(argbC, 640);
-                    ArrayList<ImageFeature> featuresL = OpenCV.extractFeatures(argbL, 640);
-
-                    // Set xyz (world) coordinates
-                    for (ImageFeature fc : featuresC) {
-                        fc.setXyz(currPtCloud.Project(LinAlg.copyDoubles(fc.xy())));
-                    }
-                    for (ImageFeature fl : featuresL) {
-                        fl.setXyz(lastPtCloud.Project(LinAlg.copyDoubles(fl.xy())));
-                    }
+                    ArrayList<ImageFeature> allFeaturesC = OpenCV.extractFeatures(argbC, 640);
+                    ArrayList<ImageFeature> allFeaturesL = OpenCV.extractFeatures(argbL, 640);
+                    ArrayList<ImageFeature> featuresC = projectAndFilter(allFeaturesC, currPtCloud);
+                    ArrayList<ImageFeature> featuresL = projectAndFilter(allFeaturesL, lastPtCloud);
 
                     // Match SIFT features -> RANSAC
                     DescriptorMatcher dm = new DescriptorMatcher(featuresL, featuresC);
                     ArrayList<DescriptorMatcher.Match> matches = dm.match();
                     ArrayList<DescriptorMatcher.Match> inliers = new ArrayList<DescriptorMatcher.Match>();
                     double[][] transform = RANSAC.RANSAC(matches, inliers);
+                    /*
                     for (int i = 0; i < transform.length; i++) {
                         for (int j = 0; j < transform[0].length; j++) {
                             System.out.print(transform[i][j] + "\t");
                         }
                         System.out.println();
-                    }
-                    //LinAlg.print(transform);
+                    }*/
+                    System.out.println("The Transform is");
+                    LinAlg.print(transform);
                     plotFeatures(featuresC, rgbC, featuresL, rgbL);
 
                     VzLines lines = plotCorrespondences(inliers);
@@ -191,6 +187,18 @@ class KinectDemo {
                     wait();
                 } catch (InterruptedException ex) {  }
             }
+        }
+
+        synchronized private ArrayList<ImageFeature> projectAndFilter(ArrayList<ImageFeature> allFeaturesC, ColorPointCloud PtCloud) {
+            // Set xyz (world) coordinates
+            ArrayList<ImageFeature> featuresC = new ArrayList<ImageFeature>();
+            for (ImageFeature fc : allFeaturesC) {
+                fc.setXyz(PtCloud.Project(LinAlg.copyDoubles(fc.xy())));
+                if (fc.xyz()[2] != -1) {
+                    featuresC.add(fc);
+                }
+            }
+            return featuresC;
         }
 
         protected VzLines plotCorrespondences(ArrayList<Match> inliers) {
