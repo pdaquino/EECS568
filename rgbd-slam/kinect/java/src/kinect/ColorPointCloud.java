@@ -11,6 +11,7 @@ public class ColorPointCloud {
     public ArrayList<double[]> points = new ArrayList<double[]>(307200);
     public ArrayList<Integer> colors = new ArrayList<Integer>(307200);
     public VisColorData vcd = new VisColorData();
+
     // hash map storing mapping between rgb image and depth
     //HashMap<Pixel, Double> rgbDmap = new HashMap<Pixel, Double>();
     int[] pointmap = new int[Constants.HEIGHT * Constants.WIDTH];
@@ -102,8 +103,9 @@ public class ColorPointCloud {
         cy = (int) ((cxyz[1] * Constants.Frgby / cxyz[2]) + Constants.Crgby);
         assert (!(cx < 0 || cx > Constants.WIDTH));
         assert (!(cy < 0 || cy > Constants.HEIGHT));
-        points.add(new double[]{px, py, pz});
-        int argb = frame.argb[cy * Constants.WIDTH + cx]; // get the rgb data for the calculated pixel location
+
+        points.add(new double[] {pz, -px, -py});
+        int argb = frame.argb[cy*Constants.WIDTH + cx]; // get the rgb data for the calculated pixel location
         timer.stop();
         values[2] = timer.getLastTaskTimeMillis();
 
@@ -114,7 +116,7 @@ public class ColorPointCloud {
 
         timer.stop();
         values[3] = timer.getLastTaskTimeMillis();
-        
+
         colors.add(argb);
         int abgr = (argb & 0xff000000) | ((argb & 0xff) << 16) | (argb & 0xff00) | ((argb >> 16) & 0xff);
         vcd.add(abgr);
@@ -133,17 +135,16 @@ public class ColorPointCloud {
 
         return P;
     }
-    
+
 public ArrayList<double[]> Project(List<double[]> XRGB) {
-        
         ArrayList<double[]> P = new ArrayList<double[]>();
-        
-        for (double[] Xrgb: XRGB) {
+
+       for (double[] Xrgb: XRGB) {
             double[] p = Project(Xrgb);
             P.add(p);
         }
         return P;
-    } 
+    }
 
     public int numPoints()
     {

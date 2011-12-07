@@ -40,7 +40,6 @@ public class RGBDSLAM implements LCMSubscriber
     public RGBDSLAM(GetOpt opts)
     {
         // Load from file
-        System.out.println(opts.getString("file"));
         if (opts.getString("file") != null) {
             System.out.println("Loading from file...");
             VoxelArray va = VoxelArray.readFromFile(opts.getString("file"));
@@ -208,9 +207,9 @@ public class RGBDSLAM implements LCMSubscriber
             DefaultCameraManager dcm = new DefaultCameraManager();
             dcm.UI_ANIMATE_MS = 25;
             dcm.interfaceMode = 3.0;
-            double[] eye = new double[] {0,0,-20};
-            double[] lookat = new double[] {0,0,-19};
-            double[] up = new double[] {0,-1,0};
+            double[] eye = new double[] {-10,0,0};
+            double[] lookat = new double[] {-9,0,0};
+            double[] up = new double[] {0,0,1};
             dcm.uiLookAt(eye, lookat, up, true);
             vl.cameraManager = dcm;
 
@@ -304,24 +303,30 @@ public class RGBDSLAM implements LCMSubscriber
     class RGBDThread extends Thread
     {
         Kinect.Frame currFrame = null;
+        Kinect.Frame lastFrame = null;
 
         synchronized public void run()
         {
-            Matrix rbt = Matrix.identity(4,4);
+            double[][] rbt = Matrix.identity(4,4).copyArray();
 
             while (true) {
-                if (currFrame != null) {
+                if (currFrame != null && lastFrame != null) {
                     // Deal with new data
                     // XXX Temporary
                     ColorPointCloud cpc = new ColorPointCloud(currFrame);
                     VoxelArray va = new VoxelArray(DEFAULT_RES); // XXX
 
-                    // Process for features
+                    // Extract features, perform RANSAC and ICP // XXX No ICP yet
+                    double[][] ransac = getTransform(cpc);
+                    LinAlg.timesEquals(ransac, rbt);
+                    rbt = ransac;
 
-                    // RANSAC
+                    ICP icp = new ICP(new ColorPointCloud(lastFrame, 10));
+                    double[][] transform = icp.match(new ColorPointCloud(currFrame, 10), Matrix.identity(4,4).copyArray());
+                    LinAlg.timesEquals(transform, rbt);
+                    rbt = transform;
+
                     va.voxelizePointCloud(cpc);
-
-                    // ICP
 
                     // Let render thread do its thing
                     synchronized (globalVoxelFrame) {
@@ -337,8 +342,32 @@ public class RGBDSLAM implements LCMSubscriber
 
         synchronized public void handleFrame(Kinect.Frame frame)
         {
+            lastFrame = currFrame;
             currFrame = frame;
             notifyAll();
+        }
+
+        private double[][] getTransform(ColorPointCloud cpc)
+        {
+            int[] argbC = currFrame.argb;
+            int[] argbL = lastFrame.argb;
+            ArrayList<ImageFeature> featuresC = OpenCV.extractFeatures(argbC, 640);
+            ArrayList<ImageFeature> featuresL = OpenCV.extractFeatures(argbL, 640);
+
+            // Set xyz (world) coordinates
+            for(ImageFeature fc: featuresC){
+                fc.setXyz(cpc.Project(LinAlg.copyDoubles(fc.xy())));
+            }
+            for(ImageFeature fl: featuresL){
+                fl.setXyz(cpc.Project(LinAlg.copyDoubles(fl.xy())));
+            }
+
+            // Match SIFT features -> RANSAC
+            DescriptorMatcher dm = new DescriptorMatcher(featuresL, featuresC);
+            ArrayList<DescriptorMatcher.Match> matches = dm.match();
+            ArrayList<DescriptorMatcher.Match> inliers = new ArrayList<DescriptorMatcher.Match>();
+
+            return RANSAC.RANSAC(matches, inliers);
         }
     }
 
