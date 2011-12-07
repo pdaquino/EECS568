@@ -61,7 +61,7 @@ public class ColorPointCloud
         cy = (int) ((cxyz[1] * Constants.Frgby / cxyz[2]) + Constants.Crgby);
         assert (!(cx < 0 || cx > Constants.WIDTH));
         assert (!(cy < 0 || cy > Constants.HEIGHT));
-        points.add(new double[] {px, py, pz});
+        points.add(new double[] {pz, -px, -py});
         int argb = frame.argb[cy*Constants.WIDTH + cx]; // get the rgb data for the calculated pixel location
         // add to hashmap cx cy which maps to m
         rgbDmap.put(new Pixel(cx,cy), m);

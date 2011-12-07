@@ -208,7 +208,8 @@ public class RGBDSLAM implements LCMSubscriber
             DefaultCameraManager dcm = new DefaultCameraManager();
             dcm.UI_ANIMATE_MS = 25;
             vl.cameraManager = dcm;
-            vl.cameraManager.setDefaultPosition(new double[] {0, 0, -20}, new double[] {0, 0, -19}, new double[] {0, -1, 0});
+            //vl.cameraManager.setDefaultPosition(new double[] {0, 0, -20}, new double[] {0, 0, -19}, new double[] {0, -1, 0});
+            vl.cameraManager.setDefaultPosition(new double[] {-10, 0, 0}, new double[] {0, 0, -9}, new double[] {0, 0, 1});
             vl.cameraManager.uiDefault();
 
             jf.add(vc, BorderLayout.CENTER);
@@ -363,19 +364,6 @@ public class RGBDSLAM implements LCMSubscriber
             ArrayList<DescriptorMatcher.Match> inliers = new ArrayList<DescriptorMatcher.Match>();
 
             return new Matrix(RANSAC.RANSAC(matches, inliers));
-        }
-    }
-
-
-    class MyEventAdapter extends VisEventAdapter
-    {
-        // Deal with repeated key presses
-        public boolean keyPressed(VisCanvas vc, VisLayer vl, VisCanvas.RenderInfo rinfo, KeyEvent e)
-        {
-            int vk = e.getKeyCode();
-            rt.toggleDirection(vk);
-
-            return false;
         }
     }
 
