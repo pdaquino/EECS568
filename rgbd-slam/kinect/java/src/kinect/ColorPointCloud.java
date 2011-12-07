@@ -14,7 +14,7 @@ public class ColorPointCloud
     public VisColorData vcd = new VisColorData();
     
     // hash map storing mapping between rgb image and depth
-    HashMap<int[], Double> rgbDmap = new HashMap<int[], Double>();
+    HashMap<Pixel, Double> rgbDmap = new HashMap<Pixel, Double>();
 
     public ColorPointCloud(Kinect.Frame frame)
     {
@@ -50,7 +50,13 @@ public class ColorPointCloud
                 int argb = frame.argb[cy*Constants.WIDTH + cx]; // get the rgb data for the calculated pixel location
 
                 // add to hashmap cx cy which maps to m
-                rgbDmap.put(new int[] {cx, cy}, m);
+                rgbDmap.put(new Pixel(cx,cy), m);
+                // this is a test of the mapping
+                /*
+                if (rgbDmap.containsKey(new Pixel(cx,cy))) {
+                    double depth = rgbDmap.get(new Pixel(cx,cy));
+                    System.out.println("Yep it works got D = " + depth);
+                } */
                 
                 colors.add(argb);
                 int abgr = (argb & 0xff000000) | ((argb & 0xff) << 16) | (argb & 0xff00) | ((argb >> 16) & 0xff);
@@ -106,16 +112,18 @@ public class ColorPointCloud
     // need to make that fix below
     public double[] Project(double[] Xrgb) {
         
+        
+        // XXX rewrite to use point class that I need to make!! with equals and hashcode methods
+        
         assert (Xrgb.length == 2);
-        int[] key = new int[2];
-        key[0] = (int) Xrgb[0];
-        key[1] = (int) Xrgb[1];
+        Pixel key = new Pixel((int) Xrgb[0],(int) Xrgb[1]);
         
         if (rgbDmap.containsKey(key)) {
             double m = rgbDmap.get(key);
             
             // handle points in depth image without a depth value
             if (m < 0) {
+                System.out.println("Depth less than 0!");
                 return new double[] {-1, -1, -1};
             }
             
@@ -127,6 +135,7 @@ public class ColorPointCloud
             return P;    
         // handle points without a mapping to the depth image
         } else {
+            System.out.println("Couldn't find the key!");
             return new double[] {-1, -1, -1};
         }
     }
