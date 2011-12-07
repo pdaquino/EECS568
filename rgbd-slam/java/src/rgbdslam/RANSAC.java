@@ -10,7 +10,7 @@ public class RANSAC {
     final static double MIN_DIST = 5;  // In meters, min distance for two features to be compared
     final static int DOF = 3;           // Degrees of freedom
     final static int NUM_ITER = 1000;
-    final static double MAX_SQ_CONSENSUS_DISTANCE = 100; // XXX does this make sense? I'm thinking 10cm of error, but gotta check the units
+    final static double MAX_SQ_CONSENSUS_DISTANCE = 0.1;
     final static double MIN_BREAK_EARLY_INLIERS_PERCENTAGE = 0.8;
     private static Random rand = new Random(83247983);
 
@@ -55,7 +55,9 @@ public class RANSAC {
             int score = 0;
             for (Match match : matches) {
                 double[] predictedFeature2 = LinAlg.transform(transform, match.feature1.xyz());
-                if (LinAlg.squaredDistance(predictedFeature2, match.feature2.xyz()) < MAX_SQ_CONSENSUS_DISTANCE) {
+                double sqdDistance = LinAlg.squaredDistance(predictedFeature2, match.feature2.xyz());
+                if (sqdDistance  < MAX_SQ_CONSENSUS_DISTANCE) {
+                    //System.out.println("D = " + sqdDistance);
                     score++;
                     currentInliers.add(match);
                 }

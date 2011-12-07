@@ -31,7 +31,7 @@ class KinectDemo {
         kt = new KinectThread();
         kt.start();
     }
-
+    
     class KinectThread extends Thread {
 
         int fps = 15;
@@ -142,9 +142,13 @@ class KinectDemo {
                     BufferedImage rgbL = currFrame.makeRGB();
                     BufferedImage depthL = currFrame.makeDepth();
                     
+                    StopWatch timer = new StopWatch();
+                    
+                    timer.start("Building color points");
                     ColorPointCloud currPtCloud = new ColorPointCloud(currFrame);
                     ColorPointCloud lastPtCloud = new ColorPointCloud(lastFrame);
-
+                    timer.stop();
+                    
                     double[] xy0 = new double[2];
                     double[] xy1 = new double[]{WIDTH, HEIGHT};
                     double[] xy2 = new double[]{WIDTH, 0};
@@ -153,23 +157,29 @@ class KinectDemo {
                     // Get each frame's features
                     int[] argbC = currFrame.argb;
                     int[] argbL = lastFrame.argb;
+
+                    timer.start("Extracting features");
                     ArrayList<ImageFeature> allFeaturesC = OpenCV.extractFeatures(argbC, 640);
                     ArrayList<ImageFeature> allFeaturesL = OpenCV.extractFeatures(argbL, 640);
+                    timer.stop(); timer.start("Projecting and filtering");
                     ArrayList<ImageFeature> featuresC = projectAndFilter(allFeaturesC, currPtCloud);
                     ArrayList<ImageFeature> featuresL = projectAndFilter(allFeaturesL, lastPtCloud);
+                    timer.stop();
 
                     // Match SIFT features -> RANSAC
+                    timer.start("Matching");
                     DescriptorMatcher dm = new DescriptorMatcher(featuresL, featuresC);
                     ArrayList<DescriptorMatcher.Match> matches = dm.match();
+                    timer.stop();
+                    
+                    timer.start("RANSAC");
                     ArrayList<DescriptorMatcher.Match> inliers = new ArrayList<DescriptorMatcher.Match>();
                     double[][] transform = RANSAC.RANSAC(matches, inliers);
-                    /*
-                    for (int i = 0; i < transform.length; i++) {
-                        for (int j = 0; j < transform[0].length; j++) {
-                            System.out.print(transform[i][j] + "\t");
-                        }
-                        System.out.println();
-                    }*/
+
+                    timer.stop();
+                    
+                    System.out.printf("%d inliers/%d matches\n", inliers.size(), matches.size());
+                    
                     System.out.println("The Transform is");
                     LinAlg.print(transform);
                     plotFeatures(featuresC, rgbC, featuresL, rgbL);
@@ -182,6 +192,8 @@ class KinectDemo {
                     vbIm.addBack(new VisChain(LinAlg.scale(1, -1, 1), LinAlg.translate(translateV), lines));
 
                     vbIm.swap();
+                    
+                    System.out.println(timer.prettyPrint());
                 }
                 try {
                     wait();
