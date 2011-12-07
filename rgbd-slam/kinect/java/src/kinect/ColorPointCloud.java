@@ -25,8 +25,6 @@ public class ColorPointCloud {
         long backprojection = 0;
         long hashmapconstruct = 0;
 
-        outertimer.start("total time");
-
         for (int y = 0; y < Constants.HEIGHT; y++) {
             for (int x = 0; x < Constants.WIDTH; x++) {
                 long[] values = processPoint(frame, x, y);
@@ -36,15 +34,12 @@ public class ColorPointCloud {
                 hashmapconstruct += values[3];
             }
         }
-        outertimer.stop();
         outertimer.addTask(new StopWatch.TaskInfo("depthlookup", depthlookup));
         outertimer.addTask(new StopWatch.TaskInfo("projection", projection));
         outertimer.addTask(new StopWatch.TaskInfo("backprojection", backprojection));
         outertimer.addTask(new StopWatch.TaskInfo("hash map construction", hashmapconstruct));
 
         System.out.println(outertimer.prettyPrint());
-        System.out.println("hi there");
-
     }
 
     // alternate constructor for making a decimated point cloud
@@ -134,9 +129,13 @@ public class ColorPointCloud {
     // need to make that fix below
     public double[] Project(double[] Xrgb) {
         assert (Xrgb.length == 2);
+        
+        System.out.println("X = " + Xrgb[0] + "Y = " +Xrgb[1]);
 
         //assert (!rgbDmap.isEmpty());
-        int index = pointmap[(int) (Xrgb[0] * Constants.WIDTH + Xrgb[1])];
+        int index = pointmap[(int) (Xrgb[1] * Constants.WIDTH + Xrgb[0])];
+        
+        
 
         double[] P = this.points.get(index);
 
