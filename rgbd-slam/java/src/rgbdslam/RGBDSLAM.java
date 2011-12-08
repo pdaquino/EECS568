@@ -321,7 +321,7 @@ public class RGBDSLAM implements LCMSubscriber
                 turbo = false;
             }
 
-            return new double[] {gp.axes[0]*-vel*dt, gp.axes[5]*vel*dt, gp.axes[1]*vel*dt, gp.axes[4]*theta_vel*dt, gp.axes[5]*theta_vel*dt, gp.axes[2]*theta_vel*dt};
+            return new double[] {gp.axes[0]*-vel*dt, gp.axes[5]*vel*dt, gp.axes[1]*vel*dt, gp.axes[4]*theta_vel*dt, gp.axes[3]*theta_vel*dt, gp.axes[2]*theta_vel*dt};
         }
     }
 
