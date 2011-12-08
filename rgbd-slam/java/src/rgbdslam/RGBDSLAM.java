@@ -42,10 +42,14 @@ public class RGBDSLAM implements LCMSubscriber
     // Gamepad_t
     ExpiringMessageCache<gamepad_t> lgp = new ExpiringMessageCache<gamepad_t>(0.25);
 
+    // Saved options
+    GetOpt opts;
+
     public RGBDSLAM(GetOpt opts)
     {
+        this.opts = opts;
+
         // Load from file
-        System.out.println(opts.getString("file"));
         if (opts.getString("file") != null) {
             System.out.println("Loading from file...");
             VoxelArray va = VoxelArray.readFromFile(opts.getString("file"));
@@ -152,8 +156,8 @@ public class RGBDSLAM implements LCMSubscriber
 
         // Gamepad
         boolean turbo = false;
-        double vel = 2.5;
-        double theta_vel = Math.toRadians(15);
+        double vel = -1.0;
+        double theta_vel = -Math.toRadians(15);
 
         public RenderThread()
         {
@@ -218,8 +222,8 @@ public class RGBDSLAM implements LCMSubscriber
             dcm.UI_ANIMATE_MS = 25;
             dcm.interfaceMode = 3.0;
             vl.cameraManager = dcm;
-            vl.cameraManager.setDefaultPosition(new double[] {0, 0, -20}, new double[] {0, 0, -19}, new double[] {0, -1, 0});
-            //vl.cameraManager.setDefaultPosition(new double[] {-10, 0, 0}, new double[] {-9, 0, 0}, new double[] {0, 0, 1});
+            //vl.cameraManager.setDefaultPosition(new double[] {0, 0, -20}, new double[] {0, 0, -19}, new double[] {0, -1, 0});
+            vl.cameraManager.setDefaultPosition(new double[] {-10, 0, 0}, new double[] {-9, 0, 0}, new double[] {0, 0, 1});
             vl.cameraManager.uiDefault();
 
             jf.add(vc, BorderLayout.CENTER);
@@ -240,7 +244,9 @@ public class RGBDSLAM implements LCMSubscriber
                     double[] nzaxis = LinAlg.normalize(LinAlg.subtract(cpos.lookat, cpos.eye));
                     double[] xaxis = LinAlg.normalize(LinAlg.crossProduct(nzaxis, yaxis));
 
-                    double[][] rotation = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[5], yaxis));
+                    double[][] rotx = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[4], xaxis));
+                    double[][] roty = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[5], yaxis));
+                    double[][] rotz = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[3], nzaxis));
 
                     // Translation
                     double[] eye = LinAlg.copy(cpos.eye);
@@ -258,11 +264,18 @@ public class RGBDSLAM implements LCMSubscriber
                     double[][] eye_trans = LinAlg.translate(eye);
                     double[][] eye_inv = LinAlg.inverse(eye_trans);
 
+                    LinAlg.timesEquals(roty, eye_inv);
+                    LinAlg.timesEquals(rotx, roty);
+                    LinAlg.timesEquals(rotz, rotx);
+                    LinAlg.timesEquals(eye_trans, rotz);
+
+                    lookat = LinAlg.transform(eye_trans, lookat);
+
                     vl.cameraManager.uiLookAt(eye, lookat, cpos.up, false);
                 }
 
                 synchronized (globalVoxelFrame) {
-                    if (globalVoxelFrame.size() > 0) {
+                    if (globalVoxelFrame.size() > 0 && !opts.getBoolean("kinect-only")) {
                         VisWorld.Buffer vb = vw.getBuffer("voxels");
                         vb.addBack(new VisLighting(false,
                                                    globalVoxelFrame.getPointCloud()));
@@ -299,16 +312,16 @@ public class RGBDSLAM implements LCMSubscriber
             if (gp == null)
                 return new double[6];
             if ((gp.buttons & 0xF0) > 1 && !turbo) {
-                vel = 7.5;
-                theta_vel = Math.toRadians(45);
+                vel = -4.0;
+                theta_vel = -Math.toRadians(36);
                 turbo = true;
-            } else if ((gp.buttons & 0xF0) > 1 && turbo) {
-                vel = 2.5;
-                theta_vel = Math.toRadians(15);
+            } else if ((gp.buttons & 0xF0) == 0 && turbo) {
+                vel = -1.0;
+                theta_vel = -Math.toRadians(15);
                 turbo = false;
             }
 
-            return new double[] {gp.axes[0]*vel*dt, gp.axes[3]*-vel*dt, gp.axes[1]*-vel*dt, 0, 0, gp.axes[2]*-theta_vel*dt};
+            return new double[] {gp.axes[0]*-vel*dt, gp.axes[5]*vel*dt, gp.axes[1]*vel*dt, gp.axes[4]*theta_vel*dt, gp.axes[5]*theta_vel*dt, gp.axes[2]*theta_vel*dt};
         }
     }
 
@@ -369,6 +382,7 @@ public class RGBDSLAM implements LCMSubscriber
         GetOpt opts = new GetOpt();
         opts.addBoolean('h', "help", false, "Show this help screen");
         opts.addString('f', "file", null, "Load scene from file");
+        opts.addBoolean((char)0, "kinect-only", false, "Only render the kinect trajectory");
 
         if (!opts.parse(args)) {
             System.err.println("ERR: Opts error - " + opts.getReason());

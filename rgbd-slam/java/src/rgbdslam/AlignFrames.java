@@ -13,7 +13,7 @@ import kinect.Kinect.Frame;
 public class AlignFrames {
 
     public static final int DECIMATION_FACTOR = 10;
-    
+
     private List<ImageFeature> currFeatures, lastFeatures;
     private ColorPointCloud currFullPtCloud, currDecimatedPtCloud;
     private ColorPointCloud lastFullPtCloud, lastDecimatedPtCloud;
@@ -46,10 +46,17 @@ public class AlignFrames {
 
         ArrayList<DescriptorMatcher.Match> inliers = new ArrayList<DescriptorMatcher.Match>();
         double[][] transform = RANSAC.RANSAC(matches, inliers);
+        if (transform == null) {
+            System.err.println("ERR: Null transformation returned by RANSAC");
+            transform = new double[][] {{1, 0, 0, 0},
+                                        {0, 1, 0, 0},
+                                        {0, 0, 1, 0},
+                                        {0, 0, 0, 1}};
+        }
 
         ICP icp = new ICP(lastDecimatedPtCloud);
         transform = icp.match(currDecimatedPtCloud, transform);
-        
+
         return transform;
     }
 
@@ -76,8 +83,8 @@ public class AlignFrames {
     public ColorPointCloud getCurrFullPtCloud() {
         return currFullPtCloud;
     }
-    
-    
+
+
     private ColorPointCloud makeDecimatedPtCloud(Frame frame) {
         return new ColorPointCloud(frame, DECIMATION_FACTOR);
     }

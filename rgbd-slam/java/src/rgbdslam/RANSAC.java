@@ -92,6 +92,9 @@ public class RANSAC {
             corb.add(match.feature2.xyz());
         }
 
+        if (cora.size() < 1 || corb.size() < 1)
+            return null;
+
         return AlignPoints3D.align(cora, corb);
     }
 
