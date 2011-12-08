@@ -301,7 +301,7 @@ public class RGBDSLAM implements LCMSubscriber
 
         synchronized public void run()
         {
-            double[][] rbt = Matrix.identity(4,4).copyArray();
+            double[][] Grbt = Matrix.identity(4,4).copyArray();
             AlignFrames af = null;
 
             while (true) {
@@ -317,8 +317,7 @@ public class RGBDSLAM implements LCMSubscriber
                                          af.getCurrDecimatedPtCloud());
 
                     double[][] transform = af.align();
-                    LinAlg.timesEquals(transform, rbt);
-                    rbt = transform;
+                    Grbt = LinAlg.matrixAB(transform, Grbt);
 
                     va.voxelizePointCloud(af.getCurrFullPtCloud());
 
