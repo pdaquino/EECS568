@@ -267,6 +267,7 @@ public class RGBDSLAM implements LCMSubscriber
                         VisWorld.Buffer vb = vw.getBuffer("voxels");
                         vb.addBack(new VisLighting(false,
                                                    globalVoxelFrame.getPointCloud()));
+                        vb.addBack(new VzAxes());
                         vb.swap();
                     }
                 }
@@ -307,7 +308,9 @@ public class RGBDSLAM implements LCMSubscriber
 
         synchronized public void run()
         {
-            double[][] rbt = Matrix.identity(4,4).copyArray();
+            // Cumulative transformation from Kinect Local frame to Global Vis Frame
+            double[][] I = new double[][] {{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
+            double[][] Grbt = new double[][] {{0,0,1,0},{1,0,0,0},{0,-1,0,0},{0,0,0,1}};
 
             while (true) {
                 if (currFrame != null && lastFrame != null) {
@@ -317,20 +320,22 @@ public class RGBDSLAM implements LCMSubscriber
                     VoxelArray va = new VoxelArray(DEFAULT_RES); // XXX
 
                     // Extract features, perform RANSAC and ICP // XXX No ICP yet
-                    double[][] ransac = getTransform(cpc);
-                    LinAlg.timesEquals(ransac, rbt);
-                    rbt = ransac;
+                    //double[][] Rrbt = getTransform(cpc);
 
+                    // use ICP to improve estimate of RBT from RANSAC
                     ICP icp = new ICP(new ColorPointCloud(lastFrame, 10));
-                    double[][] transform = icp.match(new ColorPointCloud(currFrame, 10), Matrix.identity(4,4).copyArray());
-                    LinAlg.timesEquals(transform, rbt);
-                    rbt = transform;
+                    double[][] Irbt = icp.match(new ColorPointCloud(currFrame, 10), I);
+           
+                    
+                    Grbt = LinAlg.matrixAB(Irbt, Grbt);
+                    
+                    LinAlg.print(Grbt);
 
                     va.voxelizePointCloud(cpc);
 
                     // Let render thread do its thing
                     synchronized (globalVoxelFrame) {
-                        globalVoxelFrame.merge(va, rbt);
+                        globalVoxelFrame.merge(va, Grbt);
                     }
                 }
 
