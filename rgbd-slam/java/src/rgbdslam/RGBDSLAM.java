@@ -18,6 +18,7 @@ import april.lcmtypes.*;
 import kinect.*;
 
 import rgbdslam.*;
+import rgbdslam.DescriptorMatcher.Match;
 import rgbdslam.vis.*;
 
 public class RGBDSLAM implements LCMSubscriber
@@ -357,10 +358,12 @@ public class RGBDSLAM implements LCMSubscriber
                                                  af.getCurrFullPtCloud(),
                                                  af.getCurrDecimatedPtCloud());
 
-                            double[][] transform = af.align();
+                            ArrayList<Match> allFeatMatches = new ArrayList<Match>();
+                            ArrayList<Match> inlierFeatMatches = new ArrayList<Match>();
+                            double[][] transform = af.align(allFeatMatches, inlierFeatMatches);
                             Grbt = LinAlg.matrixAB(transform, Grbt);
 
-                            fv.updateFrames(currFrame.makeRGB(), lastFrame.makeRGB(), af.getLatestInliers());
+                            fv.updateFrames(currFrame.makeRGB(), lastFrame.makeRGB(), allFeatMatches, inlierFeatMatches);
 
                             va.voxelizePointCloud(af.getCurrFullPtCloud());
 

@@ -23,7 +23,7 @@ public class FeatureVisualizerTest {
         java.util.List<ImageFeature> features2 = OpenCV.extractFeatures(getImageAsIntArray(im2), im2.getWidth());
         java.util.List<Match> matches = new DescriptorMatcher(features1, features2).match();
         
-        visualizer.updateFrames(im1, im2, matches);
+        visualizer.updateFrames(im1, im2, matches, matches.subList(0, matches.size()/2));
 
     }
     
