@@ -338,6 +338,11 @@ public class RGBDSLAM implements LCMSubscriber
         synchronized public void run()
         {
             AlignFrames af = null;
+            
+            
+            double[][] I = new double[][] {{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
+            double[][] KtoGrbt = new double[][] {{0,0,1,0},{-1,0,0,0},{0,-1,0,0},{0,0,0,1}};
+            double[][] Grbt = KtoGrbt;
 
             while (true) {
                 synchronized (globalVoxelFrame) {
@@ -354,7 +359,15 @@ public class RGBDSLAM implements LCMSubscriber
                                          af.getCurrDecimatedPtCloud());
 
                     double[][] transform = af.align();
-                    Grbt = LinAlg.matrixAB(transform, Grbt);
+                    Grbt = LinAlg.matrixAB(Grbt, transform);
+                    
+                    // constrain to no translation for now
+                    Grbt[0][3] = 0;
+                    Grbt[1][3] = 0;
+                    Grbt[2][3] = 0;
+                    System.out.println("Current position");
+                    LinAlg.print(Grbt);
+                    System.out.println();
 
                     va.voxelizePointCloud(af.getCurrFullPtCloud());
 
