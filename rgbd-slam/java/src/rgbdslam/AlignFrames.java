@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import kinect.*;
 import kinect.Kinect.Frame;
+import rgbdslam.DescriptorMatcher.Match;
 
 /**
  *
@@ -17,6 +18,7 @@ public class AlignFrames {
     private List<ImageFeature> currFeatures, lastFeatures;
     private ColorPointCloud currFullPtCloud, currDecimatedPtCloud;
     private ColorPointCloud lastFullPtCloud, lastDecimatedPtCloud;
+    private List<DescriptorMatcher.Match> latestInliers;
 
     public AlignFrames(Kinect.Frame currFrame, Kinect.Frame lastFrame) {
         this.currFullPtCloud = makeFullPtCloud(currFrame);
@@ -56,6 +58,7 @@ public class AlignFrames {
 
         ICP icp = new ICP(lastDecimatedPtCloud);
         transform = icp.match(currDecimatedPtCloud, transform);
+        latestInliers = inliers;
 
         return transform;
     }
@@ -84,7 +87,10 @@ public class AlignFrames {
         return currFullPtCloud;
     }
 
-
+    public List<Match> getLatestInliers() {
+        return latestInliers;
+    }
+   
     private ColorPointCloud makeDecimatedPtCloud(Frame frame) {
         return new ColorPointCloud(frame, DECIMATION_FACTOR);
     }
