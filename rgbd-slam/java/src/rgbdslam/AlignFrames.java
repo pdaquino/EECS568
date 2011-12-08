@@ -43,22 +43,29 @@ public class AlignFrames {
     }
 
     public double[][] align() {
+        return align(null, null);
+    }
+    
+    public double[][] align(List<Match> allMatches, List<Match> inliers) {
         DescriptorMatcher dm = new DescriptorMatcher(lastFeatures, currFeatures);
         ArrayList<DescriptorMatcher.Match> matches = dm.match();
 
-        ArrayList<DescriptorMatcher.Match> inliers = new ArrayList<DescriptorMatcher.Match>();
+        if(inliers == null) {
+            inliers = new ArrayList<Match>();
+        }
+        
         double[][] transform = RANSAC.RANSAC(matches, inliers);
         if (transform == null) {
             System.err.println("ERR: Null transformation returned by RANSAC");
-            transform = new double[][] {{1, 0, 0, 0},
-                                        {0, 1, 0, 0},
-                                        {0, 0, 1, 0},
-                                        {0, 0, 0, 1}};
+            transform = LinAlg.identity(4);
         }
 
         ICP icp = new ICP(lastDecimatedPtCloud);
         transform = icp.match(currDecimatedPtCloud, transform);
         latestInliers = inliers;
+        if(allMatches != null) {
+            allMatches.addAll(matches);
+        }
 
         return transform;
     }
