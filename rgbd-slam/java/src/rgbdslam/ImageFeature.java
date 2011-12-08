@@ -54,9 +54,10 @@ public class ImageFeature {
      * @param xyz
      */
     public void setXyz(double[] xyz) {
+        assert(xyz.length == 3);
         this.xyz = xyz;
     }
-    
+
     public String xyToString() {
         return "(" + xy[0] + ", " + xy[1] + ")";
     }
