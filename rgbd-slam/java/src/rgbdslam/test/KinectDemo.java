@@ -31,7 +31,7 @@ class KinectDemo {
         kt = new KinectThread();
         kt.start();
     }
-    
+
     class KinectThread extends Thread {
 
         int fps = 15;
@@ -82,6 +82,8 @@ class KinectDemo {
         boolean clearToClose = false;
         Kinect.Frame currFrame = null;
         Kinect.Frame lastFrame = null;
+        ColorPointCloud currPtCloud = null;
+        ColorPointCloud lastPtCloud = null;
         GetOpt opts;
 
         public RenderThread(GetOpt opts) {
@@ -141,14 +143,18 @@ class KinectDemo {
                     BufferedImage depthC = currFrame.makeDepth();
                     BufferedImage rgbL = currFrame.makeRGB();
                     BufferedImage depthL = currFrame.makeDepth();
-                    
+
                     StopWatch timer = new StopWatch();
-                    
+
                     timer.start("Building color points");
-                    ColorPointCloud currPtCloud = new ColorPointCloud(currFrame);
-                    ColorPointCloud lastPtCloud = new ColorPointCloud(lastFrame);
+                    if(currPtCloud != null) {
+                        lastPtCloud = currPtCloud;
+                    } else {
+                        lastPtCloud = new ColorPointCloud(lastFrame);
+                    }
+                    currPtCloud = new ColorPointCloud(currFrame);
                     timer.stop();
-                    
+
                     double[] xy0 = new double[2];
                     double[] xy1 = new double[]{WIDTH, HEIGHT};
                     double[] xy2 = new double[]{WIDTH, 0};
@@ -161,7 +167,8 @@ class KinectDemo {
                     timer.start("Extracting features");
                     ArrayList<ImageFeature> allFeaturesC = OpenCV.extractFeatures(argbC, 640);
                     ArrayList<ImageFeature> allFeaturesL = OpenCV.extractFeatures(argbL, 640);
-                    timer.stop(); timer.start("Projecting and filtering");
+                    timer.stop();
+                    timer.start("Projecting and filtering");
                     ArrayList<ImageFeature> featuresC = projectAndFilter(allFeaturesC, currPtCloud);
                     ArrayList<ImageFeature> featuresL = projectAndFilter(allFeaturesL, lastPtCloud);
                     timer.stop();
@@ -171,15 +178,15 @@ class KinectDemo {
                     DescriptorMatcher dm = new DescriptorMatcher(featuresL, featuresC);
                     ArrayList<DescriptorMatcher.Match> matches = dm.match();
                     timer.stop();
-                    
+
                     timer.start("RANSAC");
                     ArrayList<DescriptorMatcher.Match> inliers = new ArrayList<DescriptorMatcher.Match>();
                     double[][] transform = RANSAC.RANSAC(matches, inliers);
 
                     timer.stop();
-                    
+
                     System.out.printf("%d inliers/%d matches\n", inliers.size(), matches.size());
-                    
+
                     System.out.println("The Transform is");
                     LinAlg.print(transform);
                     plotFeatures(featuresC, rgbC, featuresL, rgbL);
@@ -192,12 +199,13 @@ class KinectDemo {
                     vbIm.addBack(new VisChain(LinAlg.scale(1, -1, 1), LinAlg.translate(translateV), lines));
 
                     vbIm.swap();
-                    
+
                     DebugPrint.println(timer.prettyPrint());
                 }
                 try {
                     wait();
-                } catch (InterruptedException ex) {  }
+                } catch (InterruptedException ex) {
+                }
             }
         }
 
