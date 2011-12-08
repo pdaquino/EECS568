@@ -20,7 +20,7 @@ public class OpenCV {
         System.loadLibrary("opencvwrapper");
     }
 
-    public final static int DEFAULT_MAX_FEATURES = 150;
+    public final static int DEFAULT_MAX_FEATURES = 500;
     public final static double DEFAULT_MIN_QUALITY = 0.01;
     public final static int DEFAULT_MIN_DISTANCY = 1;
     public final static int DEFAULT_BLOCK_SIZE = 3;
