@@ -40,7 +40,9 @@ public class FeatureVisualizer {
     }
     
     public void updateFrames(BufferedImage im1, BufferedImage im2, java.util.List<Match> matches) {
-        
+        if(matches.isEmpty()) {
+            return;
+        }
         int imageOffset = im1.getWidth() + IMAGE_SEPARATION;
         {
             VisWorld.Buffer vbIm = vw.getBuffer("image");
