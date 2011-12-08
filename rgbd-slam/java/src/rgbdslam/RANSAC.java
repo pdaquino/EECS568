@@ -25,7 +25,10 @@ public class RANSAC {
         // RANSAC works by choosing the minimum number of points needed to fit a model, and then
         // computing the model that generates the highest consensus among all points.
         // In our case, the model needs DOF points.
-
+        if(matches.isEmpty()) {
+            return null;
+        }
+        
         List<Match> bestInliers = new ArrayList<Match>();
         double bestConsensus = 0;
 
