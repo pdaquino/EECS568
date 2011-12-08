@@ -257,6 +257,7 @@ public class RGBDSLAM implements LCMSubscriber
                         VisWorld.Buffer vb = vw.getBuffer("voxels");
                         vb.addBack(new VisLighting(false,
                                                    globalVoxelFrame.getPointCloud()));
+                        vb.addBack(new VzAxes());
                         vb.swap();
                     }
                 }
@@ -323,7 +324,7 @@ public class RGBDSLAM implements LCMSubscriber
 
                     // Let render thread do its thing
                     synchronized (globalVoxelFrame) {
-                        globalVoxelFrame.merge(va, rbt);
+                        globalVoxelFrame.merge(va, Grbt);
                     }
                 }
 

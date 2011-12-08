@@ -31,12 +31,14 @@ public class ICPTest {
         ColorPointCloud curCPC;
         double[][] RBT;
         ICP icp;
+        double[][] CRBT; // current cumulative orientation
 
         public ICPThread() {
             prevCPC = null;
             curCPC = null;
             RBT = new double[][]{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}};
             icp = null;
+            CRBT = RBT;
         }
 
         synchronized public void run() {
@@ -59,10 +61,14 @@ public class ICPTest {
                     RBT = icp.match(curCPC, RBT);
                     timeMatch = tic.toc();
 
-                    LinAlg.print(RBT);
+                    
                     System.out.print("\n");
                     System.out.println("KD construction time " + timeInit);
                     System.out.println("Matching time " + timeMatch);
+                    CRBT = LinAlg.matrixAB(CRBT, RBT);
+                    LinAlg.print(RBT);
+                    System.out.println();
+                    LinAlg.print(CRBT);
                 }
 
                 try {
@@ -74,11 +80,13 @@ public class ICPTest {
 
         // reset RBT estimate to identity
         synchronized private void resetRBT() {
+            /*
             RBT = new double[][] 
                 {{0.9848, -0.1736, 0, 0}, 
                 {0.1736, 0.9848, 0, 0}, 
                 {0, 0, 1, 0}, 
-                {0, 0, 0, 1}};
+                {0, 0, 0, 1}}; */
+            RBT = new double[][]{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}};
         }
 
         synchronized public void accumulateFrame(Kinect.Frame frame) {

@@ -83,10 +83,7 @@ class KinectDemo
         GetOpt opts;
 
         public RenderThread(GetOpt opts)
-        {
-            
-
-            
+        { 
             this.opts = opts;
             System.out.println("Starting render thread");
             JFrame jf = new JFrame("Kinect Demo");
