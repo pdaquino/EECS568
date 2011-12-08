@@ -1,7 +1,6 @@
 package rgbdslam;
 
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * This class is a wrapper for OpenCV functions.
@@ -15,13 +14,13 @@ public class OpenCV {
             int blockSize,
             // out
             int[] featuresX, int[] featuresY, double[] descriptors);
+    private static native int cvGetDescriptorSize();
 
     static {
         System.loadLibrary("opencvwrapper");
     }
 
-    public final static int DESCRIPTOR_SIZE = 128;
-    public final static int DEFAULT_MAX_FEATURES = 100;
+    public final static int DEFAULT_MAX_FEATURES = 150;
     public final static double DEFAULT_MIN_QUALITY = 0.01;
     public final static int DEFAULT_MIN_DISTANCY = 1;
     public final static int DEFAULT_BLOCK_SIZE = 3;
@@ -36,7 +35,8 @@ public class OpenCV {
             double minQuality, int minDistancy, int blockSize) {
         int[] featuresX = new int[maxFeatures];
         int[] featuresY = new int[maxFeatures];
-        double[] descriptors = new double[DESCRIPTOR_SIZE*maxFeatures];
+        int descriptorSize = cvGetDescriptorSize();
+        double[] descriptors = new double[descriptorSize*maxFeatures];
 
         int nFeatures = cvExtractFeatures(img, width, maxFeatures, minQuality,
                 minDistancy, blockSize, featuresX, featuresY, descriptors);
@@ -49,8 +49,8 @@ public class OpenCV {
         for(int i = 0; i < nFeatures; i++) {
             int x = featuresX[i];
             int y = featuresY[i];
-            double[] descriptor = new double[DESCRIPTOR_SIZE];
-            System.arraycopy(descriptors, i*DESCRIPTOR_SIZE, descriptor, 0, DESCRIPTOR_SIZE);
+            double[] descriptor = new double[descriptorSize];
+            System.arraycopy(descriptors, i*descriptorSize, descriptor, 0, descriptorSize);
             features.add(new ImageFeature(x, y, descriptor));
         }
 

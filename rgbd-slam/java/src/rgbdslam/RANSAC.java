@@ -10,7 +10,7 @@ public class RANSAC {
     final static double MIN_DIST = 5;  // In meters, min distance for two features to be compared
     final static int DOF = 3;           // Degrees of freedom
     final static int NUM_ITER = 1000;
-    final static double MAX_SQ_CONSENSUS_DISTANCE = 0.1;
+    final static double MAX_SQ_CONSENSUS_DISTANCE = 0.01;
     final static double MIN_BREAK_EARLY_INLIERS_PERCENTAGE = 0.8;
     private static Random rand = new Random(83247983);
 

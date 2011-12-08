@@ -7,6 +7,8 @@
 #include <cv.hpp>
 #include <highgui.h>
 
+#include "stopwatch.hpp"
+
 struct JIntArrayElements {
     JNIEnv* env;
     jintArray jarray;
@@ -41,7 +43,11 @@ struct JDoubleArrayElements {
     }
 };
 
-JNIEXPORT jint JNICALL Java_rgbdslam_OpenCV_cvExtractFeatures(JNIEnv *env, jobject,
+typedef cv::SurfDescriptorExtractor DescriptorExtractor_t;
+
+static bool printTiming = false;
+
+JNIEXPORT jint JNICALL Java_rgbdslam_OpenCV_cvExtractFeatures(JNIEnv *env, jclass,
         // In arguments:
         jintArray jimg, // the image, as an array formed by concatenating all rows
         jint imgWidth, // the width of the image( len(jimg)/imgWidth gives the number of rows) );
@@ -57,11 +63,15 @@ JNIEXPORT jint JNICALL Java_rgbdslam_OpenCV_cvExtractFeatures(JNIEnv *env, jobje
         ) {
     using namespace cv;
     try {
+        StopWatch timer;
+        timer.start();
         JIntArrayElements imgPtr(env, jimg);
         int height = imgPtr.length / imgWidth;
 
         cv::Mat img(height, imgWidth, CV_8UC4, imgPtr.region);
+        if(printTiming) std::cout << "OpenCV::building cv::Mat: " << timer.stop() << " ms\n";
 
+        timer.start();
         GoodFeaturesToTrackDetector detector(
                 jmaxFeatures,
                 jminQuality,
@@ -69,11 +79,16 @@ JNIEXPORT jint JNICALL Java_rgbdslam_OpenCV_cvExtractFeatures(JNIEnv *env, jobje
                 jblockSize);
         std::vector<KeyPoint> features;
         detector.detect(img, features);
-
-        SiftDescriptorExtractor extractor;
+        if(printTiming) std::cout << "OpenCV::detecting features: " << timer.stop() << " ms\n";
+        
+        timer.start();
+        //SiftDescriptorExtractor extractor;
+        DescriptorExtractor_t extractor;
         Mat descriptors;
         extractor.compute(img, features, descriptors);
+        if(printTiming) std::cout << "OpenCV::extracting descriptors: " << timer.stop() << " ms\n";
 
+        timer.start();
         // write stuff back
         JIntArrayElements featuresX(env, jfeaturesX);
         JIntArrayElements featuresY(env, jfeaturesY);
@@ -102,6 +117,7 @@ JNIEXPORT jint JNICALL Java_rgbdslam_OpenCV_cvExtractFeatures(JNIEnv *env, jobje
             std::copy(descriptor.begin<float>(), descriptor.end<float>(),
                     descriptorsArray.region + i*descriptorSize);
         }
+        if(printTiming) std::cout << "OpenCV::copying stuff back: " << timer.stop() << " ms\n";
         
         return nFeatures;
 
@@ -112,4 +128,9 @@ JNIEXPORT jint JNICALL Java_rgbdslam_OpenCV_cvExtractFeatures(JNIEnv *env, jobje
     
     // should never reach this
     return -2;
+}
+
+JNIEXPORT jint JNICALL Java_rgbdslam_OpenCV_cvGetDescriptorSize
+  (JNIEnv *, jclass) {
+    return DescriptorExtractor_t().descriptorSize();
 }

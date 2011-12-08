@@ -56,7 +56,10 @@ public class ImageFeature {
     public void setXyz(double[] xyz) {
         this.xyz = xyz;
     }
-
+    
+    public String xyToString() {
+        return "(" + xy[0] + ", " + xy[1] + ")";
+    }
 
 
 }

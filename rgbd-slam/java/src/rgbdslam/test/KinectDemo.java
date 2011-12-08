@@ -193,7 +193,7 @@ class KinectDemo {
 
                     vbIm.swap();
                     
-                    System.out.println(timer.prettyPrint());
+                    DebugPrint.println(timer.prettyPrint());
                 }
                 try {
                     wait();
