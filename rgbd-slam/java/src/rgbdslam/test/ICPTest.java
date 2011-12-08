@@ -32,11 +32,14 @@ public class ICPTest {
         double[][] RBT;
         ICP icp;
         double[][] CRBT; // current cumulative orientation
+        double[][] R45; // rotation by 45 degrees about y axis, which is yaw for kinect
 
         public ICPThread() {
             prevCPC = null;
             curCPC = null;
             RBT = new double[][]{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}};
+            R45 = new double[][] {{Math.cos(Math.PI/9), 0, Math.sin(Math.PI/9), 0},
+            {0, 1, 0, 0}, {-Math.sin(Math.PI/9), 0, Math.cos(Math.PI/9), 0},{0,0,0,1}};
             icp = null;
             CRBT = RBT;
         }
@@ -45,6 +48,8 @@ public class ICPTest {
             while (true) {
                 if ((this.curCPC != null) && (this.prevCPC != null)) {
                     resetRBT();
+                    
+                    //prevCPC.points = LinAlg.transform(R45, curCPC.points);
                     
                     double timeInit = 0;
                     double timeMatch = 0;
@@ -66,8 +71,10 @@ public class ICPTest {
                     System.out.println("KD construction time " + timeInit);
                     System.out.println("Matching time " + timeMatch);
                     CRBT = LinAlg.matrixAB(CRBT, RBT);
+                    System.out.println("Our estimate for this itteration");
                     LinAlg.print(RBT);
                     System.out.println();
+                    System.out.println("Our cumulative estimate");
                     LinAlg.print(CRBT);
                 }
 
