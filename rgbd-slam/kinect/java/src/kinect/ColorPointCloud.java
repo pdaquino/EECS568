@@ -142,7 +142,11 @@ public class ColorPointCloud {
         assert (Xrgb.length == 2);
 
         int index = pointmap[(int) (Xrgb[1] * Constants.WIDTH + Xrgb[0])];
-
+        
+        if (index == 0) {
+            return new double[] {-1 -1 -1};
+        }
+        
         double[] P = this.points.get(index);
 
         return P;
