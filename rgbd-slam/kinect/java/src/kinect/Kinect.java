@@ -120,7 +120,6 @@ public class Kinect
                 }
             }
         }
-
         return Rargb;
     }
 
@@ -145,7 +144,6 @@ public class Kinect
                 }
             }
         }
-
         return Rd;
     }
 
@@ -195,7 +193,6 @@ public class Kinect
     }
 
     // saves picture of RGB image to file
-
     public void saveRGB(Frame frame)
     {
         BufferedImage Im = frame.makeRGB();
