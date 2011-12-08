@@ -104,12 +104,15 @@ public class ColorPointCloud {
         cy = (int) ((cxyz[1] * Constants.Frgby / cxyz[2]) + Constants.Crgby);
         assert (!(cx < 0 || cx > Constants.WIDTH));
         assert (!(cy < 0 || cy > Constants.HEIGHT));
-        
+
         //timer.stop(); projecting += timer.getLastTaskTimeMillis();
 
         //timer.start();
-        points.add(new double[]{px, py, pz});
-        //timer.stop(); addingPt += timer.getLastTaskTimeMillis();
+        if(pz < 100){
+            points.add(new double[]{px, py, pz});
+        }
+
+//timer.stop(); addingPt += timer.getLastTaskTimeMillis();
 
         ////timer.stop();
         //values[2] = timer.getLastTaskTimeMillis();
@@ -124,14 +127,14 @@ public class ColorPointCloud {
 
         ////timer.stop();
         //values[3] = timer.getLastTaskTimeMillis();
-        
+
         //timer.start();
         int argb = frame.argb[cy * Constants.WIDTH + cx]; // get the rgb data for the calculated pixel location
 
         colors.add(argb);
         int abgr = (argb & 0xff000000) | ((argb & 0xff) << 16) | (argb & 0xff00) | ((argb >> 16) & 0xff);
         vcd.add(abgr);
-        //timer.stop(); coloringTime += timer.getLastTaskTimeMillis(); 
+        //timer.stop(); coloringTime += timer.getLastTaskTimeMillis();
         return values;
     }
 
@@ -143,8 +146,13 @@ public class ColorPointCloud {
 
         int index = pointmap[(int) (Xrgb[1] * Constants.WIDTH + Xrgb[0])];
 
+        if (index == 0) {
+            return new double[] {-1, -1, -1};
+        }
+
         double[] P = this.points.get(index);
 
+        assert(P.length == 3);
         return P;
     }
 

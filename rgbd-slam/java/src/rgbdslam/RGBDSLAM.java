@@ -37,7 +37,7 @@ public class RGBDSLAM implements LCMSubscriber
     // Kinect position
     Object rbtLock = new Object();
     ArrayList<double[]> trajectory = new ArrayList<double[]>();
-    double[][] rbt = Matrix.identity(4,4).copyArray();
+    double[][] Grbt = Matrix.identity(4,4).copyArray();
 
     // Gamepad_t
     ExpiringMessageCache<gamepad_t> lgp = new ExpiringMessageCache<gamepad_t>(0.25);
@@ -45,6 +45,7 @@ public class RGBDSLAM implements LCMSubscriber
     public RGBDSLAM(GetOpt opts)
     {
         // Load from file
+        System.out.println(opts.getString("file"));
         if (opts.getString("file") != null) {
             System.out.println("Loading from file...");
             VoxelArray va = VoxelArray.readFromFile(opts.getString("file"));
@@ -216,11 +217,10 @@ public class RGBDSLAM implements LCMSubscriber
             DefaultCameraManager dcm = new DefaultCameraManager();
             dcm.UI_ANIMATE_MS = 25;
             dcm.interfaceMode = 3.0;
-            double[] eye = new double[] {-10,0,0};
-            double[] lookat = new double[] {-9,0,0};
-            double[] up = new double[] {0,0,1};
-            dcm.uiLookAt(eye, lookat, up, true);
             vl.cameraManager = dcm;
+            vl.cameraManager.setDefaultPosition(new double[] {0, 0, -20}, new double[] {0, 0, -19}, new double[] {0, -1, 0});
+            //vl.cameraManager.setDefaultPosition(new double[] {-10, 0, 0}, new double[] {-9, 0, 0}, new double[] {0, 0, 1});
+            vl.cameraManager.uiDefault();
 
             jf.add(vc, BorderLayout.CENTER);
             jf.add(pg, BorderLayout.SOUTH);
@@ -240,9 +240,7 @@ public class RGBDSLAM implements LCMSubscriber
                     double[] nzaxis = LinAlg.normalize(LinAlg.subtract(cpos.lookat, cpos.eye));
                     double[] xaxis = LinAlg.normalize(LinAlg.crossProduct(nzaxis, yaxis));
 
-                    double[][] rotz = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[3], nzaxis));
-                    double[][] rotx = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[4], xaxis));
-                    double[][] roty = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[5], yaxis));
+                    double[][] rotation = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[5], yaxis));
 
                     // Translation
                     double[] eye = LinAlg.copy(cpos.eye);
@@ -253,19 +251,12 @@ public class RGBDSLAM implements LCMSubscriber
                     double[] dx = new double[] {x*xaxis[0], x*xaxis[1], x*xaxis[2]};
                     double[] dy = new double[] {y*yaxis[0], y*yaxis[1], y*yaxis[2]};
                     double[] dz = new double[] {z*nzaxis[0], z*nzaxis[1], z*nzaxis[2]};
-
                     eye = LinAlg.add(dx, LinAlg.add(dy, LinAlg.add(dz, eye)));
                     lookat = LinAlg.add(dx, LinAlg.add(dy, LinAlg.add(dz, lookat)));
 
+                    // Rotation
                     double[][] eye_trans = LinAlg.translate(eye);
                     double[][] eye_inv = LinAlg.inverse(eye_trans);
-
-                    LinAlg.timesEquals(roty, eye_inv);
-                    LinAlg.timesEquals(rotx, roty);
-                    LinAlg.timesEquals(rotz, rotx);
-                    LinAlg.timesEquals(eye_trans, rotz);
-
-                    lookat = LinAlg.transform(eye_trans, lookat);
 
                     vl.cameraManager.uiLookAt(eye, lookat, cpos.up, false);
                 }
@@ -275,13 +266,14 @@ public class RGBDSLAM implements LCMSubscriber
                         VisWorld.Buffer vb = vw.getBuffer("voxels");
                         vb.addBack(new VisLighting(false,
                                                    globalVoxelFrame.getPointCloud()));
+                        vb.addBack(new VzAxes());
                         vb.swap();
                     }
                 }
 
                 synchronized (rbtLock) {
                     VisWorld.Buffer vb = vw.getBuffer("kinect-pos");
-                    vb.addBack(new VisChain(rbt,
+                    vb.addBack(new VisChain(Grbt,
                                             new VzKinect()));
 
                     vb.addBack(new VzLines(new VisVertexData(trajectory),
@@ -307,16 +299,16 @@ public class RGBDSLAM implements LCMSubscriber
             if (gp == null)
                 return new double[6];
             if ((gp.buttons & 0xF0) > 1 && !turbo) {
-                vel = 5.0;
+                vel = 7.5;
                 theta_vel = Math.toRadians(45);
                 turbo = true;
-            } else if ((gp.buttons & 0xF0) == 0 && turbo) {
-                vel = 1.0;
+            } else if ((gp.buttons & 0xF0) > 1 && turbo) {
+                vel = 2.5;
                 theta_vel = Math.toRadians(15);
                 turbo = false;
             }
 
-            return new double[] {gp.axes[0]*vel*dt, gp.axes[5]*-vel*dt, gp.axes[1]*-vel*dt, gp.axes[4]*-theta_vel*dt, gp.axes[3]*-theta_vel*dt, gp.axes[2]*-theta_vel*dt};
+            return new double[] {gp.axes[0]*vel*dt, gp.axes[3]*-vel*dt, gp.axes[1]*-vel*dt, 0, 0, gp.axes[2]*-theta_vel*dt};
         }
     }
 
@@ -324,36 +316,38 @@ public class RGBDSLAM implements LCMSubscriber
     {
         Kinect.Frame currFrame = null;
         Kinect.Frame lastFrame = null;
+        ArrayList<ImageFeature> featuresL;
+        ColorPointCloud lastFullPtCloud;
+        ColorPointCloud lastDecimatedPtCloud;
 
         synchronized public void run()
         {
+            AlignFrames af = null;
 
             while (true) {
-                if (currFrame != null && lastFrame != null) {
-                    synchronized (globalVoxelFrame) {
-                    synchronized (rbtLock) {
-                        // Deal with new data
-                        // XXX Temporary
-                        ColorPointCloud cpc = new ColorPointCloud(currFrame);
-                        VoxelArray va = new VoxelArray(currRes); // XXX threading
+                synchronized (globalVoxelFrame) {
+                synchronized (rbtLock) {
+                if (currFrame != null && lastFrame != null && af == null) {
+                    af = new AlignFrames(currFrame, lastFrame);
+                }
+                else if (currFrame != null && lastFrame != null) {
+                    VoxelArray va = new VoxelArray(DEFAULT_RES); // XXX
 
-                        // Extract features, perform RANSAC and ICP // XXX No ICP yet
-                        double[][] ransac = getTransform(cpc);
-                        LinAlg.timesEquals(ransac, rbt);
-                        rbt = ransac;
+                    af = new AlignFrames(currFrame,
+                                         af.getCurrFeatures(),
+                                         af.getCurrFullPtCloud(),
+                                         af.getCurrDecimatedPtCloud());
 
-                        ICP icp = new ICP(new ColorPointCloud(lastFrame, 10));
-                        double[][] transform = icp.match(new ColorPointCloud(currFrame, 10), Matrix.identity(4,4).copyArray());
-                        LinAlg.timesEquals(transform, rbt);
-                        rbt = transform;
+                    double[][] transform = af.align();
+                    Grbt = LinAlg.matrixAB(transform, Grbt);
 
-                        va.voxelizePointCloud(cpc);
+                    va.voxelizePointCloud(af.getCurrFullPtCloud());
 
-                        // Let render thread do its thing
-                        globalVoxelFrame.merge(va, rbt);
-                        trajectory.add(LinAlg.resize(LinAlg.matrixToXyzrpy(rbt),3));
-                    }
-                    }
+                    // Let render thread do its thing
+                    globalVoxelFrame.merge(va, Grbt);
+                    trajectory.add(LinAlg.resize(LinAlg.matrixToXyzrpy(Grbt),3));
+                }
+                }
                 }
 
                 try {
@@ -367,29 +361,6 @@ public class RGBDSLAM implements LCMSubscriber
             lastFrame = currFrame;
             currFrame = frame;
             notifyAll();
-        }
-
-        private double[][] getTransform(ColorPointCloud cpc)
-        {
-            int[] argbC = currFrame.argb;
-            int[] argbL = lastFrame.argb;
-            ArrayList<ImageFeature> featuresC = OpenCV.extractFeatures(argbC, 640);
-            ArrayList<ImageFeature> featuresL = OpenCV.extractFeatures(argbL, 640);
-
-            // Set xyz (world) coordinates
-            for(ImageFeature fc: featuresC){
-                fc.setXyz(cpc.Project(LinAlg.copyDoubles(fc.xy())));
-            }
-            for(ImageFeature fl: featuresL){
-                fl.setXyz(cpc.Project(LinAlg.copyDoubles(fl.xy())));
-            }
-
-            // Match SIFT features -> RANSAC
-            DescriptorMatcher dm = new DescriptorMatcher(featuresL, featuresC);
-            ArrayList<DescriptorMatcher.Match> matches = dm.match();
-            ArrayList<DescriptorMatcher.Match> inliers = new ArrayList<DescriptorMatcher.Match>();
-
-            return RANSAC.RANSAC(matches, inliers);
         }
     }
 

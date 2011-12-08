@@ -10,7 +10,7 @@ public class RANSAC {
     final static double MIN_DIST = 5;  // In meters, min distance for two features to be compared
     final static int DOF = 3;           // Degrees of freedom
     final static int NUM_ITER = 1000;
-    final static double MAX_SQ_CONSENSUS_DISTANCE = 0.01;
+    final static double MAX_SQ_CONSENSUS_DISTANCE = 0.0001;
     final static double MIN_BREAK_EARLY_INLIERS_PERCENTAGE = 0.8;
     private static Random rand = new Random(83247983);
 
@@ -71,7 +71,7 @@ public class RANSAC {
                 break;
             }
         }
-        
+
         inliers.clear();
         inliers.addAll(bestInliers);
         return getAlignment(inliers);
@@ -81,7 +81,7 @@ public class RANSAC {
      * Computes the best alignment between a list of matches (used to compute the final RBT between all
      * inliers).
      * @param matches
-     * @return 
+     * @return
      */
     private static double[][] getAlignment(List<Match> matches) {
         ArrayList<double[]> cora = new ArrayList<double[]>();
@@ -98,7 +98,7 @@ public class RANSAC {
     /**
      * Returns a list of DOF indices between 0 and n.
      * @param n
-     * @return 
+     * @return
      */
     protected static int[] getRandomIndices(int n) {
         // Get DOF number of different features
