@@ -69,7 +69,7 @@ public class ColorPointCloud {
         long[] values = new long[4];
 
         double m = frame.depthToMeters(frame.depth[y * Constants.WIDTH + x]);
-        if (m < 0) {
+        if (m < 0 || m > 3.8) {
             return new long[]{0, 0, 0, 0};
         }
         //values[0] = timer.getLastTaskTimeMillis();

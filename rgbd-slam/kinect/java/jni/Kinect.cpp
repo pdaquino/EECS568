@@ -66,7 +66,7 @@ void video_cb(freenect_device *dev, void *v_rgb, uint32_t timestamp)
              argb |= temp[3*i + 2];
              rgb_buf[i] = argb;
         }
-    } 
+    }
     // IR Mode
     else {
         for (int i = 0; i < W_VID*H_VID; i++) {
@@ -116,7 +116,7 @@ JNIEXPORT jint JNICALL Java_kinect_Kinect_initKinect(JNIEnv *env, jobject obj)
     }
 
     // Init device
-    freenect_set_tilt_degs(f_dev, 0);
+    //freenect_set_tilt_degs(f_dev, 0);
     freenect_set_led(f_dev, LED_GREEN);
     freenect_set_depth_callback(f_dev, depth_cb);
     freenect_set_video_callback(f_dev, video_cb);
@@ -158,8 +158,8 @@ JNIEXPORT void JNICALL Java_kinect_Kinect_startRGBVideo(JNIEnv *env, jobject obj
 {
     IR_mode = false;
     printf("starting native RGB video\n");
-    freenect_set_video_mode(f_dev, freenect_find_video_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_VIDEO_RGB));
     pthread_mutex_lock(&video_mutex);
+    freenect_set_video_mode(f_dev, freenect_find_video_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_VIDEO_RGB));
     rgb_buf = new uint32_t[W_VID*H_VID];
     freenect_start_video(f_dev);
     pthread_mutex_unlock(&video_mutex);
@@ -170,8 +170,8 @@ JNIEXPORT void JNICALL Java_kinect_Kinect_startIRVideo(JNIEnv *env, jobject obj)
 {
     IR_mode = true;
     printf("starting native IR video\n");
-    freenect_set_video_mode(f_dev, freenect_find_video_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_VIDEO_IR_8BIT));
     pthread_mutex_lock(&video_mutex);
+    freenect_set_video_mode(f_dev, freenect_find_video_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_VIDEO_IR_8BIT));
     rgb_buf = new uint32_t[W_VID*H_VID];
     freenect_start_video(f_dev);
     pthread_mutex_unlock(&video_mutex);
