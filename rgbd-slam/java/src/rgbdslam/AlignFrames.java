@@ -23,9 +23,9 @@ public class AlignFrames {
         this.currFeatures = extractAndProjectFeatures(currFrame, currFullPtCloud);
         this.currDecimatedPtCloud = makeDecimatedPtCloud(currFrame);
 
-        this.lastFullPtCloud = makeFullPtCloud(currFrame);
+        this.lastFullPtCloud = makeFullPtCloud(lastFrame);
         this.lastFeatures = extractAndProjectFeatures(lastFrame, lastFullPtCloud);
-        this.lastDecimatedPtCloud = makeDecimatedPtCloud(currFrame);
+        this.lastDecimatedPtCloud = makeDecimatedPtCloud(lastFrame);
     }
 
     public AlignFrames(Kinect.Frame currFrame, List<ImageFeature> lastProjectedFeatures,
