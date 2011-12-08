@@ -53,7 +53,6 @@ public class ColorPointCloud {
     // 1 is full resolution, 10 would be every 10 pixels
     // XXX fix for aliasing!
     public ColorPointCloud(Kinect.Frame frame, int Dfactor) {
-        StopWatch outertimer = new StopWatch();
         buildArrays();
 
         for (int y = 0; y < Constants.HEIGHT; y = y + Dfactor) {
@@ -61,7 +60,6 @@ public class ColorPointCloud {
                 processPoint(frame, x, y);
             }
         }
-        System.out.println(outertimer.prettyPrint());
     }
     private long computingM = 0, transforming = 0, addingPt = 0, settingPointMap = 0, points3D = 0,
             projecting = 0, coloringTime = 0;
