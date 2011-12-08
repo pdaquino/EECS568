@@ -59,6 +59,7 @@ public class RANSAC {
                 if (sqdDistance  < MAX_SQ_CONSENSUS_DISTANCE) {
                     //System.out.println("D = " + sqdDistance);
                     score++;
+                    match.xyzDistance = Math.sqrt(sqdDistance);
                     currentInliers.add(match);
                 }
             }
