@@ -9,7 +9,7 @@ import java.lang.Double;
 import java.util.ArrayList;
 import rgbdslam.KdTree.Entry;
 
-/* ICP does no internal downsampling so it assumes that it has been given a 
+/* ICP does no internal downsampling so it assumes that it has been given a
  * down sampled point cloud, using all points takes about 1 second for initialization
  * and 17 seconds to match, using decimation of 10, takes 0.002 seconds to construct
  * and 0.04 seconds to match
@@ -47,7 +47,7 @@ public class ICP {
         int cntr = 0;
         double curerror = Double.MAX_VALUE / 2; // these values will represent an average error
         double preverror = Double.MAX_VALUE;
-        
+
         double[][] rbt = Irbt; // rbt is our best guess for the rbt so far
 
         // get points stored in colored point clouds
@@ -83,12 +83,12 @@ public class ICP {
 
         // itterate until change in error becomes small or reach max iterations
         while (((preverror - curerror) > THRESHOLD) && (cntr < MAX_ITERATIONS)) {
-            
+
             // use these lists to compute updated RBT
             // http://www.cs.duke.edu/courses/spring07/cps296.2/scribe_notes/lecture24.pdf
             // this seems to do what I need
             double[][] Erbt = weightedSum(AlignPoints3D.align(GoodA, GoodB), rbt, ALPHA);
-            
+
             // apply rbt to points in A to get into frame B
             PAinB = LinAlg.transform(Erbt, PA);
 
@@ -124,11 +124,11 @@ public class ICP {
             // reassign errors
             preverror = curerror;
             //System.out.println("Preverror = " + preverror);
-            // XXX this error is actually the error for the previous RBT, since we are looping it might be ok, but for 
+            // XXX this error is actually the error for the previous RBT, since we are looping it might be ok, but for
             // small numbers of iterrations this might be a problem
             curerror = totalError / GoodA.size(); // maintaining an average error
             //System.out.println("Curerror = " + curerror);
-            
+
             // use this new estimate if error has improved
             if (curerror < preverror) {
                 rbt = Erbt; // new best guess if we got better

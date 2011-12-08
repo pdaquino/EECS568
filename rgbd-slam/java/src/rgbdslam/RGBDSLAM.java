@@ -18,6 +18,7 @@ import april.lcmtypes.*;
 import kinect.*;
 
 import rgbdslam.*;
+import rgbdslam.vis.*;
 
 public class RGBDSLAM implements LCMSubscriber
 {
@@ -26,6 +27,8 @@ public class RGBDSLAM implements LCMSubscriber
     KinectThread kt;
     RenderThread rt;
     RGBDThread rgbd;
+
+    FeatureVisualizer fv;
 
     double DEFAULT_RES = 0.01;
     double currRes = DEFAULT_RES;
@@ -165,6 +168,8 @@ public class RGBDSLAM implements LCMSubscriber
             vl = new VisLayer(vw);
             vc = new VisCanvas(vl);
 
+            fv = new FeatureVisualizer();
+
             JFrame jf = new JFrame("RGBDSLAM Visualization");
             jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             jf.setSize(1280, 720);
@@ -185,10 +190,9 @@ public class RGBDSLAM implements LCMSubscriber
                     System.out.println("Goodbye!");
                 }
             });
-
             pg = new ParameterGUI();
             pg.addDoubleSlider("resolution", "Voxel Resolution (m)", 0.005, 0.5, DEFAULT_RES);
-            pg.addIntSlider("kfps", "Kinect FPS", 1, 30, 5);
+            pg.addIntSlider("kfps", "Kinect FPS", 1, 30, 20);
             pg.addIntSlider("rfps", "Render FPS", 1, 60, 15);
             pg.addButtons("save", "Save to file");
             pg.addListener(new ParameterListener() {
@@ -222,8 +226,8 @@ public class RGBDSLAM implements LCMSubscriber
             dcm.UI_ANIMATE_MS = 25;
             dcm.interfaceMode = 3.0;
             vl.cameraManager = dcm;
-            //vl.cameraManager.setDefaultPosition(new double[] {0, 0, -20}, new double[] {0, 0, -19}, new double[] {0, -1, 0});
-            vl.cameraManager.setDefaultPosition(new double[] {-10, 0, 0}, new double[] {-9, 0, 0}, new double[] {0, 0, 1});
+            vl.cameraManager.setDefaultPosition(new double[] {0, 0, -5}, new double[] {0, 0, -4}, new double[] {0, -1, 0});
+            //vl.cameraManager.setDefaultPosition(new double[] {-10, 0, 0}, new double[] {-9, 0, 0}, new double[] {0, 0, 1});
             vl.cameraManager.uiDefault();
 
             jf.add(vc, BorderLayout.CENTER);
@@ -341,28 +345,30 @@ public class RGBDSLAM implements LCMSubscriber
 
             while (true) {
                 synchronized (globalVoxelFrame) {
-                synchronized (rbtLock) {
-                if (currFrame != null && lastFrame != null && af == null) {
-                    af = new AlignFrames(currFrame, lastFrame);
-                }
-                else if (currFrame != null && lastFrame != null) {
-                    VoxelArray va = new VoxelArray(DEFAULT_RES); // XXX
+                    synchronized (rbtLock) {
+                        if (currFrame != null && lastFrame != null && af == null) {
+                            af = new AlignFrames(currFrame, lastFrame);
+                        }
+                        else if (currFrame != null && lastFrame != null) {
+                            VoxelArray va = new VoxelArray(DEFAULT_RES); // XXX
 
-                    af = new AlignFrames(currFrame,
-                                         af.getCurrFeatures(),
-                                         af.getCurrFullPtCloud(),
-                                         af.getCurrDecimatedPtCloud());
+                            af = new AlignFrames(currFrame,
+                                                 af.getCurrFeatures(),
+                                                 af.getCurrFullPtCloud(),
+                                                 af.getCurrDecimatedPtCloud());
 
-                    double[][] transform = af.align();
-                    Grbt = LinAlg.matrixAB(transform, Grbt);
+                            double[][] transform = af.align();
+                            Grbt = LinAlg.matrixAB(transform, Grbt);
 
-                    va.voxelizePointCloud(af.getCurrFullPtCloud());
+                            fv.updateFrames(currFrame.makeRGB(), lastFrame.makeRGB(), af.getLatestInliers());
 
-                    // Let render thread do its thing
-                    globalVoxelFrame.merge(va, Grbt);
-                    trajectory.add(LinAlg.resize(LinAlg.matrixToXyzrpy(Grbt),3));
-                }
-                }
+                            va.voxelizePointCloud(af.getCurrFullPtCloud());
+
+                            // Let render thread do its thing
+                            globalVoxelFrame.merge(va, Grbt);
+                            trajectory.add(LinAlg.resize(LinAlg.matrixToXyzrpy(Grbt),3));
+                        }
+                    }
                 }
 
                 try {
