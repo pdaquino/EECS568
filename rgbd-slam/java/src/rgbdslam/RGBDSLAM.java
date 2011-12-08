@@ -34,6 +34,11 @@ public class RGBDSLAM implements LCMSubscriber
     // State
     boolean loadedFromFile = false;
 
+    // Kinect position
+    Object rbtLock = new Object();
+    ArrayList<double[]> trajectory = new ArrayList<double[]>();
+    double[][] rbt = Matrix.identity(4,4).copyArray();
+
     // Gamepad_t
     ExpiringMessageCache<gamepad_t> lgp = new ExpiringMessageCache<gamepad_t>(0.25);
 
@@ -184,7 +189,11 @@ public class RGBDSLAM implements LCMSubscriber
             pg.addListener(new ParameterListener() {
                 public void parameterChanged(ParameterGUI pg, String name) {
                     if (name.equals("resolution") && !loadedFromFile) {
-                        //updateVoxelRes(pg.gd("resolution"));
+                        synchronized (globalVoxelFrame) {
+                            currRes = pg.gd("resolution");
+                            // Totally wipe out our old data and make a VA
+                            globalVoxelFrame = new VoxelArray(currRes);
+                        }
                     } else if (name.equals("save")) {
                         long time = System.currentTimeMillis();
                         synchronized (globalVoxelFrame) {
@@ -223,7 +232,6 @@ public class RGBDSLAM implements LCMSubscriber
         {
             Tic tic = new Tic();
             while (true) {
-                // XXX Some bugs
                 double[] xyzrpy = getCameraXYZRPY(tic.toctic());
                 if (vc.getLastRenderInfo() != null) {
                     VisCameraManager.CameraPosition cpos = vc.getLastRenderInfo().cameraPositions.get(vl);
@@ -271,6 +279,18 @@ public class RGBDSLAM implements LCMSubscriber
                     }
                 }
 
+                synchronized (rbtLock) {
+                    VisWorld.Buffer vb = vw.getBuffer("kinect-pos");
+                    vb.addBack(new VisChain(rbt,
+                                            new VzKinect()));
+
+                    vb.addBack(new VzLines(new VisVertexData(trajectory),
+                                                             VzLines.LINE_STRIP,
+                                                             new VzLines.Style(Color.red, 1)));
+
+                    vb.swap();
+                }
+
                 TimeUtil.sleep(1000/fps);
             }
         }
@@ -307,30 +327,32 @@ public class RGBDSLAM implements LCMSubscriber
 
         synchronized public void run()
         {
-            double[][] rbt = Matrix.identity(4,4).copyArray();
 
             while (true) {
                 if (currFrame != null && lastFrame != null) {
-                    // Deal with new data
-                    // XXX Temporary
-                    ColorPointCloud cpc = new ColorPointCloud(currFrame);
-                    VoxelArray va = new VoxelArray(DEFAULT_RES); // XXX
-
-                    // Extract features, perform RANSAC and ICP // XXX No ICP yet
-                    double[][] ransac = getTransform(cpc);
-                    LinAlg.timesEquals(ransac, rbt);
-                    rbt = ransac;
-
-                    ICP icp = new ICP(new ColorPointCloud(lastFrame, 10));
-                    double[][] transform = icp.match(new ColorPointCloud(currFrame, 10), Matrix.identity(4,4).copyArray());
-                    LinAlg.timesEquals(transform, rbt);
-                    rbt = transform;
-
-                    va.voxelizePointCloud(cpc);
-
-                    // Let render thread do its thing
                     synchronized (globalVoxelFrame) {
+                    synchronized (rbtLock) {
+                        // Deal with new data
+                        // XXX Temporary
+                        ColorPointCloud cpc = new ColorPointCloud(currFrame);
+                        VoxelArray va = new VoxelArray(currRes); // XXX threading
+
+                        // Extract features, perform RANSAC and ICP // XXX No ICP yet
+                        double[][] ransac = getTransform(cpc);
+                        LinAlg.timesEquals(ransac, rbt);
+                        rbt = ransac;
+
+                        ICP icp = new ICP(new ColorPointCloud(lastFrame, 10));
+                        double[][] transform = icp.match(new ColorPointCloud(currFrame, 10), Matrix.identity(4,4).copyArray());
+                        LinAlg.timesEquals(transform, rbt);
+                        rbt = transform;
+
+                        va.voxelizePointCloud(cpc);
+
+                        // Let render thread do its thing
                         globalVoxelFrame.merge(va, rbt);
+                        trajectory.add(LinAlg.resize(LinAlg.matrixToXyzrpy(rbt),3));
+                    }
                     }
                 }
 
