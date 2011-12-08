@@ -53,9 +53,14 @@ public class AlignFrames {
                                         {0, 0, 1, 0},
                                         {0, 0, 0, 1}};
         }
-
+        
+        double[][] I = new double[][] {{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
+        
         ICP icp = new ICP(lastDecimatedPtCloud);
-        transform = icp.match(currDecimatedPtCloud, transform);
+        transform = icp.match(currDecimatedPtCloud, I); 
+        /*
+        transform = new double[][] {{Math.cos(Math.PI/6), 0, Math.sin(Math.PI/6), 0},
+            {0, 1, 0, 0}, {-Math.sin(Math.PI/6), 0, Math.cos(Math.PI/6), 0},{0,0,0,1}};*/
 
         return transform;
     }
