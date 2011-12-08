@@ -240,6 +240,7 @@ public class RGBDSLAM implements LCMSubscriber
                 if (vc.getLastRenderInfo() != null) {
                     VisCameraManager.CameraPosition cpos = vc.getLastRenderInfo().cameraPositions.get(vl);
 
+                    // These are all out of wack. Remap em XXX
                     double[] yaxis = LinAlg.normalize(cpos.up);
                     double[] nzaxis = LinAlg.normalize(LinAlg.subtract(cpos.lookat, cpos.eye));
                     double[] xaxis = LinAlg.normalize(LinAlg.crossProduct(nzaxis, yaxis));
@@ -251,6 +252,7 @@ public class RGBDSLAM implements LCMSubscriber
                     // Translation
                     double[] eye = LinAlg.copy(cpos.eye);
                     double[] lookat = LinAlg.copy(cpos.lookat);
+                    double[] up = LinAlg.copy(cpos.up);
                     double x = xyzrpy[0];
                     double y = xyzrpy[1];
                     double z = xyzrpy[2];
@@ -266,12 +268,12 @@ public class RGBDSLAM implements LCMSubscriber
 
                     LinAlg.timesEquals(roty, eye_inv);
                     LinAlg.timesEquals(rotx, roty);
-                    LinAlg.timesEquals(rotz, rotx);
-                    LinAlg.timesEquals(eye_trans, rotz);
+                    LinAlg.timesEquals(eye_trans, rotx);
 
                     lookat = LinAlg.transform(eye_trans, lookat);
+                    up = LinAlg.transform(rotz, up);
 
-                    vl.cameraManager.uiLookAt(eye, lookat, cpos.up, false);
+                    vl.cameraManager.uiLookAt(eye, lookat, up, false);
                 }
 
                 synchronized (globalVoxelFrame) {
@@ -321,7 +323,7 @@ public class RGBDSLAM implements LCMSubscriber
                 turbo = false;
             }
 
-            return new double[] {gp.axes[0]*-vel*dt, gp.axes[5]*vel*dt, gp.axes[1]*vel*dt, gp.axes[4]*theta_vel*dt, gp.axes[5]*theta_vel*dt, gp.axes[2]*theta_vel*dt};
+            return new double[] {gp.axes[0]*-vel*dt, gp.axes[5]*vel*dt, gp.axes[1]*vel*dt, gp.axes[4]*-theta_vel*dt, gp.axes[3]*theta_vel*dt, gp.axes[2]*theta_vel*dt};
         }
     }
 

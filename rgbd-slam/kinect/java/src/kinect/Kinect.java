@@ -234,18 +234,13 @@ public class Kinect
             if (t_gamma == null) {
                 this.t_gamma = new double[2048];
 
-                // From Daniel Shiffman
-                for (int i = 0; i < 2048; i++) {
-                    t_gamma[i] = 1.0 / (i * -0.0030711016 + 3.3309495161);
-                }
-
                 // From Stephane Magnenat
-                //double k1 = 1.1863;
-                //double k2 = 2842.5;
-                //double k3 = 0.1236;
-                //for (int i = 0; i < 2048; i++) {
-                //    t_gamma[i] = k3*Math.tan(i/k2 + k1);
-                //}
+                double k1 = 1.1863;
+                double k2 = 2842.5;
+                double k3 = 0.1236;
+                for (int i = 0; i < 2048; i++) {
+                    t_gamma[i] = k3*Math.tan(i/k2 + k1);
+                }
 
                 // From Willow Garage
                 //for (i = 0; i < 2048; i++) {
