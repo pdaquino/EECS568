@@ -208,8 +208,8 @@ public class RGBDSLAM implements LCMSubscriber
             DefaultCameraManager dcm = new DefaultCameraManager();
             dcm.UI_ANIMATE_MS = 25;
             vl.cameraManager = dcm;
-            //vl.cameraManager.setDefaultPosition(new double[] {0, 0, -20}, new double[] {0, 0, -19}, new double[] {0, -1, 0});
-            vl.cameraManager.setDefaultPosition(new double[] {-10, 0, 0}, new double[] {-9, 0, 0}, new double[] {0, 0, 1});
+            vl.cameraManager.setDefaultPosition(new double[] {0, 0, -20}, new double[] {0, 0, -19}, new double[] {0, -1, 0});
+            //vl.cameraManager.setDefaultPosition(new double[] {-10, 0, 0}, new double[] {-9, 0, 0}, new double[] {0, 0, 1});
             vl.cameraManager.uiDefault();
 
             jf.add(vc, BorderLayout.CENTER);
@@ -294,45 +294,36 @@ public class RGBDSLAM implements LCMSubscriber
     {
         Kinect.Frame currFrame = null;
         Kinect.Frame lastFrame = null;
-        ArrayList<ImageFeature> featuresL = null;
-        ArrayList<ImageFeature> featuresC = null;
+        ArrayList<ImageFeature> featuresL;
+        ColorPointCloud lastFullPtCloud;
+        ColorPointCloud lastDecimatedPtCloud;
 
         synchronized public void run()
         {
             double[][] rbt = Matrix.identity(4,4).copyArray();
+            AlignFrames af = null;
 
             while (true) {
-                if (currFrame != null && lastFrame != null) {
-                    // Deal with new data
-                    // XXX Temporary
-                    ColorPointCloud cpc = new ColorPointCloud(currFrame);
+                if (currFrame != null && lastFrame != null && af == null) {
+                    af = new AlignFrames(currFrame, lastFrame);
+                }
+                else if (currFrame != null && lastFrame != null) {
                     VoxelArray va = new VoxelArray(DEFAULT_RES); // XXX
 
-                    // Extract features, perform RANSAC
-                    double[][] ransac = getTransform(cpc);
-                    LinAlg.timesEquals(ransac, rbt);
-                    rbt = ransac;
+                    af = new AlignFrames(currFrame,
+                                         af.getCurrFeatures(),
+                                         af.getCurrFullPtCloud(),
+                                         af.getCurrDecimatedPtCloud());
 
-                    ICP icp = new ICP(new ColorPointCloud(lastFrame, 10));
-                    double[][] transform = icp.match(new ColorPointCloud(currFrame, 10), Matrix.identity(4,4).copyArray());
+                    double[][] transform = af.align();
                     LinAlg.timesEquals(transform, rbt);
                     rbt = transform;
 
-                    va.voxelizePointCloud(cpc);
+                    va.voxelizePointCloud(af.getCurrFullPtCloud());
 
                     // Let render thread do its thing
                     synchronized (globalVoxelFrame) {
                         globalVoxelFrame.merge(va, rbt);
-                    }
-                }
-                else if(currFrame != null){
-                    int[] argbC = currFrame.argb;
-                    featuresC = OpenCV.extractFeatures(argbC, 640);
-                    ColorPointCloud cpc = new ColorPointCloud(currFrame);
-
-                    // Set xyz (world) coordinates
-                    for(ImageFeature fc: featuresC){
-                        fc.setXyz(cpc.Project(LinAlg.copyDoubles(fc.xy())));
                     }
                 }
 
@@ -345,28 +336,8 @@ public class RGBDSLAM implements LCMSubscriber
         synchronized public void handleFrame(Kinect.Frame frame)
         {
             lastFrame = currFrame;
-            featuresL = featuresC;
             currFrame = frame;
             notifyAll();
-        }
-
-        private double[][] getTransform(ColorPointCloud cpc)
-        {
-            assert(featuresL != null);
-
-            featuresC = OpenCV.extractFeatures(currFrame.argb, 640);
-
-            // Set xyz (world) coordinates
-            for(ImageFeature fc: featuresC){
-                fc.setXyz(cpc.Project(LinAlg.copyDoubles(fc.xy())));
-            }
-
-            // Match SIFT features -> RANSAC
-            DescriptorMatcher dm = new DescriptorMatcher(featuresL, featuresC);
-            ArrayList<DescriptorMatcher.Match> matches = dm.match();
-            ArrayList<DescriptorMatcher.Match> inliers = new ArrayList<DescriptorMatcher.Match>();
-
-            return RANSAC.RANSAC(matches, inliers);
         }
     }
 

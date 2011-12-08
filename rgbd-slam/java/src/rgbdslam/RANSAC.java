@@ -71,7 +71,7 @@ public class RANSAC {
                 break;
             }
         }
-        
+
         inliers.clear();
         inliers.addAll(bestInliers);
         return getAlignment(inliers);
@@ -81,7 +81,7 @@ public class RANSAC {
      * Computes the best alignment between a list of matches (used to compute the final RBT between all
      * inliers).
      * @param matches
-     * @return 
+     * @return
      */
     private static double[][] getAlignment(List<Match> matches) {
         ArrayList<double[]> cora = new ArrayList<double[]>();
@@ -98,7 +98,7 @@ public class RANSAC {
     /**
      * Returns a list of DOF indices between 0 and n.
      * @param n
-     * @return 
+     * @return
      */
     protected static int[] getRandomIndices(int n) {
         // Get DOF number of different features
