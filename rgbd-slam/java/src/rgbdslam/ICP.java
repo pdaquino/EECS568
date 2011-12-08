@@ -19,7 +19,7 @@ public class ICP {
 
     final static int MAX_ITERATIONS = 50; // maximum number of iteration for ICP
     final static double THRESHOLD = 0.000005; // threshold for convergence change in normalized error
-    final static double DISCARD_D = 0.2; // threshold for outlier rejection
+    final static double DISCARD_D = 100000; // threshold for outlier rejection
     final static double ALPHA = 0.75; // relative weighting between initial estimate and new rbt estimate
     private KdTree.SqrEuclid<double[]> kdtree; // kdtree for storing points in B
 
@@ -47,7 +47,7 @@ public class ICP {
         int cntr = 0;
         double curerror = Double.MAX_VALUE / 2; // these values will represent an average error
         double preverror = Double.MAX_VALUE;
-        
+
         double[][] rbt = Irbt; // rbt is our best guess for the rbt so far
 
         // get points stored in colored point clouds
@@ -61,19 +61,19 @@ public class ICP {
         ArrayList<double[]> GoodB = new ArrayList<double[]>();
         double totalError = 0; // for accumulating error
         // for each transformed point
-        for (double[] A : PAinB) {
+        for (int index = 0; index < PAinB.size(); index++) {
             // find nearest point in B for each in A using K-D tree
             // wierd K-D tree object
-            Entry<double[]> BE = kdtree.nearestNeighbor(A, 1, false).get(0);
+            Entry<double[]> BE = kdtree.nearestNeighbor(PAinB.get(index), 1, false).get(0);
             double[] B = BE.value;
             // compute distance between A and B
             //double d = LinAlg.distance(A,B);
             double d = BE.distance;
             // if distance is small enough, then not an outlier
-            // need this to handle parts that will never overlap
+            // need this to handle parts that will never overlap  
             if (d < DISCARD_D) {
                 // add both to our list of good points
-                GoodA.add(A);
+                GoodA.add(PA.get(index));
                 GoodB.add(B);
                 // add distance to our error estimate
                 totalError = totalError + d;
@@ -83,12 +83,12 @@ public class ICP {
 
         // itterate until change in error becomes small or reach max iterations
         while (((preverror - curerror) > THRESHOLD) && (cntr < MAX_ITERATIONS)) {
-            
             // use these lists to compute updated RBT
             // http://www.cs.duke.edu/courses/spring07/cps296.2/scribe_notes/lecture24.pdf
             // this seems to do what I need
-            double[][] Erbt = weightedSum(AlignPoints3D.align(GoodA, GoodB), rbt, ALPHA);
-            
+            double[][] Erbt = AlignPoints3D.align(GoodA, GoodB);
+            //double[][] Erbt = weightedSum(AlignPoints3D.align(GoodB, GoodA), rbt, ALPHA);
+
             // apply rbt to points in A to get into frame B
             PAinB = LinAlg.transform(Erbt, PA);
 
@@ -99,11 +99,11 @@ public class ICP {
             totalError = 0; // for accumulating error
 
             // for each transformed point
-            for (double[] A : PAinB) {
+            for (int index = 0; index < PAinB.size(); index++) {
 
                 // find nearest point in B for each in A using K-D tree
                 // wierd K-D tree object
-                Entry<double[]> BE = kdtree.nearestNeighbor(A, 1, false).get(0);
+                Entry<double[]> BE = kdtree.nearestNeighbor(PAinB.get(index), 1, false).get(0);
                 double[] B = BE.value;
 
                 // compute distance between A and B
@@ -112,13 +112,15 @@ public class ICP {
 
                 // if distance is small enough, then not an outlier
                 // need this to handle parts that will never overlap
+
                 if (d < DISCARD_D) {
                     // add both to our list of good points
-                    GoodA.add(A);
+                    GoodA.add(PA.get(index));
                     GoodB.add(B);
                     // add distance to our error estimate
                     totalError = totalError + d;
                 }
+
             }
 
             // reassign errors
@@ -128,15 +130,15 @@ public class ICP {
             // small numbers of iterrations this might be a problem
             curerror = totalError / GoodA.size(); // maintaining an average error
             //System.out.println("Curerror = " + curerror);
-            
+
             // use this new estimate if error has improved
             if (curerror < preverror) {
-                rbt = Erbt; // new best guess if we got better
+            rbt = Erbt; // new best guess if we got better
             }
 
             cntr++;
         }
-        //System.out.println("Performed " + cntr + " Iterations.");
+        System.out.println("Performed " + cntr + " Iterations.");
         //System.out.println("Normalized Error Change: " + (preverror - curerror));
         return rbt;
     }
