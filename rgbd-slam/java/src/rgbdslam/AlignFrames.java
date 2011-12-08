@@ -53,6 +53,18 @@ public class AlignFrames {
         return transform;
     }
 
+    public ColorPointCloud getLastDecimatedPtCloud() {
+        return lastDecimatedPtCloud;
+    }
+
+    public List<ImageFeature> getLastFeatures() {
+        return lastFeatures;
+    }
+
+    public ColorPointCloud getLastFullPtCloud() {
+        return lastFullPtCloud;
+    }
+    
     private ColorPointCloud makeDecimatedPtCloud(Frame frame) {
         return new ColorPointCloud(frame, DECIMATION_FACTOR);
     }
