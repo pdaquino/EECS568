@@ -49,6 +49,8 @@ public class AlignFrames {
     public double[][] align(List<Match> allMatches, List<Match> inliers) {
         DescriptorMatcher dm = new DescriptorMatcher(currFeatures, lastFeatures);
         ArrayList<DescriptorMatcher.Match> matches = dm.match();
+        
+        double[] Arpy = new double[3]; // average roll pitch yaw
 
         if(inliers == null) {
             inliers = new ArrayList<Match>();
@@ -62,6 +64,7 @@ public class AlignFrames {
         
         System.out.println("RANSAC's estimate Roll Pitch Yaw");
         LinAlg.print(LinAlg.matrixToRollPitchYaw(Rrbt));
+        LinAlg.print(Rrbt);
         System.out.println("RANSAC's translation maginitude " + TransMag(Rrbt));
         System.out.println("RANSAC's transformation matrix");
         LinAlg.print(Rrbt);
@@ -69,6 +72,7 @@ public class AlignFrames {
         ICP icp = new ICP(lastDecimatedPtCloud);
 
         double[][] Irbt = icp.match(currDecimatedPtCloud, Rrbt); // ICP's Estimate
+
         latestInliers = inliers;
         if(allMatches != null) {
             allMatches.addAll(matches);
@@ -76,6 +80,7 @@ public class AlignFrames {
         
         System.out.println("ICP's estimate Roll Pitch Yaw");
         LinAlg.print(LinAlg.matrixToRollPitchYaw(Irbt));
+        LinAlg.print(Irbt);
         System.out.println("ICP's translation maginitude " + TransMag(Irbt));
         System.out.println("ICP's transformation matrix");
         LinAlg.print(Irbt);
@@ -84,11 +89,13 @@ public class AlignFrames {
         //double[][] Erbt = Rrbt;
         
         // supress large translations cause they cause trouble
+       
         if (TransMag(Erbt) > 0.5) {
             Erbt = LinAlg.identity(4);
         }
         System.out.println("Final Estimate");
         LinAlg.print(Erbt);
+       
         
         return Erbt;
     }
@@ -153,7 +160,6 @@ public class AlignFrames {
                 C[i][j] = alpha * A[i][j] + (1 - alpha) * B[i][j];
             }
         }
-
         return C;
     }
     
