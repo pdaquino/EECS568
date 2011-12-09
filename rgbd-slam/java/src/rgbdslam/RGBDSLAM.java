@@ -27,25 +27,21 @@ public class RGBDSLAM implements LCMSubscriber {
     RenderThread rt;
     RGBDThread rgbd;
     FeatureVisualizer fv;
-
-    // Voxel Array
     double DEFAULT_RES = 0.01;
     double currRes = DEFAULT_RES;
     VoxelArray globalVoxelFrame = new VoxelArray(DEFAULT_RES);
-
     // State
     boolean loadedFromFile = false;
-
     // Kinect position
     Object rbtLock = new Object();
     ArrayList<double[]> trajectory = new ArrayList<double[]>();
     double[][] Grbt = Matrix.identity(4, 4).copyArray();
-
     // Gamepad_t
     ExpiringMessageCache<gamepad_t> lgp = new ExpiringMessageCache<gamepad_t>(0.25);
-
     // Saved options
     GetOpt opts;
+    
+    Kinect.Frame currFrame, lastFrame;
 
     public RGBDSLAM(GetOpt opts) {
         this.opts = opts;
@@ -149,12 +145,8 @@ public class RGBDSLAM implements LCMSubscriber {
         ParameterGUI pg;
         // Gamepad
         boolean turbo = false;
-        double SLOW_VEL = -1.0;
-        double FAST_VEL = -4.0;
-        double SLOW_TVEL = Math.toRadians(15);
-        double FAST_TVEL = Math.toRadians(36);
-        double vel = SLOW_VEL;
-        double theta_vel = SLOW_TVEL;
+        double vel = -1.0;
+        double theta_vel = -Math.toRadians(15);
 
         public RenderThread() {
             vw = new VisWorld();
@@ -189,7 +181,7 @@ public class RGBDSLAM implements LCMSubscriber {
             pg.addDoubleSlider("resolution", "Voxel Resolution (m)", 0.005, 0.5, DEFAULT_RES);
             pg.addIntSlider("kfps", "Kinect FPS", 1, 30, 20);
             pg.addIntSlider("rfps", "Render FPS", 1, 60, 15);
-            pg.addButtons("save", "Save to file");
+            pg.addButtons("save", "Save to file", "saveFrame", "Save frame");
             pg.addListener(new ParameterListener() {
 
                 public void parameterChanged(ParameterGUI pg, String name) {
@@ -206,7 +198,20 @@ public class RGBDSLAM implements LCMSubscriber {
                             globalVoxelFrame.writeToFile(filename);
                             System.out.println("Saved to " + filename);
                         }
-                    } else {
+                    } else if(name.equals("saveFrame")) {
+                        long time = System.currentTimeMillis();
+                        synchronized (globalVoxelFrame) {
+                            String filename = "kf_" + time + ".kframe";
+                            try {
+                                FileOutputStream os = new FileOutputStream(filename);
+                                ObjectOutputStream objstream = new ObjectOutputStream(os);
+                                objstream.writeObject(currFrame);
+                            } catch(Exception e) {
+                                System.err.println("Could not save frame: " + e.getLocalizedMessage());
+                            }
+                            System.out.println("Saved frame to " + filename);
+                        }
+                    }else {
                         updateFPS();
                     }
                 }
@@ -221,9 +226,10 @@ public class RGBDSLAM implements LCMSubscriber {
             DefaultCameraManager dcm = new DefaultCameraManager();
             dcm.UI_ANIMATE_MS = 25;
             dcm.interfaceMode = 3.0;
-            dcm.setDefaultPosition(new double[]{-5, 0, 0}, new double[]{-4, 0, 0}, new double[]{0, 0, 1});
-            dcm.uiDefault();
             vl.cameraManager = dcm;
+            vl.cameraManager.setDefaultPosition(new double[]{0, 0, -5}, new double[]{0, 0, -4}, new double[]{0, -1, 0});
+            //vl.cameraManager.setDefaultPosition(new double[] {-10, 0, 0}, new double[] {-9, 0, 0}, new double[] {0, 0, 1});
+            vl.cameraManager.uiDefault();
 
             jf.add(vc, BorderLayout.CENTER);
             jf.add(pg, BorderLayout.SOUTH);
@@ -231,7 +237,6 @@ public class RGBDSLAM implements LCMSubscriber {
             jf.setVisible(true);
         }
 
-        // --- Render Loop ----------------------------------------------------
         synchronized public void run() {
             Tic tic = new Tic();
             while (true) {
@@ -240,13 +245,13 @@ public class RGBDSLAM implements LCMSubscriber {
                     VisCameraManager.CameraPosition cpos = vc.getLastRenderInfo().cameraPositions.get(vl);
 
                     // These are all out of wack. Remap em XXX
-                    double[] xaxis = LinAlg.normalize(LinAlg.subtract(cpos.lookat, cpos.eye));
-                    double[] zaxis = LinAlg.normalize(cpos.up);
-                    double[] yaxis = LinAlg.normalize(LinAlg.crossProduct(zaxis, xaxis));
+                    double[] yaxis = LinAlg.normalize(cpos.up);
+                    double[] nzaxis = LinAlg.normalize(LinAlg.subtract(cpos.lookat, cpos.eye));
+                    double[] xaxis = LinAlg.normalize(LinAlg.crossProduct(nzaxis, yaxis));
 
-                    double[][] rotx = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[3], xaxis));
-                    double[][] roty = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[4], yaxis));
-                    double[][] rotz = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[5], zaxis));
+                    double[][] rotx = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[4], xaxis));
+                    double[][] roty = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[5], yaxis));
+                    double[][] rotz = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[3], nzaxis));
 
                     // Translation
                     double[] eye = LinAlg.copy(cpos.eye);
@@ -255,9 +260,9 @@ public class RGBDSLAM implements LCMSubscriber {
                     double x = xyzrpy[0];
                     double y = xyzrpy[1];
                     double z = xyzrpy[2];
-                    double[] dx = new double[]{x*xaxis[0], x*xaxis[1], x*xaxis[2]};
-                    double[] dy = new double[]{y*yaxis[0], y*yaxis[1], y*yaxis[2]};
-                    double[] dz = new double[]{z*zaxis[0], z*zaxis[1], z*zaxis[2]};
+                    double[] dx = new double[]{x * xaxis[0], x * xaxis[1], x * xaxis[2]};
+                    double[] dy = new double[]{y * yaxis[0], y * yaxis[1], y * yaxis[2]};
+                    double[] dz = new double[]{z * nzaxis[0], z * nzaxis[1], z * nzaxis[2]};
                     eye = LinAlg.add(dx, LinAlg.add(dy, LinAlg.add(dz, eye)));
                     lookat = LinAlg.add(dx, LinAlg.add(dy, LinAlg.add(dz, lookat)));
 
@@ -266,11 +271,11 @@ public class RGBDSLAM implements LCMSubscriber {
                     double[][] eye_inv = LinAlg.inverse(eye_trans);
 
                     LinAlg.timesEquals(roty, eye_inv);
-                    LinAlg.timesEquals(rotz, roty);
-                    LinAlg.timesEquals(eye_trans, rotz);
+                    LinAlg.timesEquals(rotx, roty);
+                    LinAlg.timesEquals(eye_trans, rotx);
 
                     lookat = LinAlg.transform(eye_trans, lookat);
-                    up = LinAlg.transform(rotx, up);
+                    up = LinAlg.transform(rotz, up);
 
                     vl.cameraManager.uiLookAt(eye, lookat, up, false);
                 }
@@ -312,28 +317,21 @@ public class RGBDSLAM implements LCMSubscriber {
                 return new double[6];
             }
             if ((gp.buttons & 0xF0) > 1 && !turbo) {
-                vel = FAST_VEL;
-                theta_vel = FAST_TVEL;
+                vel = -4.0;
+                theta_vel = -Math.toRadians(36);
                 turbo = true;
             } else if ((gp.buttons & 0xF0) == 0 && turbo) {
-                vel = SLOW_VEL;
-                theta_vel = SLOW_TVEL;
+                vel = -1.0;
+                theta_vel = -Math.toRadians(15);
                 turbo = false;
             }
 
-            return new double[]{gp.axes[1]*vel*dt,
-                                gp.axes[0]*vel*dt,
-                                gp.axes[5]*vel*dt,
-                                gp.axes[4]*theta_vel*dt,
-                                gp.axes[3]*theta_vel*dt,
-                                gp.axes[2]*-theta_vel*dt};
+            return new double[]{gp.axes[0] * -vel * dt, gp.axes[5] * vel * dt, gp.axes[1] * vel * dt, gp.axes[4] * -theta_vel * dt, gp.axes[3] * theta_vel * dt, gp.axes[2] * theta_vel * dt};
         }
     }
 
     class RGBDThread extends Thread {
-
-        Kinect.Frame currFrame = null;
-        Kinect.Frame lastFrame = null;
+        
         ArrayList<ImageFeature> featuresL;
         ColorPointCloud lastFullPtCloud;
         ColorPointCloud lastDecimatedPtCloud;
@@ -344,8 +342,7 @@ public class RGBDSLAM implements LCMSubscriber {
 
             double[][] I = new double[][]{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}};
             double[][] KtoGrbt = new double[][]{{0, 0, 1, 0}, {-1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, 0, 1}};
-            //double[][] Grbt = KtoGrbt;
-            Grbt = KtoGrbt;
+            double[][] Grbt = KtoGrbt;
 
             while (true) {
                 synchronized (globalVoxelFrame) {
@@ -365,14 +362,13 @@ public class RGBDSLAM implements LCMSubscriber {
                             double[][] transform = af.align(allFeatMatches, inlierFeatMatches);
 
 
-                            //Grbt = LinAlg.matrixAB(Grbt, transform); // XXX which order!???
-                            LinAlg.timesEquals(Grbt, transform);
+                            Grbt = LinAlg.matrixAB(Grbt, transform); // XXX which order!???
 
                             // constrain to no translation for now
                             //Grbt[0][3] = 0;
                             //Grbt[1][3] = 0;
                             //Grbt[2][3] = 0;
-
+                            
                             //System.out.println("Current position");
                             //LinAlg.print(Grbt);
                             //System.out.println();
@@ -394,9 +390,11 @@ public class RGBDSLAM implements LCMSubscriber {
             }
         }
 
-        synchronized public void handleFrame(Kinect.Frame frame) {
-            lastFrame = currFrame;
-            currFrame = frame;
+        public synchronized void handleFrame(Kinect.Frame frame) {
+            synchronized(globalVoxelFrame) {
+                lastFrame = currFrame;
+                currFrame = frame;
+            }
             notifyAll();
         }
     }
