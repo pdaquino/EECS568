@@ -60,23 +60,32 @@ public class AlignFrames {
             Rrbt = LinAlg.identity(4);
         }
         
-        System.out.println("RANSAC's estimate");
+        System.out.println("RANSAC's estimate Roll Pitch Yaw");
         LinAlg.print(LinAlg.matrixToRollPitchYaw(Rrbt));
+        System.out.println("RANSAC's translation maginitude " + TransMag(Rrbt));
         
         ICP icp = new ICP(lastDecimatedPtCloud);
 
-        double[][] Irbt = icp.match(currDecimatedPtCloud, Rrbt); // ICP's Estimate
+        double[][] Irbt = icp.match(currDecimatedPtCloud, LinAlg.identity(4)); // ICP's Estimate
         latestInliers = inliers;
         if(allMatches != null) {
             allMatches.addAll(matches);
         }
         
-        System.out.println("ICP's estimate");
+        System.out.println("ICP's estimate Roll Pitch Yaw");
         LinAlg.print(LinAlg.matrixToRollPitchYaw(Irbt));
+        System.out.println("ICP's translation maginitude " + TransMag(Irbt));
         
-        //double[][] Erbt = weightedSum(Rrbt, Irbt, ALPHA);
-        double[][] Erbt = Rrbt;
-
+        double[][] Erbt = weightedSum(Rrbt, Irbt, ALPHA);
+        //double[][] Erbt = Rrbt;
+        
+        // supress large translations cause they cause trouble
+        if (TransMag(Erbt) > 0.5) {
+            Erbt = LinAlg.identity(4);
+        }
+        System.out.println("Final Estimate");
+        LinAlg.print(Erbt);
+        
         return Erbt;
     }
 
@@ -142,5 +151,10 @@ public class AlignFrames {
         }
 
         return C;
+    }
+    
+    // returns the magnitude of a translation encoded in 4x4 Rbt
+    private double TransMag(double[][] A) {
+        return Math.sqrt(A[0][3]*A[0][3] + A[1][3]*A[1][3] + A[2][3]*A[2][3]);
     }
 }
