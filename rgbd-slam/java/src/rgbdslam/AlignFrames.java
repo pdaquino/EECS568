@@ -116,7 +116,7 @@ public class AlignFrames {
         return new ColorPointCloud(frame);
     }
 
-    private List<ImageFeature> extractAndProjectFeatures(Frame frame, ColorPointCloud fullPtCloud) {
+    public static List<ImageFeature> extractAndProjectFeatures(Frame frame, ColorPointCloud fullPtCloud) {
         List<ImageFeature> allFeatures = OpenCV.extractFeatures(frame.argb, Constants.WIDTH);
         List<ImageFeature> features = new ArrayList<ImageFeature>();
         for (ImageFeature fc : allFeatures) {

@@ -27,25 +27,21 @@ public class RGBDSLAM implements LCMSubscriber {
     RenderThread rt;
     RGBDThread rgbd;
     FeatureVisualizer fv;
-
-    // Voxel Array
     double DEFAULT_RES = 0.01;
     double currRes = DEFAULT_RES;
     VoxelArray globalVoxelFrame = new VoxelArray(DEFAULT_RES);
-
     // State
     boolean loadedFromFile = false;
-
     // Kinect position
     Object rbtLock = new Object();
     ArrayList<double[]> trajectory = new ArrayList<double[]>();
     double[][] Grbt = Matrix.identity(4, 4).copyArray();
-
     // Gamepad_t
     ExpiringMessageCache<gamepad_t> lgp = new ExpiringMessageCache<gamepad_t>(0.25);
-
     // Saved options
     GetOpt opts;
+    
+    Kinect.Frame currFrame, lastFrame;
 
     public RGBDSLAM(GetOpt opts) {
         this.opts = opts;
@@ -189,7 +185,7 @@ public class RGBDSLAM implements LCMSubscriber {
             pg.addDoubleSlider("resolution", "Voxel Resolution (m)", 0.005, 0.5, DEFAULT_RES);
             pg.addIntSlider("kfps", "Kinect FPS", 1, 30, 20);
             pg.addIntSlider("rfps", "Render FPS", 1, 60, 15);
-            pg.addButtons("save", "Save to file");
+            pg.addButtons("save", "Save to file", "saveFrame", "Save frame");
             pg.addListener(new ParameterListener() {
 
                 public void parameterChanged(ParameterGUI pg, String name) {
@@ -206,7 +202,20 @@ public class RGBDSLAM implements LCMSubscriber {
                             globalVoxelFrame.writeToFile(filename);
                             System.out.println("Saved to " + filename);
                         }
-                    } else {
+                    } else if(name.equals("saveFrame")) {
+                        long time = System.currentTimeMillis();
+                        synchronized (globalVoxelFrame) {
+                            String filename = "kf_" + time + ".kframe";
+                            try {
+                                FileOutputStream os = new FileOutputStream(filename);
+                                ObjectOutputStream objstream = new ObjectOutputStream(os);
+                                objstream.writeObject(currFrame);
+                            } catch(Exception e) {
+                                System.err.println("Could not save frame: " + e.getLocalizedMessage());
+                            }
+                            System.out.println("Saved frame to " + filename);
+                        }
+                    }else {
                         updateFPS();
                     }
                 }
@@ -223,7 +232,7 @@ public class RGBDSLAM implements LCMSubscriber {
             dcm.interfaceMode = 3.0;
             dcm.setDefaultPosition(new double[]{-5, 0, 0}, new double[]{-4, 0, 0}, new double[]{0, 0, 1});
             dcm.uiDefault();
-            vl.cameraManager = dcm;
+            vl.cameraManager = dcm;          
 
             jf.add(vc, BorderLayout.CENTER);
             jf.add(pg, BorderLayout.SOUTH);
@@ -258,6 +267,7 @@ public class RGBDSLAM implements LCMSubscriber {
                     double[] dx = new double[]{x*xaxis[0], x*xaxis[1], x*xaxis[2]};
                     double[] dy = new double[]{y*yaxis[0], y*yaxis[1], y*yaxis[2]};
                     double[] dz = new double[]{z*zaxis[0], z*zaxis[1], z*zaxis[2]};
+
                     eye = LinAlg.add(dx, LinAlg.add(dy, LinAlg.add(dz, eye)));
                     lookat = LinAlg.add(dx, LinAlg.add(dy, LinAlg.add(dz, lookat)));
 
@@ -331,9 +341,7 @@ public class RGBDSLAM implements LCMSubscriber {
     }
 
     class RGBDThread extends Thread {
-
-        Kinect.Frame currFrame = null;
-        Kinect.Frame lastFrame = null;
+        
         ArrayList<ImageFeature> featuresL;
         ColorPointCloud lastFullPtCloud;
         ColorPointCloud lastDecimatedPtCloud;
@@ -341,8 +349,14 @@ public class RGBDSLAM implements LCMSubscriber {
         synchronized public void run() {
             AlignFrames af = null;
 
+<<<<<<< HEAD
             double[][] KtoGrbt = new double[][]{{0, 0, -1, 0}, {1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 0, 1}};
             //double[][] Grbt = KtoGrbt;
+=======
+
+            double[][] I = new double[][]{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}};
+            double[][] KtoGrbt = new double[][]{{0, 0, 1, 0}, {-1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, 0, 1}};
+>>>>>>> be50f2012e56f5dc940b2db52f4d328fae014a79
             Grbt = KtoGrbt;
 
             while (true) {
@@ -370,7 +384,7 @@ public class RGBDSLAM implements LCMSubscriber {
                             //Grbt[0][3] = 0;
                             //Grbt[1][3] = 0;
                             //Grbt[2][3] = 0;
-
+                            
                             //System.out.println("Current position");
                             //LinAlg.print(Grbt);
                             //System.out.println();
@@ -392,9 +406,11 @@ public class RGBDSLAM implements LCMSubscriber {
             }
         }
 
-        synchronized public void handleFrame(Kinect.Frame frame) {
-            lastFrame = currFrame;
-            currFrame = frame;
+        public synchronized void handleFrame(Kinect.Frame frame) {
+            synchronized(globalVoxelFrame) {
+                lastFrame = currFrame;
+                currFrame = frame;
+            }
             notifyAll();
         }
     }

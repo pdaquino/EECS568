@@ -220,7 +220,7 @@ public class Kinect
 
     // Practical resolution of depth seems to be:
     // 632 x 480
-    static public class Frame {
+    static public class Frame implements Serializable {
         // Not an ideal location for more constants
 
         public int[] argb;
@@ -230,7 +230,10 @@ public class Kinect
         public Frame(int argb[], short[] depth) {
             this.argb = LinAlg.copy(argb);
             this.depth = Arrays.copyOf(depth, depth.length);
+            computeGamma();
+        }
 
+        protected final void computeGamma() {
             if (t_gamma == null) {
                 this.t_gamma = new double[2048];
 
@@ -258,6 +261,7 @@ public class Kinect
             if ((int) depth >= 2047) {
                 return -1;
             }
+            computeGamma(); // does nothing if it is already computed
             return t_gamma[depth];
         }
 
