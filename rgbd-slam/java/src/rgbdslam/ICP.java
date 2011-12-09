@@ -9,7 +9,7 @@ import java.lang.Double;
 import java.util.ArrayList;
 import rgbdslam.KdTree.Entry;
 
-/* ICP does no internal downsampling so it assumes that it has been given a 
+/* ICP does no internal downsampling so it assumes that it has been given a
  * down sampled point cloud, using all points takes about 1 second for initialization
  * and 17 seconds to match, using decimation of 10, takes 0.002 seconds to construct
  * and 0.04 seconds to match
@@ -126,7 +126,7 @@ public class ICP {
             // reassign errors
             preverror = curerror;
             //System.out.println("Preverror = " + preverror);
-            // XXX this error is actually the error for the previous RBT, since we are looping it might be ok, but for 
+            // XXX this error is actually the error for the previous RBT, since we are looping it might be ok, but for
             // small numbers of iterrations this might be a problem
             curerror = totalError / GoodA.size(); // maintaining an average error
             //System.out.println("Curerror = " + curerror);
@@ -138,7 +138,7 @@ public class ICP {
 
             cntr++;
         }
-        System.out.println("Performed " + cntr + " Iterations.");
+        //System.out.println("Performed " + cntr + " Iterations.");
         //System.out.println("Normalized Error Change: " + (preverror - curerror));
         return rbt;
     }

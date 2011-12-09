@@ -12,9 +12,9 @@ public class DescriptorMatcher {
 
     private List<ImageFeature> features1, features2;
     private KdTree.SqrEuclid<ImageFeature> kdtree1, kdtree2;
-    public final static boolean ENFORCE_MARRIAGE = true;
-    public final static boolean ENFORCE_DISTANT_2ND = true;
-    // for a match to be valid, its distance to be at most 0.8 * distance_of_second_best_match
+    public final static boolean ENFORCE_MARRIAGE = false;
+    public final static boolean ENFORCE_DISTANT_2ND = false;
+    // for a match to be valid, its descriptorDistance to be at most 0.8 * distance_of_second_best_match
     public static final double ALPHA = 0.8;
 
     /**
@@ -25,12 +25,13 @@ public class DescriptorMatcher {
 
         public ImageFeature feature1;
         public ImageFeature feature2;
-        public double distance;
+        public double descriptorDistance;
+        public double xyzDistance;
 
         public Match(ImageFeature f1, ImageFeature f2, double d) {
             this.feature1 = f1;
             this.feature2 = f2;
-            this.distance = d;
+            this.descriptorDistance = d;
         }
     }
 
@@ -109,7 +110,7 @@ public class DescriptorMatcher {
                 return null;
             }
         }
-        
+
         return bestMatch;
     }
 }

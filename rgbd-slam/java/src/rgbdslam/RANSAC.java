@@ -10,7 +10,7 @@ public class RANSAC {
     final static double MIN_DIST = 5;  // In meters, min distance for two features to be compared
     final static int DOF = 3;           // Degrees of freedom
     final static int NUM_ITER = 1000;
-    final static double MAX_SQ_CONSENSUS_DISTANCE = 0.0001;
+    final static double MAX_SQ_CONSENSUS_DISTANCE = 0.01;
     final static double MIN_BREAK_EARLY_INLIERS_PERCENTAGE = 0.8;
     private static Random rand = new Random(83247983);
 
@@ -25,7 +25,10 @@ public class RANSAC {
         // RANSAC works by choosing the minimum number of points needed to fit a model, and then
         // computing the model that generates the highest consensus among all points.
         // In our case, the model needs DOF points.
-
+        if(matches.isEmpty()) {
+            return null;
+        }
+        
         List<Match> bestInliers = new ArrayList<Match>();
         double bestConsensus = 0;
 
@@ -59,6 +62,7 @@ public class RANSAC {
                 if (sqdDistance  < MAX_SQ_CONSENSUS_DISTANCE) {
                     //System.out.println("D = " + sqdDistance);
                     score++;
+                    match.xyzDistance = Math.sqrt(sqdDistance);
                     currentInliers.add(match);
                 }
             }

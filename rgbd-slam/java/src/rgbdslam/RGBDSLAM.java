@@ -1,6 +1,5 @@
 package rgbdslam;
 
-
 import java.util.*;
 import java.io.*;
 import java.awt.*;
@@ -18,35 +17,31 @@ import april.lcmtypes.*;
 import kinect.*;
 
 import rgbdslam.*;
+import rgbdslam.DescriptorMatcher.Match;
+import rgbdslam.vis.*;
 
-public class RGBDSLAM implements LCMSubscriber
-{
+public class RGBDSLAM implements LCMSubscriber {
+
     LCM lcm = LCM.getSingleton();
-
     KinectThread kt;
     RenderThread rt;
     RGBDThread rgbd;
-
+    FeatureVisualizer fv;
     double DEFAULT_RES = 0.01;
     double currRes = DEFAULT_RES;
     VoxelArray globalVoxelFrame = new VoxelArray(DEFAULT_RES);
-
     // State
     boolean loadedFromFile = false;
-
     // Kinect position
     Object rbtLock = new Object();
     ArrayList<double[]> trajectory = new ArrayList<double[]>();
-    double[][] Grbt = Matrix.identity(4,4).copyArray();
-
+    double[][] Grbt = Matrix.identity(4, 4).copyArray();
     // Gamepad_t
     ExpiringMessageCache<gamepad_t> lgp = new ExpiringMessageCache<gamepad_t>(0.25);
-
     // Saved options
     GetOpt opts;
 
-    public RGBDSLAM(GetOpt opts)
-    {
+    public RGBDSLAM(GetOpt opts) {
         this.opts = opts;
 
         // Load from file
@@ -76,27 +71,24 @@ public class RGBDSLAM implements LCMSubscriber
     }
 
     /** Receive LCM messages from the Gamepad */
-    public void messageReceived(LCM lcm, String channel, LCMDataInputStream ins)
-    {
+    public void messageReceived(LCM lcm, String channel, LCMDataInputStream ins) {
         try {
             if (channel.equals("GAMEPAD")) {
                 gamepad_t gp = new gamepad_t(ins);
                 lgp.put(gp, gp.utime);
             }
         } catch (IOException ex) {
-            System.err.println("ERR: Failed to decoded message on: "+channel);
+            System.err.println("ERR: Failed to decoded message on: " + channel);
         }
     }
 
-    class KinectThread extends Thread
-    {
-        int pollRate = 5;
+    class KinectThread extends Thread {
 
+        int pollRate = 5;
         boolean closeSignal = false;
         boolean closed = true;
 
-        public void run()
-        {
+        public void run() {
             closed = false;
             Kinect kinect = new Kinect();
 
@@ -110,10 +102,11 @@ public class RGBDSLAM implements LCMSubscriber
                     rgbd.handleFrame(f);
                 }
 
-                if (closeSignal)
+                if (closeSignal) {
                     break;
+                }
 
-                TimeUtil.sleep(1000/pollRate);
+                TimeUtil.sleep(1000 / pollRate);
             }
 
             System.out.println("Stopping kinect...");
@@ -126,44 +119,39 @@ public class RGBDSLAM implements LCMSubscriber
             closed = true;
         }
 
-        synchronized public void close()
-        {
+        synchronized public void close() {
             closeSignal = true;
         }
 
-        synchronized public boolean isClosed()
-        {
+        synchronized public boolean isClosed() {
             return closed;
         }
 
-        synchronized public void setPollRate(int pr)
-        {
+        synchronized public void setPollRate(int pr) {
             pollRate = pr;
         }
     }
 
-    class RenderThread extends Thread
-    {
-        int fps = 5;
+    class RenderThread extends Thread {
 
+        int fps = 5;
         // Vis
         VisWorld vw;
         VisLayer vl;
         VisCanvas vc;
-
         // Knobs
         ParameterGUI pg;
-
         // Gamepad
         boolean turbo = false;
         double vel = -1.0;
         double theta_vel = -Math.toRadians(15);
 
-        public RenderThread()
-        {
+        public RenderThread() {
             vw = new VisWorld();
             vl = new VisLayer(vw);
             vc = new VisCanvas(vl);
+
+            fv = new FeatureVisualizer();
 
             JFrame jf = new JFrame("RGBDSLAM Visualization");
             jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -172,6 +160,7 @@ public class RGBDSLAM implements LCMSubscriber
 
             // Make sure kinect gets closed
             jf.addWindowListener(new WindowAdapter() {
+
                 synchronized public void windowClosing(WindowEvent e) {
                     System.out.println("Sending kinect close message...");
                     kt.close();
@@ -179,19 +168,20 @@ public class RGBDSLAM implements LCMSubscriber
                         try {
                             System.out.println("Kinect not yet closed...");
                             wait(1000);
-                        } catch (InterruptedException ex) {}
+                        } catch (InterruptedException ex) {
+                        }
                     }
                     System.out.println("Shutdown complete");
                     System.out.println("Goodbye!");
                 }
             });
-
             pg = new ParameterGUI();
             pg.addDoubleSlider("resolution", "Voxel Resolution (m)", 0.005, 0.5, DEFAULT_RES);
-            pg.addIntSlider("kfps", "Kinect FPS", 1, 30, 5);
+            pg.addIntSlider("kfps", "Kinect FPS", 1, 30, 20);
             pg.addIntSlider("rfps", "Render FPS", 1, 60, 15);
             pg.addButtons("save", "Save to file");
             pg.addListener(new ParameterListener() {
+
                 public void parameterChanged(ParameterGUI pg, String name) {
                     if (name.equals("resolution") && !loadedFromFile) {
                         synchronized (globalVoxelFrame) {
@@ -202,9 +192,9 @@ public class RGBDSLAM implements LCMSubscriber
                     } else if (name.equals("save")) {
                         long time = System.currentTimeMillis();
                         synchronized (globalVoxelFrame) {
-                            String filename = "va_"+time+".vx";
+                            String filename = "va_" + time + ".vx";
                             globalVoxelFrame.writeToFile(filename);
-                            System.out.println("Saved to "+filename);
+                            System.out.println("Saved to " + filename);
                         }
                     } else {
                         updateFPS();
@@ -222,8 +212,8 @@ public class RGBDSLAM implements LCMSubscriber
             dcm.UI_ANIMATE_MS = 25;
             dcm.interfaceMode = 3.0;
             vl.cameraManager = dcm;
-            //vl.cameraManager.setDefaultPosition(new double[] {0, 0, -20}, new double[] {0, 0, -19}, new double[] {0, -1, 0});
-            vl.cameraManager.setDefaultPosition(new double[] {-10, 0, 0}, new double[] {-9, 0, 0}, new double[] {0, 0, 1});
+            vl.cameraManager.setDefaultPosition(new double[]{0, 0, -5}, new double[]{0, 0, -4}, new double[]{0, -1, 0});
+            //vl.cameraManager.setDefaultPosition(new double[] {-10, 0, 0}, new double[] {-9, 0, 0}, new double[] {0, 0, 1});
             vl.cameraManager.uiDefault();
 
             jf.add(vc, BorderLayout.CENTER);
@@ -232,8 +222,7 @@ public class RGBDSLAM implements LCMSubscriber
             jf.setVisible(true);
         }
 
-        synchronized public void run()
-        {
+        synchronized public void run() {
             Tic tic = new Tic();
             while (true) {
                 double[] xyzrpy = getCameraXYZRPY(tic.toctic());
@@ -256,9 +245,9 @@ public class RGBDSLAM implements LCMSubscriber
                     double x = xyzrpy[0];
                     double y = xyzrpy[1];
                     double z = xyzrpy[2];
-                    double[] dx = new double[] {x*xaxis[0], x*xaxis[1], x*xaxis[2]};
-                    double[] dy = new double[] {y*yaxis[0], y*yaxis[1], y*yaxis[2]};
-                    double[] dz = new double[] {z*nzaxis[0], z*nzaxis[1], z*nzaxis[2]};
+                    double[] dx = new double[]{x * xaxis[0], x * xaxis[1], x * xaxis[2]};
+                    double[] dy = new double[]{y * yaxis[0], y * yaxis[1], y * yaxis[2]};
+                    double[] dz = new double[]{z * nzaxis[0], z * nzaxis[1], z * nzaxis[2]};
                     eye = LinAlg.add(dx, LinAlg.add(dy, LinAlg.add(dz, eye)));
                     lookat = LinAlg.add(dx, LinAlg.add(dy, LinAlg.add(dz, lookat)));
 
@@ -280,7 +269,7 @@ public class RGBDSLAM implements LCMSubscriber
                     if (globalVoxelFrame.size() > 0 && !opts.getBoolean("kinect-only")) {
                         VisWorld.Buffer vb = vw.getBuffer("voxels");
                         vb.addBack(new VisLighting(false,
-                                                   globalVoxelFrame.getPointCloud()));
+                                globalVoxelFrame.getPointCloud()));
                         vb.addBack(new VzAxes());
                         vb.swap();
                     }
@@ -289,30 +278,29 @@ public class RGBDSLAM implements LCMSubscriber
                 synchronized (rbtLock) {
                     VisWorld.Buffer vb = vw.getBuffer("kinect-pos");
                     vb.addBack(new VisChain(Grbt,
-                                            new VzKinect()));
+                            new VzKinect()));
 
                     vb.addBack(new VzLines(new VisVertexData(trajectory),
-                                                             VzLines.LINE_STRIP,
-                                                             new VzLines.Style(Color.red, 1)));
+                            VzLines.LINE_STRIP,
+                            new VzLines.Style(Color.red, 1)));
 
                     vb.swap();
                 }
 
-                TimeUtil.sleep(1000/fps);
+                TimeUtil.sleep(1000 / fps);
             }
         }
 
-        public void updateFPS()
-        {
+        public void updateFPS() {
             fps = pg.gi("rfps");
             kt.setPollRate(pg.gi("kfps"));
         }
 
-        private double[] getCameraXYZRPY(double dt)
-        {
+        private double[] getCameraXYZRPY(double dt) {
             gamepad_t gp = lgp.get();
-            if (gp == null)
+            if (gp == null) {
                 return new double[6];
+            }
             if ((gp.buttons & 0xF0) > 1 && !turbo) {
                 vel = -4.0;
                 theta_vel = -Math.toRadians(36);
@@ -323,81 +311,84 @@ public class RGBDSLAM implements LCMSubscriber
                 turbo = false;
             }
 
-            return new double[] {gp.axes[0]*-vel*dt, gp.axes[5]*vel*dt, gp.axes[1]*vel*dt, gp.axes[4]*-theta_vel*dt, gp.axes[3]*theta_vel*dt, gp.axes[2]*theta_vel*dt};
+            return new double[]{gp.axes[0] * -vel * dt, gp.axes[5] * vel * dt, gp.axes[1] * vel * dt, gp.axes[4] * -theta_vel * dt, gp.axes[3] * theta_vel * dt, gp.axes[2] * theta_vel * dt};
         }
     }
 
-    class RGBDThread extends Thread
-    {
+    class RGBDThread extends Thread {
+
         Kinect.Frame currFrame = null;
         Kinect.Frame lastFrame = null;
         ArrayList<ImageFeature> featuresL;
         ColorPointCloud lastFullPtCloud;
         ColorPointCloud lastDecimatedPtCloud;
 
-        synchronized public void run()
-        {
+        synchronized public void run() {
             AlignFrames af = null;
-            
-            
-            double[][] I = new double[][] {{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
-            double[][] KtoGrbt = new double[][] {{0,0,1,0},{-1,0,0,0},{0,-1,0,0},{0,0,0,1}};
+
+
+            double[][] I = new double[][]{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}};
+            double[][] KtoGrbt = new double[][]{{0, 0, 1, 0}, {-1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, 0, 1}};
             double[][] Grbt = KtoGrbt;
 
             while (true) {
                 synchronized (globalVoxelFrame) {
-                synchronized (rbtLock) {
-                if (currFrame != null && lastFrame != null && af == null) {
-                    af = new AlignFrames(currFrame, lastFrame);
-                }
-                else if (currFrame != null && lastFrame != null) {
-                    VoxelArray va = new VoxelArray(DEFAULT_RES); // XXX
+                    synchronized (rbtLock) {
+                        if (currFrame != null && lastFrame != null && af == null) {
+                            af = new AlignFrames(currFrame, lastFrame);
+                        } else if (currFrame != null && lastFrame != null) {
+                            VoxelArray va = new VoxelArray(DEFAULT_RES); // XXX
 
-                    af = new AlignFrames(currFrame,
-                                         af.getCurrFeatures(),
-                                         af.getCurrFullPtCloud(),
-                                         af.getCurrDecimatedPtCloud());
+                            af = new AlignFrames(currFrame,
+                                    af.getCurrFeatures(),
+                                    af.getCurrFullPtCloud(),
+                                    af.getCurrDecimatedPtCloud());
 
-                    double[][] transform = af.align();
-                    Grbt = LinAlg.matrixAB(Grbt, transform);
-                    
-                    // constrain to no translation for now
-                    Grbt[0][3] = 0;
-                    Grbt[1][3] = 0;
-                    Grbt[2][3] = 0;
-                    System.out.println("Current position");
-                    LinAlg.print(Grbt);
-                    System.out.println();
+                            ArrayList<Match> allFeatMatches = new ArrayList<Match>();
+                            ArrayList<Match> inlierFeatMatches = new ArrayList<Match>();
+                            double[][] transform = af.align(allFeatMatches, inlierFeatMatches);
 
-                    va.voxelizePointCloud(af.getCurrFullPtCloud());
 
-                    // Let render thread do its thing
-                    globalVoxelFrame.merge(va, Grbt);
-                    trajectory.add(LinAlg.resize(LinAlg.matrixToXyzrpy(Grbt),3));
-                }
-                }
+                            Grbt = LinAlg.matrixAB(Grbt, transform); // XXX which order!???
+
+                            // constrain to no translation for now
+                            //Grbt[0][3] = 0;
+                            //Grbt[1][3] = 0;
+                            //Grbt[2][3] = 0;
+                            
+                            //System.out.println("Current position");
+                            //LinAlg.print(Grbt);
+                            //System.out.println();
+                            fv.updateFrames(currFrame.makeRGB(), lastFrame.makeRGB(), allFeatMatches, inlierFeatMatches);
+
+                            va.voxelizePointCloud(af.getCurrFullPtCloud());
+
+                            // Let render thread do its thing
+                            globalVoxelFrame.merge(va, Grbt);
+                            trajectory.add(LinAlg.resize(LinAlg.matrixToXyzrpy(Grbt), 3));
+                        }
+                    }
                 }
 
                 try {
                     wait();
-                } catch (InterruptedException ex) {}
+                } catch (InterruptedException ex) {
+                }
             }
         }
 
-        synchronized public void handleFrame(Kinect.Frame frame)
-        {
+        synchronized public void handleFrame(Kinect.Frame frame) {
             lastFrame = currFrame;
             currFrame = frame;
             notifyAll();
         }
     }
 
-    static public void main(String[] args)
-    {
+    static public void main(String[] args) {
         GetOpt opts = new GetOpt();
         opts.addBoolean('h', "help", false, "Show this help screen");
         opts.addString('f', "file", null, "Load scene from file");
-        opts.addBoolean((char)0, "kinect-only", false, "Only render the kinect trajectory");
+        opts.addBoolean((char) 0, "kinect-only", false, "Only render the kinect trajectory");
 
         if (!opts.parse(args)) {
             System.err.println("ERR: Opts error - " + opts.getReason());

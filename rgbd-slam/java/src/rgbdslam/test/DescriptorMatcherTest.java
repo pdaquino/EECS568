@@ -91,8 +91,8 @@ public class DescriptorMatcherTest {
 
             double avgDifference = 0;
             for (Match match : matches) {
-                System.out.println(match.distance);
-                avgDifference += match.distance;
+                System.out.println(match.descriptorDistance);
+                avgDifference += match.descriptorDistance;
                 double[] match1 = ImageUtil.flipXY(match.feature1.xyAsDouble(), im1.getHeight());
                 double[] match2 = ImageUtil.flipXY(match.feature2.xyAsDouble(), im2.getHeight());
                 match2[0] += imageSeparation;
