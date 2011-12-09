@@ -61,7 +61,7 @@ public class AlignFrames {
         }
         
         System.out.println("RANSAC's estimate");
-        LinAlg.print(Rrbt);
+        LinAlg.print(LinAlg.matrixToRollPitchYaw(Rrbt));
         
         ICP icp = new ICP(lastDecimatedPtCloud);
 
@@ -72,7 +72,7 @@ public class AlignFrames {
         }
         
         System.out.println("ICP's estimate");
-        LinAlg.print(Irbt);
+        LinAlg.print(LinAlg.matrixToRollPitchYaw(Irbt));
         
         //double[][] Erbt = weightedSum(Rrbt, Irbt, ALPHA);
         double[][] Erbt = Rrbt;
