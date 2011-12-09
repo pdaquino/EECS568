@@ -231,6 +231,7 @@ public class RGBDSLAM implements LCMSubscriber {
             jf.setVisible(true);
         }
 
+        // --- Render Loop ----------------------------------------------------
         synchronized public void run() {
             Tic tic = new Tic();
             while (true) {
@@ -343,7 +344,8 @@ public class RGBDSLAM implements LCMSubscriber {
 
             double[][] I = new double[][]{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}};
             double[][] KtoGrbt = new double[][]{{0, 0, 1, 0}, {-1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, 0, 1}};
-            double[][] Grbt = KtoGrbt;
+            //double[][] Grbt = KtoGrbt;
+            Grbt = KtoGrbt;
 
             while (true) {
                 synchronized (globalVoxelFrame) {
@@ -363,7 +365,8 @@ public class RGBDSLAM implements LCMSubscriber {
                             double[][] transform = af.align(allFeatMatches, inlierFeatMatches);
 
 
-                            Grbt = LinAlg.matrixAB(Grbt, transform); // XXX which order!???
+                            //Grbt = LinAlg.matrixAB(Grbt, transform); // XXX which order!???
+                            LinAlg.timesEquals(Grbt, transform);
 
                             // constrain to no translation for now
                             //Grbt[0][3] = 0;

@@ -10,7 +10,11 @@ public class VzKinect implements VisObject
     static VisObject vo;
 
     static {
-        VisChain vc = new VisChain(new VisChain(LinAlg.scale(0.05, 0.3, 0.03),
+        double[][] xform = LinAlg.rotateZ(Math.PI/2);
+        LinAlg.timesEquals(xform, LinAlg.rotateY(-Math.PI/2));
+
+        VisChain vc = new VisChain(new VisChain(xform,
+                                   new VisChain(LinAlg.scale(0.05, 0.3, 0.03),
                                                 new VzBox(new VzMesh.Style(Color.orange))),
                                    new VisChain(LinAlg.translate(0, 0, -0.05),
                                                 LinAlg.scale(0.05),
@@ -18,7 +22,7 @@ public class VzKinect implements VisObject
                                    new VisChain(LinAlg.rotateY(-Math.PI/2),
                                                 LinAlg.translate(0, 0, -0.2),
                                                 LinAlg.scale(0.005, 0.005, 0.2),
-                                                new VzCone(new VzMesh.Style(Color.red))));
+                                                new VzCone(new VzMesh.Style(Color.red)))));
 
         vo = vc;
     }
