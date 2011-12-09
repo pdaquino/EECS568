@@ -341,9 +341,7 @@ public class RGBDSLAM implements LCMSubscriber {
         synchronized public void run() {
             AlignFrames af = null;
 
-
-            double[][] I = new double[][]{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}};
-            double[][] KtoGrbt = new double[][]{{0, 0, 1, 0}, {-1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, 0, 1}};
+            double[][] KtoGrbt = new double[][]{{0, 0, -1, 0}, {1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 0, 1}};
             //double[][] Grbt = KtoGrbt;
             Grbt = KtoGrbt;
 
