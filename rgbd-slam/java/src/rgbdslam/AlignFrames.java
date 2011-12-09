@@ -66,10 +66,14 @@ public class AlignFrames {
         LinAlg.print(LinAlg.matrixToRollPitchYaw(Rrbt));
         LinAlg.print(Rrbt);
         System.out.println("RANSAC's translation maginitude " + TransMag(Rrbt));
+        System.out.println("RANSAC's transformation matrix");
+        LinAlg.print(Rrbt);
         
-        ICP icp = new ICP(lastDecimatedPtCloud);
+        ICP icp = new ICP(currDecimatedPtCloud);
 
-        double[][] Irbt = icp.match(currDecimatedPtCloud, Rrbt); // ICP's Estimate
+
+        //double[][] Irbt = icp.match(currDecimatedPtCloud, Rrbt); // ICP's Estimate
+        double[][] Irbt = icp.match(lastDecimatedPtCloud, Rrbt); // ICP's Estimate
         latestInliers = inliers;
         if(allMatches != null) {
             allMatches.addAll(matches);
@@ -79,6 +83,8 @@ public class AlignFrames {
         LinAlg.print(LinAlg.matrixToRollPitchYaw(Irbt));
         LinAlg.print(Irbt);
         System.out.println("ICP's translation maginitude " + TransMag(Irbt));
+        System.out.println("ICP's transformation matrix");
+        LinAlg.print(Irbt);
         
         double[][] Erbt = weightedSum(Rrbt, Irbt, ALPHA);
         //double[][] Erbt = Rrbt;
