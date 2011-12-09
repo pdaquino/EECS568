@@ -13,7 +13,8 @@ import rgbdslam.DescriptorMatcher.Match;
  */
 public class AlignFrames {
 
-    public static final int DECIMATION_FACTOR = 10;
+    public static final int DECIMATION_FACTOR = 6;
+    final static double ALPHA = 0.5; // relative weighting between initial estimate and new rbt estimate
 
     private List<ImageFeature> currFeatures, lastFeatures;
     private ColorPointCloud currFullPtCloud, currDecimatedPtCloud;
@@ -36,7 +37,6 @@ public class AlignFrames {
         this.currFeatures = extractAndProjectFeatures(currFrame, currFullPtCloud);
         this.currDecimatedPtCloud = makeDecimatedPtCloud(currFrame);
 
-
         this.lastFeatures = lastProjectedFeatures;
         this.lastFullPtCloud = lastFullPtCloud;
         this.lastDecimatedPtCloud = lastDecimatedPtCloud;
@@ -54,26 +54,30 @@ public class AlignFrames {
             inliers = new ArrayList<Match>();
         }
         
-        double[][] transform = RANSAC.RANSAC(matches, inliers);
-        if (transform == null) {
+        double[][] Rrbt = RANSAC.RANSAC(matches, inliers); // RANSAC's Estimate
+        if (Rrbt == null) {
             System.err.println("ERR: Null transformation returned by RANSAC");
-            transform = LinAlg.identity(4);
+            Rrbt = LinAlg.identity(4);
         }
         
-        double[][] I = new double[][] {{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
+        System.out.println("RANSAC's estimate");
+        LinAlg.print(Rrbt);
         
         ICP icp = new ICP(lastDecimatedPtCloud);
 
-        //transform = new double[][] {{Math.cos(Math.PI/6), 0, Math.sin(Math.PI/6), 0},
-        //    {0, 1, 0, 0}, {-Math.sin(Math.PI/6), 0, Math.cos(Math.PI/6), 0},{0,0,0,1}};*/
-
-        transform = icp.match(currDecimatedPtCloud, transform);
+        double[][] Irbt = icp.match(currDecimatedPtCloud, Rrbt); // ICP's Estimate
         latestInliers = inliers;
         if(allMatches != null) {
             allMatches.addAll(matches);
         }
+        
+        System.out.println("ICP's estimate");
+        LinAlg.print(Irbt);
+        
+        //double[][] Erbt = weightedSum(Rrbt, Irbt, ALPHA);
+        double[][] Erbt = Rrbt;
 
-        return transform;
+        return Erbt;
     }
 
     public ColorPointCloud getLastDecimatedPtCloud() {
@@ -122,5 +126,21 @@ public class AlignFrames {
             }
         }
         return features;
+    }
+    
+    // weight A by alpha and B by 1-alpha
+    // if alpha == 1 then returns A
+    private double[][] weightedSum(double[][] A, double[][] B, double alpha) {
+
+        assert ((A.length == B.length) && (A[0].length == B[0].length) && (alpha <= 1) && (alpha >= 0));
+
+        double[][] C = new double[A.length][A[0].length];
+        for (int i = 0; i < A.length; i++) {
+            for (int j = 0; j < A[0].length; j++) {
+                C[i][j] = alpha * A[i][j] + (1 - alpha) * B[i][j];
+            }
+        }
+
+        return C;
     }
 }
