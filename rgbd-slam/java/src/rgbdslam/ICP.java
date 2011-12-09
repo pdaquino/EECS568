@@ -18,8 +18,8 @@ public class ICP {
     // XXX No clue if these are the right values
 
     final static int MAX_ITERATIONS = 50; // maximum number of iteration for ICP
-    final static double THRESHOLD = 0.000005; // threshold for convergence change in normalized error
-    final static double DISCARD_D = 100000; // threshold for outlier rejection
+    final static double THRESHOLD = 0.0005; // threshold for convergence change in normalized error
+    final static double DISCARD_D = .5; // threshold for outlier rejection
     final static double ALPHA = 0.75; // relative weighting between initial estimate and new rbt estimate
     private KdTree.SqrEuclid<double[]> kdtree; // kdtree for storing points in B
 
