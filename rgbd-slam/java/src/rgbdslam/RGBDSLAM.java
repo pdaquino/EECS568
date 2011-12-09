@@ -145,8 +145,12 @@ public class RGBDSLAM implements LCMSubscriber {
         ParameterGUI pg;
         // Gamepad
         boolean turbo = false;
-        double vel = -1.0;
-        double theta_vel = -Math.toRadians(15);
+        double SLOW_VEL = -1.0;
+        double FAST_VEL = -4.0;
+        double SLOW_TVEL = Math.toRadians(15);
+        double FAST_TVEL = Math.toRadians(36);
+        double vel = SLOW_VEL;
+        double theta_vel = SLOW_TVEL;
 
         public RenderThread() {
             vw = new VisWorld();
@@ -226,10 +230,9 @@ public class RGBDSLAM implements LCMSubscriber {
             DefaultCameraManager dcm = new DefaultCameraManager();
             dcm.UI_ANIMATE_MS = 25;
             dcm.interfaceMode = 3.0;
-            vl.cameraManager = dcm;
-            vl.cameraManager.setDefaultPosition(new double[]{0, 0, -5}, new double[]{0, 0, -4}, new double[]{0, -1, 0});
-            //vl.cameraManager.setDefaultPosition(new double[] {-10, 0, 0}, new double[] {-9, 0, 0}, new double[] {0, 0, 1});
-            vl.cameraManager.uiDefault();
+            dcm.setDefaultPosition(new double[]{-5, 0, 0}, new double[]{-4, 0, 0}, new double[]{0, 0, 1});
+            dcm.uiDefault();
+            vl.cameraManager = dcm;          
 
             jf.add(vc, BorderLayout.CENTER);
             jf.add(pg, BorderLayout.SOUTH);
@@ -237,6 +240,7 @@ public class RGBDSLAM implements LCMSubscriber {
             jf.setVisible(true);
         }
 
+        // --- Render Loop ----------------------------------------------------
         synchronized public void run() {
             Tic tic = new Tic();
             while (true) {
@@ -245,13 +249,13 @@ public class RGBDSLAM implements LCMSubscriber {
                     VisCameraManager.CameraPosition cpos = vc.getLastRenderInfo().cameraPositions.get(vl);
 
                     // These are all out of wack. Remap em XXX
-                    double[] yaxis = LinAlg.normalize(cpos.up);
-                    double[] nzaxis = LinAlg.normalize(LinAlg.subtract(cpos.lookat, cpos.eye));
-                    double[] xaxis = LinAlg.normalize(LinAlg.crossProduct(nzaxis, yaxis));
+                    double[] xaxis = LinAlg.normalize(LinAlg.subtract(cpos.lookat, cpos.eye));
+                    double[] zaxis = LinAlg.normalize(cpos.up);
+                    double[] yaxis = LinAlg.normalize(LinAlg.crossProduct(zaxis, xaxis));
 
-                    double[][] rotx = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[4], xaxis));
-                    double[][] roty = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[5], yaxis));
-                    double[][] rotz = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[3], nzaxis));
+                    double[][] rotx = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[3], xaxis));
+                    double[][] roty = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[4], yaxis));
+                    double[][] rotz = LinAlg.quatToMatrix(LinAlg.angleAxisToQuat(xyzrpy[5], zaxis));
 
                     // Translation
                     double[] eye = LinAlg.copy(cpos.eye);
@@ -260,9 +264,10 @@ public class RGBDSLAM implements LCMSubscriber {
                     double x = xyzrpy[0];
                     double y = xyzrpy[1];
                     double z = xyzrpy[2];
-                    double[] dx = new double[]{x * xaxis[0], x * xaxis[1], x * xaxis[2]};
-                    double[] dy = new double[]{y * yaxis[0], y * yaxis[1], y * yaxis[2]};
-                    double[] dz = new double[]{z * nzaxis[0], z * nzaxis[1], z * nzaxis[2]};
+                    double[] dx = new double[]{x*xaxis[0], x*xaxis[1], x*xaxis[2]};
+                    double[] dy = new double[]{y*yaxis[0], y*yaxis[1], y*yaxis[2]};
+                    double[] dz = new double[]{z*zaxis[0], z*zaxis[1], z*zaxis[2]};
+
                     eye = LinAlg.add(dx, LinAlg.add(dy, LinAlg.add(dz, eye)));
                     lookat = LinAlg.add(dx, LinAlg.add(dy, LinAlg.add(dz, lookat)));
 
@@ -271,11 +276,11 @@ public class RGBDSLAM implements LCMSubscriber {
                     double[][] eye_inv = LinAlg.inverse(eye_trans);
 
                     LinAlg.timesEquals(roty, eye_inv);
-                    LinAlg.timesEquals(rotx, roty);
-                    LinAlg.timesEquals(eye_trans, rotx);
+                    LinAlg.timesEquals(rotz, roty);
+                    LinAlg.timesEquals(eye_trans, rotz);
 
                     lookat = LinAlg.transform(eye_trans, lookat);
-                    up = LinAlg.transform(rotz, up);
+                    up = LinAlg.transform(rotx, up);
 
                     vl.cameraManager.uiLookAt(eye, lookat, up, false);
                 }
@@ -317,16 +322,21 @@ public class RGBDSLAM implements LCMSubscriber {
                 return new double[6];
             }
             if ((gp.buttons & 0xF0) > 1 && !turbo) {
-                vel = -4.0;
-                theta_vel = -Math.toRadians(36);
+                vel = FAST_VEL;
+                theta_vel = FAST_TVEL;
                 turbo = true;
             } else if ((gp.buttons & 0xF0) == 0 && turbo) {
-                vel = -1.0;
-                theta_vel = -Math.toRadians(15);
+                vel = SLOW_VEL;
+                theta_vel = SLOW_TVEL;
                 turbo = false;
             }
 
-            return new double[]{gp.axes[0] * -vel * dt, gp.axes[5] * vel * dt, gp.axes[1] * vel * dt, gp.axes[4] * -theta_vel * dt, gp.axes[3] * theta_vel * dt, gp.axes[2] * theta_vel * dt};
+            return new double[]{gp.axes[1]*vel*dt,
+                                gp.axes[0]*vel*dt,
+                                gp.axes[5]*vel*dt,
+                                gp.axes[4]*theta_vel*dt,
+                                gp.axes[3]*theta_vel*dt,
+                                gp.axes[2]*-theta_vel*dt};
         }
     }
 
@@ -342,7 +352,7 @@ public class RGBDSLAM implements LCMSubscriber {
 
             double[][] I = new double[][]{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}};
             double[][] KtoGrbt = new double[][]{{0, 0, 1, 0}, {-1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, 0, 1}};
-            double[][] Grbt = KtoGrbt;
+            Grbt = KtoGrbt;
 
             while (true) {
                 synchronized (globalVoxelFrame) {
@@ -362,7 +372,8 @@ public class RGBDSLAM implements LCMSubscriber {
                             double[][] transform = af.align(allFeatMatches, inlierFeatMatches);
 
 
-                            Grbt = LinAlg.matrixAB(Grbt, transform); // XXX which order!???
+                            //Grbt = LinAlg.matrixAB(Grbt, transform); // XXX which order!???
+                            LinAlg.timesEquals(Grbt, transform);
 
                             // constrain to no translation for now
                             //Grbt[0][3] = 0;
