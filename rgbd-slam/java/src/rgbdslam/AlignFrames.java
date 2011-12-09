@@ -47,7 +47,7 @@ public class AlignFrames {
     }
     
     public double[][] align(List<Match> allMatches, List<Match> inliers) {
-        DescriptorMatcher dm = new DescriptorMatcher(lastFeatures, currFeatures);
+        DescriptorMatcher dm = new DescriptorMatcher(currFeatures, lastFeatures);
         ArrayList<DescriptorMatcher.Match> matches = dm.match();
 
         if(inliers == null) {
@@ -66,9 +66,9 @@ public class AlignFrames {
         System.out.println("RANSAC's transformation matrix");
         LinAlg.print(Rrbt);
         
-        ICP icp = new ICP(currDecimatedPtCloud);
+        ICP icp = new ICP(lastDecimatedPtCloud);
 
-        double[][] Irbt = icp.match(lastDecimatedPtCloud, Rrbt); // ICP's Estimate
+        double[][] Irbt = icp.match(currDecimatedPtCloud, Rrbt); // ICP's Estimate
         latestInliers = inliers;
         if(allMatches != null) {
             allMatches.addAll(matches);
