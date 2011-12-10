@@ -15,6 +15,7 @@ public class AlignFrames {
 
     public static final int DECIMATION_FACTOR = 10;
     final static double ALPHA = 0.5; // relative weighting between initial estimate and new rbt estimate
+    public final static int MIN_RANSAC_INLIERS = 20;
 
     private List<ImageFeature> currFeatures, lastFeatures;
     private ColorPointCloud currFullPtCloud, currDecimatedPtCloud;
@@ -56,7 +57,7 @@ public class AlignFrames {
         double[] Arpy = new double[3]; // average roll pitch yaw
         
         double[][] Rrbt = RANSAC.RANSAC(rbt.allMatches, rbt.inliers); // RANSAC's Estimate
-        if (Rrbt == null) {
+        if (rbt.inliers.size() < MIN_RANSAC_INLIERS || Rrbt == null) {
             Rrbt = previousTransform;
         }
         
