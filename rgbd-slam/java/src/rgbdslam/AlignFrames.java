@@ -19,7 +19,12 @@ public class AlignFrames {
     private List<ImageFeature> currFeatures, lastFeatures;
     private ColorPointCloud currFullPtCloud, currDecimatedPtCloud;
     private ColorPointCloud lastFullPtCloud, lastDecimatedPtCloud;
-    private List<DescriptorMatcher.Match> latestInliers;
+    
+    public class RBT {
+        public double[][] rbt;
+        public List<DescriptorMatcher.Match> allMatches = new ArrayList<Match>();
+        public List<DescriptorMatcher.Match> inliers = new ArrayList<Match>();
+    }
 
     public AlignFrames(Kinect.Frame currFrame, Kinect.Frame lastFrame) {
         this.currFullPtCloud = makeFullPtCloud(currFrame);
@@ -42,24 +47,17 @@ public class AlignFrames {
         this.lastDecimatedPtCloud = lastDecimatedPtCloud;
     }
 
-    public double[][] align() {
-        return align(null, null);
-    }
-    
-    public double[][] align(List<Match> allMatches, List<Match> inliers) {
+    public RBT align(double[][] previousTransform) {
+        RBT rbt = new RBT();
+        
         DescriptorMatcher dm = new DescriptorMatcher(currFeatures, lastFeatures);
-        ArrayList<DescriptorMatcher.Match> matches = dm.match();
+        rbt.allMatches = dm.match();
         
         double[] Arpy = new double[3]; // average roll pitch yaw
-
-        if(inliers == null) {
-            inliers = new ArrayList<Match>();
-        }
         
-        double[][] Rrbt = RANSAC.RANSAC(matches, inliers); // RANSAC's Estimate
+        double[][] Rrbt = RANSAC.RANSAC(rbt.allMatches, rbt.inliers); // RANSAC's Estimate
         if (Rrbt == null) {
-            System.err.println("ERR: Null transformation returned by RANSAC");
-            Rrbt = LinAlg.identity(4);
+            Rrbt = previousTransform;
         }
         
         System.out.println("RANSAC's estimate Roll Pitch Yaw");
@@ -67,37 +65,27 @@ public class AlignFrames {
         LinAlg.print(Rrbt);
         System.out.println("RANSAC's translation maginitude " + TransMag(Rrbt));
         System.out.println("RANSAC's transformation matrix");
-        //LinAlg.print(Rrbt);
+        LinAlg.print(Rrbt);
         
         RGBDICP icp = new RGBDICP(lastDecimatedPtCloud);
 
-        double[][] Irbt = icp.match(currDecimatedPtCloud, Rrbt, matches); // ICP's Estimate
-
-        latestInliers = inliers;
-        if(allMatches != null) {
-            allMatches.addAll(matches);
-        }
+        double[][] Irbt = icp.match(currDecimatedPtCloud, Rrbt, rbt.inliers); // ICP's Estimate
         
         System.out.println("ICP's estimate Roll Pitch Yaw");
         LinAlg.print(LinAlg.matrixToRollPitchYaw(Irbt));
-        //LinAlg.print(Irbt);
+
         System.out.println("ICP's translation maginitude " + TransMag(Irbt));
         System.out.println("ICP's transformation matrix");
         LinAlg.print(Irbt);
-        
-        double[][] Erbt = Irbt;
-        //double[][] Erbt = Rrbt;
+
+        //double[][] Erbt = weightedSum(Rrbt, Irbt, ALPHA);
+        rbt.rbt = Irbt;
         
         // supress large translations cause they cause trouble
-       
-        if (TransMag(Erbt) > 0.5) {
-            Erbt = LinAlg.identity(4);
-        }
-        //System.out.println("Final Estimate");
-        //LinAlg.print(Erbt);
-       
-        
-        return Erbt;
+        System.out.println("Final Estimate");
+        LinAlg.print(rbt.rbt);
+
+        return rbt;
     }
 
     public ColorPointCloud getLastDecimatedPtCloud() {
@@ -122,10 +110,6 @@ public class AlignFrames {
 
     public ColorPointCloud getCurrFullPtCloud() {
         return currFullPtCloud;
-    }
-
-    public List<Match> getLatestInliers() {
-        return latestInliers;
     }
    
     private ColorPointCloud makeDecimatedPtCloud(Frame frame) {

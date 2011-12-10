@@ -345,6 +345,7 @@ public class RGBDSLAM implements LCMSubscriber {
         ArrayList<ImageFeature> featuresL;
         ColorPointCloud lastFullPtCloud;
         ColorPointCloud lastDecimatedPtCloud;
+        double[][] lastRBT = LinAlg.identity(4);
 
         synchronized public void run() {
             AlignFrames af = null;
@@ -368,13 +369,11 @@ public class RGBDSLAM implements LCMSubscriber {
                                     af.getCurrFullPtCloud(),
                                     af.getCurrDecimatedPtCloud());
 
-                            ArrayList<Match> allFeatMatches = new ArrayList<Match>();
-                            ArrayList<Match> inlierFeatMatches = new ArrayList<Match>();
-                            double[][] transform = af.align(allFeatMatches, inlierFeatMatches);
+                            AlignFrames.RBT transform = af.align(lastRBT);
 
 
                             //Grbt = LinAlg.matrixAB(Grbt, transform); // XXX which order!???
-                            LinAlg.timesEquals(Grbt, transform);
+                            LinAlg.timesEquals(Grbt, transform.rbt);
 
                             // constrain to no translation for now
                             //Grbt[0][3] = 0;
@@ -384,7 +383,7 @@ public class RGBDSLAM implements LCMSubscriber {
                             //System.out.println("Current position");
                             //LinAlg.print(Grbt);
                             //System.out.println();
-                            fv.updateFrames(currFrame.makeRGB(), lastFrame.makeRGB(), allFeatMatches, inlierFeatMatches);
+                            fv.updateFrames(currFrame.makeRGB(), lastFrame.makeRGB(), transform.allMatches, transform.inliers);
 
                             va.voxelizePointCloud(af.getCurrFullPtCloud());
 

@@ -109,7 +109,7 @@ public class FrameAligner {
         }
         
         AlignFrames af = new AlignFrames(frame1, frame2);
-        LinAlg.print(af.align());
+        LinAlg.print(af.align(LinAlg.identity(4)).rbt);
     }
 
     public static void main(String[] args) throws Exception {
