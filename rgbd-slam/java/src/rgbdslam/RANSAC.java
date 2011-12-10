@@ -12,6 +12,7 @@ public class RANSAC {
     final static int NUM_ITER = 1000;
     final static double MAX_SQ_CONSENSUS_DISTANCE = 0.01;
     final static double MIN_BREAK_EARLY_INLIERS_PERCENTAGE = 0.8;
+    
     private static Random rand = new Random(83247983);
 
     /**
@@ -78,6 +79,7 @@ public class RANSAC {
 
         inliers.clear();
         inliers.addAll(bestInliers);
+        
         return getAlignment(inliers);
     }
 
