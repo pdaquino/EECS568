@@ -6,16 +6,15 @@ import javax.imageio.ImageIO;
 import java.io.*;
 
 import april.jmat.*;
+import april.image.SigProc;
 
-
-public class Kinect
-{
+public class Kinect {
     // Frame buffers
+
     int[] rgb_buf = null;
     short[] d_buf = null;
     int rgb_cnt = 0;
     int d_cnt = 0;
-
     int rgb_save_cnt = 0; // how many rgb images have we saved so far
     int d_save_cnt = 0;
 
@@ -40,7 +39,6 @@ public class Kinect
     public native int[] getVideoFrame();
 
     public native short[] getDepthFrame();
-
 
     static {
         System.loadLibrary("kinect");
@@ -80,11 +78,12 @@ public class Kinect
         int[] argb = getVideoFrame();
         short[] depth = getDepthFrame();
         if (argb != null) {
-            rgb_buf = rectifyRGB(argb);
+            rgb_buf = rectifyRGB(argb); // rectify the image
             rgb_cnt++;
         }
         if (depth != null) {
-            d_buf = rectifyD(depth);
+            //depth = smoothD(depth); // smooth image
+            d_buf = rectifyD(depth); // rectify image
             d_cnt++;
         }
 
@@ -138,7 +137,7 @@ public class Kinect
                 int ydp = (int) Math.floor(Constants.Firy * XND[1] + Constants.Ciry);
                 // if we have ended up outside of the image
                 if ((xdp < 0) || (xdp >= Constants.WIDTH) || (ydp < 0) || (ydp >= Constants.HEIGHT)) {
-                    Rd[Constants.WIDTH * yp + xp] = 2048; // set to no informatiom
+                    Rd[Constants.WIDTH * yp + xp] = 2047; // set to no informatiom
                 } else {
                     Rd[Constants.WIDTH * yp + xp] = Dd[Constants.WIDTH * ydp + xdp];
                 }
@@ -146,13 +145,33 @@ public class Kinect
         }
         return Rd;
     }
+    
+    // smooths the depth image to reduce noise in depth
+    private synchronized short[] smoothD(short[] SD) {
+        // construct the gaussian filter
+        float[] G = SigProc.makeGaussianFilter(Constants.SIGMA,Constants.FILTER_SIZE);
+       
+        float[] BDf = new float[SD.length]; // stores the result
+        
+        // cast input as float
+        float[] SDf = new float[SD.length];
+        for (int i = 0; i < SD.length; i++) {
+            SDf[i] = (float) SD[i];
+        }
+        
+        SigProc.convolveSymmetricCentered(SDf, 0, SDf.length, G, BDf, 0);
+        
+        // cast output back to short
+        short[] BD = new short[BDf.length];
+        for (int i = 0; i < BDf.length; i++) {
+            BD[i] = (short) BDf[i];
+        }
+        return BD;
+    }
 
     // given a normalized point x, y computes the normalized distorted location
     private synchronized double[] compXNDrgb(double x, double y) {
         double[] XND = new double[2];
-        // simplified expression
-        //XND[0] = x;
-        //XND[1] = y;
 
         // full expression
         double r2 = x * x + y * y;
@@ -171,19 +190,16 @@ public class Kinect
     // given a normalized point x, y computes the normalized distorted location
     private synchronized double[] compXNDir(double x, double y) {
         double[] XND = new double[2];
-        // simplified expression
-        //XND[0] = x;
-        //XND[1] = y;
 
         // full expression
-        double r2 = x*x + y*y;
+        double r2 = x * x + y * y;
         // radial component
-        double KR = 1 + Constants.Kir[0]*r2 + Constants.Kir[1]*r2*r2 + Constants.Kir[4]*r2*r2*r2;
+        double KR = 1 + Constants.Kir[0] * r2 + Constants.Kir[1] * r2 * r2 + Constants.Kir[4] * r2 * r2 * r2;
         // tangential component
-        double dx = 2*Constants.Kir[2]*x*y + Constants.Kir[3]*(r2+2*x*x);
-        double dy = Constants.Kir[2]*(r2+2*y*y) + 2*Constants.Kir[3]*x*y;
-        XND[0] = KR*x + dx;
-        XND[1] = KR*y + dy;
+        double dx = 2 * Constants.Kir[2] * x * y + Constants.Kir[3] * (r2 + 2 * x * x);
+        double dy = Constants.Kir[2] * (r2 + 2 * y * y) + 2 * Constants.Kir[3] * x * y;
+        XND[0] = KR * x + dx;
+        XND[1] = KR * y + dy;
 
         return XND;
     }
@@ -193,8 +209,7 @@ public class Kinect
     }
 
     // saves picture of RGB image to file
-    public void saveRGB(Frame frame)
-    {
+    public void saveRGB(Frame frame) {
         BufferedImage Im = frame.makeRGB();
         try {
             File file = new File("Constants.Krgb" + Integer.toString(rgb_save_cnt) + ".jpg");
@@ -206,8 +221,7 @@ public class Kinect
     }
 
     // saves depth image to file
-    public void saveD(Frame frame)
-    {
+    public void saveD(Frame frame) {
         BufferedImage Im = frame.makeDepth();
         try {
             File file = new File("Kdepth" + Integer.toString(d_save_cnt) + ".jpg");
@@ -242,7 +256,7 @@ public class Kinect
                 double k2 = 2842.5;
                 double k3 = 0.1236;
                 for (int i = 0; i < 2048; i++) {
-                    t_gamma[i] = k3*Math.tan(i/k2 + k1);
+                    t_gamma[i] = k3 * Math.tan(i / k2 + k1);
                 }
 
                 // From Willow Garage
@@ -253,8 +267,6 @@ public class Kinect
                 //}
             }
         }
-
-
 
         public double depthToMeters(short depth) {
             // Throw away extreme values
