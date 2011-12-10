@@ -15,7 +15,7 @@ public class AlignFrames {
 
     public static final int DECIMATION_FACTOR = 10;
     final static double ALPHA = 0.5; // relative weighting between initial estimate and new rbt estimate
-    public final static int MIN_RANSAC_INLIERS = 20;
+    public final static int MIN_RANSAC_INLIERS = 10;
 
     private List<ImageFeature> currFeatures, lastFeatures;
     private ColorPointCloud currFullPtCloud, currDecimatedPtCloud;

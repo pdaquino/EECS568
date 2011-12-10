@@ -9,6 +9,7 @@ import java.lang.Double;
 import java.util.*;
 import rgbdslam.KdTree.Entry;
 
+
 /* ICP does no internal downsampling so it assumes that it has been given a
  * down sampled point cloud */
 public class RGBDICP {
@@ -51,7 +52,7 @@ public class RGBDICP {
         ArrayList<double[]> ExtraA = new ArrayList<double[]>();
         ArrayList<double[]> ExtraB = new ArrayList<double[]>();
         processFMatches(Fmatches, ExtraA, ExtraB, PA.size());
-        
+
         /*
         System.out.println("Point Cloud contains: " + PA.size() + " Points.");
         System.out.println("We got " + Fmatches.size() + " feature matches");
@@ -79,7 +80,7 @@ public class RGBDICP {
 
             // reassign errors
             preverror = curerror;
-            
+
             // compute new error and new feature correspondances
             GoodA = new ArrayList<double[]>();
             GoodB = new ArrayList<double[]>();
@@ -88,7 +89,7 @@ public class RGBDICP {
             curerror = 0.5*curerror + 0.5*compFeatureError(ExtraA, ExtraB, Erbt); // how good was the guess
             GoodA.addAll(ExtraA); // add these guys in so they constribute to the calculation
             GoodB.addAll(ExtraB);
-            
+
             //System.out.println("Itteration " + cntr + " Error " + curerror + " and our previous error is " + preverror);
 
             if (curerror < preverror) {
@@ -108,8 +109,11 @@ public class RGBDICP {
         assert ((ExtraA != null) && (ExtraB != null)) : "Need non null arrayLists";
 
         // calculate multiplier to figure out how many of each feature we need
-        int multiplier = (int) CPCAsize / Fmatches.size();
-        // implement a multiplier cap to progressively shift weight over to point cloud 
+        int multiplier = 0;
+        if(Fmatches.size() > 0){
+            multiplier = (int) CPCAsize / Fmatches.size();
+        }
+        // implement a multiplier cap to progressively shift weight over to point cloud
         // as we recieve fewer features
         if (multiplier > MULTIPLIER_CAP) {
             multiplier = MULTIPLIER_CAP;
@@ -139,17 +143,20 @@ public class RGBDICP {
         // for each transformed point
         for (int index = 0; index < PAinB.size(); index++) {
             // find nearest point in B for each in A using K-D tree
-            Entry<double[]> BE = kdtree.nearestNeighbor(PAinB.get(index), 1, false).get(0);
-            double[] B = BE.value;
-            double d = BE.distance; // euclidean distance between A and B
+            List<Entry<double[]>> neighbors = kdtree.nearestNeighbor(PAinB.get(index), 1, false);
+            if(neighbors.size() > 0){
+                Entry<double[]> BE = neighbors.get(0);
+                double[] B = BE.value;
+                double d = BE.distance; // euclidean distance between A and B
 
-            // if distance is small enough, then not an outlier
-            if (d < DISCARD_D) {
-                // add both to our list of good points
-                GoodA.add(PA.get(index));
-                GoodB.add(B);
-                // add distance to our error estimate
-                totalError = totalError + d;
+                // if distance is small enough, then not an outlier
+                if (d < DISCARD_D) {
+                    // add both to our list of good points
+                    GoodA.add(PA.get(index));
+                    GoodB.add(B);
+                    // add distance to our error estimate
+                    totalError = totalError + d;
+                }
             }
         }
         return totalError / GoodA.size();

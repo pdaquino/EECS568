@@ -42,7 +42,7 @@ public class ColorPointCloud {
     }
 
     protected final void processPoint(Frame frame, int x, int y) {
-        
+
         // Calculate point place in world
         double m = frame.depthToMeters(frame.depth[y * Constants.WIDTH + x]);
         if (m < 0 || m > 3.8) {
@@ -73,11 +73,9 @@ public class ColorPointCloud {
 
         int argb = frame.argb[cy * Constants.WIDTH + cx]; // get the rgb data for the calculated pixel location
 
-        if (pz < 1000) {
-            colors.add(argb);
-            int abgr = (argb & 0xff000000) | ((argb & 0xff) << 16) | (argb & 0xff00) | ((argb >> 16) & 0xff);
-            vcd.add(abgr);
-        }
+        colors.add(argb);
+        int abgr = (argb & 0xff000000) | ((argb & 0xff) << 16) | (argb & 0xff00) | ((argb >> 16) & 0xff);
+        vcd.add(abgr);
     }
 
     // projects image coordinates in rgb image into 3D space
