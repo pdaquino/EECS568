@@ -20,7 +20,7 @@ public class AlignFrames {
     private List<ImageFeature> currFeatures, lastFeatures;
     private ColorPointCloud currFullPtCloud, currDecimatedPtCloud;
     private ColorPointCloud lastFullPtCloud, lastDecimatedPtCloud;
-    
+
     public class RBT {
         public double[][] rbt;
         public List<DescriptorMatcher.Match> allMatches = new ArrayList<Match>();
@@ -50,28 +50,29 @@ public class AlignFrames {
 
     public RBT align(double[][] previousTransform) {
         RBT rbt = new RBT();
-        
+
         DescriptorMatcher dm = new DescriptorMatcher(currFeatures, lastFeatures);
         rbt.allMatches = dm.match();
-        
+
         double[] Arpy = new double[3]; // average roll pitch yaw
-        
+
         double[][] Rrbt = RANSAC.RANSAC(rbt.allMatches, rbt.inliers); // RANSAC's Estimate
+        System.out.println("Inliers: "+rbt.inliers.size());
         if (rbt.inliers.size() < MIN_RANSAC_INLIERS || Rrbt == null) {
             Rrbt = previousTransform;
         }
-        
+
         System.out.println("RANSAC's estimate Roll Pitch Yaw");
         LinAlg.print(LinAlg.matrixToRollPitchYaw(Rrbt));
         LinAlg.print(Rrbt);
         System.out.println("RANSAC's translation maginitude " + TransMag(Rrbt));
         System.out.println("RANSAC's transformation matrix");
         LinAlg.print(Rrbt);
-        
+
         RGBDICP icp = new RGBDICP(lastDecimatedPtCloud);
 
         double[][] Irbt = icp.match(currDecimatedPtCloud, Rrbt, rbt.inliers); // ICP's Estimate
-        
+
         System.out.println("ICP's estimate Roll Pitch Yaw");
         LinAlg.print(LinAlg.matrixToRollPitchYaw(Irbt));
 
@@ -81,7 +82,7 @@ public class AlignFrames {
 
         //double[][] Erbt = weightedSum(Rrbt, Irbt, ALPHA);
         rbt.rbt = Irbt;
-        
+
         // supress large translations cause they cause trouble
         System.out.println("Final Estimate");
         LinAlg.print(rbt.rbt);
@@ -112,7 +113,7 @@ public class AlignFrames {
     public ColorPointCloud getCurrFullPtCloud() {
         return currFullPtCloud;
     }
-   
+
     private ColorPointCloud makeDecimatedPtCloud(Frame frame) {
         return new ColorPointCloud(frame, DECIMATION_FACTOR);
     }
@@ -132,7 +133,7 @@ public class AlignFrames {
         }
         return features;
     }
-    
+
     // weight A by alpha and B by 1-alpha
     // if alpha == 1 then returns A
     private double[][] weightedSum(double[][] A, double[][] B, double alpha) {
@@ -147,7 +148,7 @@ public class AlignFrames {
         }
         return C;
     }
-    
+
     // returns the magnitude of a translation encoded in 4x4 Rbt
     private double TransMag(double[][] A) {
         return Math.sqrt(A[0][3]*A[0][3] + A[1][3]*A[1][3] + A[2][3]*A[2][3]);
