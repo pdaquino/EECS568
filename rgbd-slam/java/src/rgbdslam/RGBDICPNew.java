@@ -35,7 +35,6 @@ public class RGBDICPNew {
         } else {
             kdtree = new KdTree.SqrEuclid<double[]>(3, 0); // max size of 0
         }
-        System.out.println("Initialization complete");
     }
 
     // XXX alternate constructor that uses our Voxel represenation for B ?
@@ -53,21 +52,21 @@ public class RGBDICPNew {
         ArrayList<double[]> ExtraA = new ArrayList<double[]>();
         ArrayList<double[]> ExtraB = new ArrayList<double[]>();
         ArrayList<Double> ExtraW = new ArrayList<Double>();
-        System.out.println("Processing Matches");
+        //System.out.println("Processing Matches");
         processFMatches(Fmatches, ExtraA, ExtraB, PA.size(), ExtraW);
 
-        
+        /*
         System.out.println("Point Cloud contains: " + PA.size() + " Points.");
         System.out.println("We got " + Fmatches.size() + " feature matches");
         System.out.println("now we have " + ExtraA.size() + " extra points");
-         
+         */
 
         // arraylists to store corresponding points in A and B
         ArrayList<double[]> GoodA = new ArrayList<double[]>();
         ArrayList<double[]> GoodB = new ArrayList<double[]>();
-        System.out.println("Computing correspondances");
+        //System.out.println("Computing correspondances");
         curerror = compCorrespondances(PA, rbt, GoodA, GoodB); // how good was the initial guess just for point cloud
-        System.out.println("Computing Feature Error");
+        //System.out.println("Computing Feature Error");
         curerror = 0.5 * curerror + 0.5 * compFeatureError(ExtraA, ExtraB, rbt, ExtraW); // how good was the initial guess the features
         // construct weighting matrix
         ArrayList<Double> Weights = new ArrayList<Double>();
@@ -77,6 +76,8 @@ public class RGBDICPNew {
         Weights.addAll(ExtraW); // add these weights at the end to contribute
         GoodA.addAll(ExtraA); // add these guys in so they constribute to the calculation
         GoodB.addAll(ExtraB);
+        
+        System.out.println("New: Error " + curerror + " and our previous error is " + preverror);
 
         
 
@@ -89,11 +90,12 @@ public class RGBDICPNew {
         while (((preverror - curerror) > THRESHOLD) && (cntr < MAX_ITERATIONS)) {
             // use these lists to compute updated RBT
             // http://www.cs.duke.edu/courses/spring07/cps296.2/scribe_notes/lecture24.pdf
+            /*
             System.out.println("AlignPoints3DM!");
             System.out.println("Size GoodA : " + GoodA.size());
             System.out.println("Size GoodB : " + GoodB.size());
             System.out.println("Size Weights : " + Weights.size());
-            System.out.println("Size of Extra Weights : "+ ExtraW.size());
+            System.out.println("Size of Extra Weights : "+ ExtraW.size());*/
             double[][] Erbt = AlignPoints3DM.align(GoodA, GoodB, Weights);
 
             // reassign errors
@@ -102,10 +104,10 @@ public class RGBDICPNew {
             // compute new error and new feature correspondances
             GoodA = new ArrayList<double[]>();
             GoodB = new ArrayList<double[]>();
-            System.out.println("Computing correspondances");
+            //System.out.println("Computing correspondances");
             curerror = compCorrespondances(PA, Erbt, GoodA, GoodB); // how good was the guess just for point cloud
             // curerror is the average point distance
-            System.out.println("Computing Feature Error");
+            //System.out.println("Computing Feature Error");
             curerror = 0.5 * curerror + 0.5 * compFeatureError(ExtraA, ExtraB, Erbt, ExtraW); // how good was the guess
             // construct weighting matrix
             Weights = new ArrayList<Double>();
@@ -116,14 +118,14 @@ public class RGBDICPNew {
             GoodA.addAll(ExtraA); // add these guys in so they constribute to the calculation
             GoodB.addAll(ExtraB);
 
-            System.out.println("Itteration " + cntr + " Error " + curerror + " and our previous error is " + preverror);
+            System.out.println("New: Itteration " + cntr + " Error " + curerror + " and our previous error is " + preverror);
 
             if (curerror < preverror) {
                 rbt = Erbt; // new best guess if we got better
             }
             cntr++;
         }
-        System.out.println("Performed " + cntr + " Iterations.");
+        System.out.println("New Performed " + cntr + " Iterations.");
         //System.out.println("Normalized Error Change: " + (preverror - curerror));
         return rbt;
     }
@@ -136,7 +138,7 @@ public class RGBDICPNew {
         assert ((ExtraA != null) && (ExtraB != null) && (ExtraW != null)) : "Need non null arrayLists";
 
         // calculate multiplier to figure out how many of each feature we need
-        double multiplier = 0;
+        int multiplier = 0;
         if (Fmatches.size() > 0) {
             multiplier = CPCAsize / Fmatches.size();
         }
@@ -145,11 +147,11 @@ public class RGBDICPNew {
         if (multiplier > MULTIPLIER_CAP) {
             multiplier = MULTIPLIER_CAP;
         }
-
+        
         for (int i = 0; i < Fmatches.size(); i++) {
             ExtraA.add(Fmatches.get(i).feature1.xyz());
             ExtraB.add(Fmatches.get(i).feature2.xyz());
-            ExtraW.add(multiplier);
+            ExtraW.add((double) multiplier);
         }
     }
 
@@ -163,6 +165,7 @@ public class RGBDICPNew {
         ArrayList<double[]> PAinB = LinAlg.transform(Erbt, PA);
 
         double totalError = 0; // for accumulating error
+        int cntr = 0; // how many points are we actually using
 
         // for each transformed point
         for (int index = 0; index < PAinB.size(); index++) {
@@ -180,10 +183,11 @@ public class RGBDICPNew {
                     GoodB.add(B);
                     // add distance to our error estimate
                     totalError = totalError + d;
+                    cntr++;
                 }
             }
         }
-        return totalError / GoodA.size();
+        return totalError / cntr;
     }
 
     // computes error for the feature correspondances for this estimate of the rigid body transformation
@@ -196,17 +200,21 @@ public class RGBDICPNew {
         // apply rbt to points in A to get into frame B
         ArrayList<double[]> ExtraAinB = LinAlg.transform(Erbt, ExtraA);
 
+        double totW = 0; // total weight
+        int cntr = 0; // how many points are we actually using
         for (int i = 0; i < ExtraA.size(); i++) {
             double d = LinAlg.distance(ExtraAinB.get(i), ExtraB.get(i));
             if (d < DISCARD_D) {
                 // add distance to our error estimate
                 totalError = totalError + d * ExtraW.get(i);
+                totW += ExtraW.get(i);
+                cntr++;
             }
         }
         if (ExtraA.isEmpty()) {
             return 0;
-        } else {
-            return totalError / ExtraA.size();
+        } else {          
+            return totalError / totW;
         }
     }
 }
