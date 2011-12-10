@@ -72,11 +72,12 @@ JNIEXPORT jint JNICALL Java_rgbdslam_OpenCV_cvExtractFeatures(JNIEnv *env, jclas
         if(printTiming) std::cout << "OpenCV::building cv::Mat: " << timer.stop() << " ms\n";
 
         timer.start();
-        GoodFeaturesToTrackDetector detector(
-                jmaxFeatures,
-                jminQuality,
-                jminDistance,
-                jblockSize);
+        //GoodFeaturesToTrackDetector detector(
+        //        jmaxFeatures,
+        //        jminQuality,
+        //        jminDistance,
+        //        jblockSize);
+        SurfFeatureDetector detector;
         std::vector<KeyPoint> features;
         detector.detect(img, features);
         if(printTiming) std::cout << "OpenCV::detecting features: " << timer.stop() << " ms\n";
