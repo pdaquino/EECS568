@@ -61,31 +61,39 @@ public class AlignFrames {
         if (rbt.inliers.size() < MIN_RANSAC_INLIERS || Rrbt == null) {
             Rrbt = previousTransform;
         }
-
+        /*
         System.out.println("RANSAC's estimate Roll Pitch Yaw");
         LinAlg.print(LinAlg.matrixToRollPitchYaw(Rrbt));
         LinAlg.print(Rrbt);
         System.out.println("RANSAC's translation maginitude " + TransMag(Rrbt));
         System.out.println("RANSAC's transformation matrix");
         LinAlg.print(Rrbt);
+        */
+        RGBDICPNew icp = new RGBDICPNew(lastDecimatedPtCloud);
 
-        RGBDICP icp = new RGBDICP(lastDecimatedPtCloud);
-
-        double[][] Irbt = icp.match(currDecimatedPtCloud, Rrbt, rbt.inliers); // ICP's Estimate
-
+        double[][] Irbt = icp.match(currDecimatedPtCloud, Rrbt, rbt.inliers); // New method
+        
+        /*
+        if (!LinAlg.equals(Irbt, NIrbt, 0)) {
+            System.out.println("Warning methods did not yield the same result!!!!!");
+            System.out.println("Original: ");
+            LinAlg.print(Irbt);
+            System.out.println("Modified: ");
+            LinAlg.print(NIrbt);
+        }*/
+        /*
         System.out.println("ICP's estimate Roll Pitch Yaw");
         LinAlg.print(LinAlg.matrixToRollPitchYaw(Irbt));
 
         System.out.println("ICP's translation maginitude " + TransMag(Irbt));
         System.out.println("ICP's transformation matrix");
         LinAlg.print(Irbt);
-
+         */
         //double[][] Erbt = weightedSum(Rrbt, Irbt, ALPHA);
         rbt.rbt = Irbt;
-
-        // supress large translations cause they cause trouble
+        /*
         System.out.println("Final Estimate");
-        LinAlg.print(rbt.rbt);
+        LinAlg.print(rbt.rbt);*/
 
         return rbt;
     }
