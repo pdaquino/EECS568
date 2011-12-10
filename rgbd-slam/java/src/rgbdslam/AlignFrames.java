@@ -13,7 +13,7 @@ import rgbdslam.DescriptorMatcher.Match;
  */
 public class AlignFrames {
 
-    public static final int DECIMATION_FACTOR = 6;
+    public static final int DECIMATION_FACTOR = 10;
     final static double ALPHA = 0.5; // relative weighting between initial estimate and new rbt estimate
 
     private List<ImageFeature> currFeatures, lastFeatures;
@@ -67,11 +67,11 @@ public class AlignFrames {
         LinAlg.print(Rrbt);
         System.out.println("RANSAC's translation maginitude " + TransMag(Rrbt));
         System.out.println("RANSAC's transformation matrix");
-        LinAlg.print(Rrbt);
+        //LinAlg.print(Rrbt);
         
-        ICP icp = new ICP(lastDecimatedPtCloud);
+        RGBDICP icp = new RGBDICP(lastDecimatedPtCloud);
 
-        double[][] Irbt = icp.match(currDecimatedPtCloud, Rrbt); // ICP's Estimate
+        double[][] Irbt = icp.match(currDecimatedPtCloud, Rrbt, matches); // ICP's Estimate
 
         latestInliers = inliers;
         if(allMatches != null) {
@@ -80,12 +80,12 @@ public class AlignFrames {
         
         System.out.println("ICP's estimate Roll Pitch Yaw");
         LinAlg.print(LinAlg.matrixToRollPitchYaw(Irbt));
-        LinAlg.print(Irbt);
+        //LinAlg.print(Irbt);
         System.out.println("ICP's translation maginitude " + TransMag(Irbt));
         System.out.println("ICP's transformation matrix");
         LinAlg.print(Irbt);
         
-        double[][] Erbt = weightedSum(Rrbt, Irbt, ALPHA);
+        double[][] Erbt = Irbt;
         //double[][] Erbt = Rrbt;
         
         // supress large translations cause they cause trouble
@@ -93,8 +93,8 @@ public class AlignFrames {
         if (TransMag(Erbt) > 0.5) {
             Erbt = LinAlg.identity(4);
         }
-        System.out.println("Final Estimate");
-        LinAlg.print(Erbt);
+        //System.out.println("Final Estimate");
+        //LinAlg.print(Erbt);
        
         
         return Erbt;
