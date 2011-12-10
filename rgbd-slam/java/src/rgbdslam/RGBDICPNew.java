@@ -77,7 +77,7 @@ public class RGBDICPNew {
         GoodA.addAll(ExtraA); // add these guys in so they constribute to the calculation
         GoodB.addAll(ExtraB);
         
-        System.out.println("New: Error " + curerror + " and our previous error is " + preverror);
+        //System.out.println("New: Error " + curerror + " and our previous error is " + preverror);
 
         
 
@@ -118,14 +118,14 @@ public class RGBDICPNew {
             GoodA.addAll(ExtraA); // add these guys in so they constribute to the calculation
             GoodB.addAll(ExtraB);
 
-            System.out.println("New: Itteration " + cntr + " Error " + curerror + " and our previous error is " + preverror);
+            //System.out.println("New: Itteration " + cntr + " Error " + curerror + " and our previous error is " + preverror);
 
             if (curerror < preverror) {
                 rbt = Erbt; // new best guess if we got better
             }
             cntr++;
         }
-        System.out.println("New Performed " + cntr + " Iterations.");
+        //System.out.println("New Performed " + cntr + " Iterations.");
         //System.out.println("Normalized Error Change: " + (preverror - curerror));
         return rbt;
     }
