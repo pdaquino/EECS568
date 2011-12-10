@@ -11,7 +11,7 @@ endif()
 
 file(GLOB RgbdSlam_SOURCES "*.cpp" "*.c")
 file(GLOB RgbdSlam_INCLUDES ".hpp" "*.h")
-add_definitions(-std=c++0x)
+#add_definitions(-std=c++0x)
 include_directories(${JNI_INCLUDE_DIRS})
 
 add_executable(FeatureDetector ${RgbdSlam_SOURCES} ${RgbdSlam_INCLUDES} )
