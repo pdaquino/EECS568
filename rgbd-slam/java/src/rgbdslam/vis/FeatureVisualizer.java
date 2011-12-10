@@ -44,9 +44,6 @@ public class FeatureVisualizer {
     }
     
     public void updateFrames(BufferedImage im1, BufferedImage im2, List<Match> allMatches, java.util.List<Match> inliers) {
-        if(inliers.isEmpty()) {
-            return;
-        }
         int imageOffset = im1.getWidth() + IMAGE_SEPARATION;
         {
             VisWorld.Buffer vbIm = vw.getBuffer("image");
@@ -106,8 +103,11 @@ public class FeatureVisualizer {
             sb.append("Average 3D error: ").append(total3DError/inliers.size()).append(" m\n");
             sb.append("Average descriptor error: ").append(totalDescriptorError/inliers.size()).append("\n");
             
-            vbIm.addBack(lines);
-            vbIm.addBack(outlierLines);
+            if(!correspondences.isEmpty())
+                vbIm.addBack(lines);
+            if(!inliers.isEmpty())
+                vbIm.addBack(outlierLines);
+            
             vbIm.addBack(new VzText(VzText.ANCHOR.BOTTOM_LEFT, sb.toString()));
 
             vbIm.swap();

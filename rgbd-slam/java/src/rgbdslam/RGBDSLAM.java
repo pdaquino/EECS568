@@ -14,6 +14,8 @@ import april.jmat.geom.*;
 import april.util.*;
 import april.lcmtypes.*;
 
+import april.tag.TagDetection;
+import java.awt.image.BufferedImage;
 import kinect.*;
 
 import rgbdslam.*;
@@ -40,8 +42,9 @@ public class RGBDSLAM implements LCMSubscriber {
     ExpiringMessageCache<gamepad_t> lgp = new ExpiringMessageCache<gamepad_t>(0.25);
     // Saved options
     GetOpt opts;
-    
     Kinect.Frame currFrame, lastFrame;
+    TagTracker tagTracker = null;
+
 
     public RGBDSLAM(GetOpt opts) {
         this.opts = opts;
@@ -202,7 +205,7 @@ public class RGBDSLAM implements LCMSubscriber {
                             globalVoxelFrame.writeToFile(filename);
                             System.out.println("Saved to " + filename);
                         }
-                    } else if(name.equals("saveFrame")) {
+                    } else if (name.equals("saveFrame")) {
                         long time = System.currentTimeMillis();
                         synchronized (globalVoxelFrame) {
                             String filename = "kf_" + time + ".kframe";
@@ -210,12 +213,12 @@ public class RGBDSLAM implements LCMSubscriber {
                                 FileOutputStream os = new FileOutputStream(filename);
                                 ObjectOutputStream objstream = new ObjectOutputStream(os);
                                 objstream.writeObject(currFrame);
-                            } catch(Exception e) {
+                            } catch (Exception e) {
                                 System.err.println("Could not save frame: " + e.getLocalizedMessage());
                             }
                             System.out.println("Saved frame to " + filename);
                         }
-                    }else {
+                    } else {
                         updateFPS();
                     }
                 }
@@ -232,7 +235,7 @@ public class RGBDSLAM implements LCMSubscriber {
             dcm.interfaceMode = 3.0;
             dcm.setDefaultPosition(new double[]{-5, 0, 0}, new double[]{-4, 0, 0}, new double[]{0, 0, 1});
             dcm.uiDefault();
-            vl.cameraManager = dcm;          
+            vl.cameraManager = dcm;
 
             jf.add(vc, BorderLayout.CENTER);
             jf.add(pg, BorderLayout.SOUTH);
@@ -264,9 +267,9 @@ public class RGBDSLAM implements LCMSubscriber {
                     double x = xyzrpy[0];
                     double y = xyzrpy[1];
                     double z = xyzrpy[2];
-                    double[] dx = new double[]{x*xaxis[0], x*xaxis[1], x*xaxis[2]};
-                    double[] dy = new double[]{y*yaxis[0], y*yaxis[1], y*yaxis[2]};
-                    double[] dz = new double[]{z*zaxis[0], z*zaxis[1], z*zaxis[2]};
+                    double[] dx = new double[]{x * xaxis[0], x * xaxis[1], x * xaxis[2]};
+                    double[] dy = new double[]{y * yaxis[0], y * yaxis[1], y * yaxis[2]};
+                    double[] dz = new double[]{z * zaxis[0], z * zaxis[1], z * zaxis[2]};
 
                     eye = LinAlg.add(dx, LinAlg.add(dy, LinAlg.add(dz, eye)));
                     lookat = LinAlg.add(dx, LinAlg.add(dy, LinAlg.add(dz, lookat)));
@@ -286,7 +289,8 @@ public class RGBDSLAM implements LCMSubscriber {
                 }
 
                 synchronized (globalVoxelFrame) {
-                    if (globalVoxelFrame.size() > 0 && !opts.getBoolean("kinect-only")) {
+                    if (globalVoxelFrame.size() > 0 && !opts.getBoolean("kinect-only") &&
+                            !opts.getBoolean("tags-only")) {
                         VisWorld.Buffer vb = vw.getBuffer("voxels");
                         vb.addBack(new VisLighting(false,
                                 globalVoxelFrame.getPointCloud()));
@@ -305,6 +309,37 @@ public class RGBDSLAM implements LCMSubscriber {
                             new VzLines.Style(Color.red, 1)));
 
                     vb.swap();
+                    if(tagTracker != null) {
+                        java.util.List<TagDetection> detections = tagTracker.getDetections();
+                        VisWorld.Buffer vbTags = vw.getBuffer("tags");
+                        for(TagDetection d : detections) {
+                            double[][] M = TagTracker.homographyToPose(d.homography);
+                            BufferedImage tfimg = TagTracker.TAG_FAMILY.makeImage(d.id);
+
+
+                            // same order as in vertices, but remember y flip.
+                            double texcoords [][] = { { 0, 1},
+                                                      { 1, 1},
+                                                      { 1, 0},
+                                                      { 0, 0 } };
+
+                            vbTags.addBack(new VisChain(LinAlg.rotateX(Math.PI/2),
+                                                         M,
+                                                         new VzImage(new VisTexture(tfimg, VisTexture.NO_MIN_FILTER),
+                                                             TagTracker.VERTICES, texcoords, null)));
+                            ArrayList<double[]> verticesList = new ArrayList<double[]>();
+                            for(int i = 0; i < 4; i++) 
+                                verticesList.add(TagTracker.VERTICES[i]);
+                            
+                            ArrayList<double[]> transfVertices = LinAlg.transform(M, verticesList);
+                            vbTags.addBack(new VisChain(LinAlg.rotateX(Math.PI/2),
+                                                        //M,
+                                                       new VzPoints(new VisVertexData(transfVertices),
+                                                               new VzPoints.Style(Color.red, 5))));
+                                    ;
+                        }
+                        vbTags.swap();
+                    }
                 }
 
                 TimeUtil.sleep(1000 / fps);
@@ -331,17 +366,17 @@ public class RGBDSLAM implements LCMSubscriber {
                 turbo = false;
             }
 
-            return new double[]{gp.axes[1]*vel*dt,
-                                gp.axes[0]*vel*dt,
-                                gp.axes[5]*vel*dt,
-                                gp.axes[4]*theta_vel*dt,
-                                gp.axes[3]*theta_vel*dt,
-                                gp.axes[2]*-theta_vel*dt};
+            return new double[]{gp.axes[1] * vel * dt,
+                        gp.axes[0] * vel * dt,
+                        gp.axes[5] * vel * dt,
+                        gp.axes[4] * theta_vel * dt,
+                        gp.axes[3] * theta_vel * dt,
+                        gp.axes[2] * -theta_vel * dt};
         }
     }
 
     class RGBDThread extends Thread {
-        
+
         ArrayList<ImageFeature> featuresL;
         ColorPointCloud lastFullPtCloud;
         ColorPointCloud lastDecimatedPtCloud;
@@ -361,30 +396,39 @@ public class RGBDSLAM implements LCMSubscriber {
                     synchronized (rbtLock) {
                         if (currFrame != null && lastFrame != null && af == null) {
                             af = new AlignFrames(currFrame, lastFrame);
+                            tagTracker = new TagTracker(currFrame);
                         } else if (currFrame != null && lastFrame != null) {
                             VoxelArray va = new VoxelArray(DEFAULT_RES); // XXX
 
-                            af = new AlignFrames(currFrame,
-                                    af.getCurrFeatures(),
-                                    af.getCurrFullPtCloud(),
-                                    af.getCurrDecimatedPtCloud());
+                            if (opts.getBoolean("tags-only")) {
+                                tagTracker.update(currFrame);
+                                fv.updateFrames(currFrame.makeRGB(), lastFrame.makeRGB(), new ArrayList<Match>(), new ArrayList<Match>());
+                                lastRBT = tagTracker.getTransformation();
+                            } else {
 
-                            AlignFrames.RBT transform = af.align(lastRBT);
-                            lastRBT = transform.rbt;
+                                af = new AlignFrames(currFrame,
+                                        af.getCurrFeatures(),
+                                        af.getCurrFullPtCloud(),
+                                        af.getCurrDecimatedPtCloud());
+
+                                AlignFrames.RBT transform = af.align(lastRBT);
+                                fv.updateFrames(currFrame.makeRGB(), lastFrame.makeRGB(), transform.allMatches, transform.inliers);
+                                
+                                lastRBT = transform.rbt;
+                            }
 
 
                             //Grbt = LinAlg.matrixAB(Grbt, transform); // XXX which order!???
-                            LinAlg.timesEquals(Grbt, transform.rbt);
+                            LinAlg.timesEquals(Grbt, lastRBT);
 
                             // constrain to no translation for now
                             //Grbt[0][3] = 0;
                             //Grbt[1][3] = 0;
                             //Grbt[2][3] = 0;
-                            
+
                             //System.out.println("Current position");
                             //LinAlg.print(Grbt);
                             //System.out.println();
-                            fv.updateFrames(currFrame.makeRGB(), lastFrame.makeRGB(), transform.allMatches, transform.inliers);
 
                             va.voxelizePointCloud(af.getCurrFullPtCloud());
 
@@ -403,7 +447,7 @@ public class RGBDSLAM implements LCMSubscriber {
         }
 
         public synchronized void handleFrame(Kinect.Frame frame) {
-            synchronized(globalVoxelFrame) {
+            synchronized (globalVoxelFrame) {
                 lastFrame = currFrame;
                 currFrame = frame;
             }
@@ -416,6 +460,7 @@ public class RGBDSLAM implements LCMSubscriber {
         opts.addBoolean('h', "help", false, "Show this help screen");
         opts.addString('f', "file", null, "Load scene from file");
         opts.addBoolean((char) 0, "kinect-only", false, "Only render the kinect trajectory");
+        opts.addBoolean((char) 0, "tags-only", false, "Only track tags");
 
         if (!opts.parse(args)) {
             System.err.println("ERR: Opts error - " + opts.getReason());
