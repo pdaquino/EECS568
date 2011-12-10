@@ -64,8 +64,10 @@ public class ColorPointCloud {
         // project 3D point into rgb image frame
         cx = (int) ((cxyz[0] * Constants.Frgbx / cxyz[2]) + Constants.Crgbx);
         cy = (int) ((cxyz[1] * Constants.Frgby / cxyz[2]) + Constants.Crgby);
-        assert (!(cx < 0 || cx > Constants.WIDTH));
-        assert (!(cy < 0 || cy > Constants.HEIGHT));
+        
+        if ((cx < 0) || (cx >= Constants.WIDTH) || (cy < 0) || (cy >= Constants.HEIGHT)) {
+            return;
+        }
 
         points.add(new double[]{px, py, pz});
 
