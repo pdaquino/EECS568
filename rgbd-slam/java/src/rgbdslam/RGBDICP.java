@@ -51,9 +51,11 @@ public class RGBDICP {
         ArrayList<double[]> ExtraB = new ArrayList<double[]>();
         processFMatches(Fmatches, ExtraA, ExtraB, PA.size());
         
+        /*
         System.out.println("Point Cloud contains: " + PA.size() + " Points.");
         System.out.println("We got " + Fmatches.size() + " feature matches");
         System.out.println("now we have " + ExtraA.size() + " extra points");
+         */
 
         // arraylists to store corresponding points in A and B
         ArrayList<double[]> GoodA = new ArrayList<double[]>();
@@ -63,9 +65,10 @@ public class RGBDICP {
         curerror = 0.5*curerror + 0.5*compFeatureError(ExtraA, ExtraB, rbt); // how good was the initial guess the features
         GoodA.addAll(ExtraA); // add these guys in so they constribute to the calculation
         GoodB.addAll(ExtraB);
-        
+        /*
         System.out.println("Now we have " + GoodA.size() + " Points");
         System.out.println("Initial Error " + curerror);
+         */
 
         // itterate until change in error becomes small or reach max iterations
         while (((preverror - curerror) > THRESHOLD) && (cntr < MAX_ITERATIONS)) {
@@ -85,14 +88,14 @@ public class RGBDICP {
             GoodA.addAll(ExtraA); // add these guys in so they constribute to the calculation
             GoodB.addAll(ExtraB);
             
-            System.out.println("Itteration " + cntr + " Error " + curerror + " and our previous error is " + preverror);
+            //System.out.println("Itteration " + cntr + " Error " + curerror + " and our previous error is " + preverror);
 
             if (curerror < preverror) {
                 rbt = Erbt; // new best guess if we got better
             }
             cntr++;
         }
-        System.out.println("Performed " + cntr + " Iterations.");
+        //System.out.println("Performed " + cntr + " Iterations.");
         //System.out.println("Normalized Error Change: " + (preverror - curerror));
         return rbt;
     }
