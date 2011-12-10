@@ -67,6 +67,9 @@ public class RGBDICP {
         curerror = 0.5*curerror + 0.5*compFeatureError(ExtraA, ExtraB, rbt); // how good was the initial guess the features
         GoodA.addAll(ExtraA); // add these guys in so they constribute to the calculation
         GoodB.addAll(ExtraB);
+        
+        System.out.println("Old: Error " + curerror + " and our previous error is " + preverror);
+
         /*
         System.out.println("Now we have " + GoodA.size() + " Points");
         System.out.println("Initial Error " + curerror);
@@ -90,14 +93,14 @@ public class RGBDICP {
             GoodA.addAll(ExtraA); // add these guys in so they constribute to the calculation
             GoodB.addAll(ExtraB);
 
-            //System.out.println("Itteration " + cntr + " Error " + curerror + " and our previous error is " + preverror);
+            System.out.println("Old: Itteration " + cntr + " Error " + curerror + " and our previous error is " + preverror);
 
             if (curerror < preverror) {
                 rbt = Erbt; // new best guess if we got better
             }
             cntr++;
         }
-        //System.out.println("Performed " + cntr + " Iterations.");
+        System.out.println("Original Performed " + cntr + " Iterations.");
         //System.out.println("Normalized Error Change: " + (preverror - curerror));
         return rbt;
     }
@@ -118,7 +121,6 @@ public class RGBDICP {
         if (multiplier > MULTIPLIER_CAP) {
             multiplier = MULTIPLIER_CAP;
         }
-        //int multiplier = 0;
 
         for (int i = 0; i < Fmatches.size(); i++) {
             // add each feature coordinate multiple times to approximate weight
@@ -139,6 +141,7 @@ public class RGBDICP {
         ArrayList<double[]> PAinB = LinAlg.transform(Erbt, PA);
 
         double totalError = 0; // for accumulating error
+        int cntr = 0; // how many points did we actually use
 
         // for each transformed point
         for (int index = 0; index < PAinB.size(); index++) {
@@ -148,7 +151,7 @@ public class RGBDICP {
                 Entry<double[]> BE = neighbors.get(0);
                 double[] B = BE.value;
                 double d = BE.distance; // euclidean distance between A and B
-
+                
                 // if distance is small enough, then not an outlier
                 if (d < DISCARD_D) {
                     // add both to our list of good points
@@ -156,10 +159,11 @@ public class RGBDICP {
                     GoodB.add(B);
                     // add distance to our error estimate
                     totalError = totalError + d;
+                    cntr++;
                 }
             }
         }
-        return totalError / GoodA.size();
+        return totalError / cntr;
     }
 
     // computes error for the feature correspondances for this estimate of the rigid body transformation
@@ -169,18 +173,21 @@ public class RGBDICP {
 
         // apply rbt to points in A to get into frame B
         ArrayList<double[]> ExtraAinB = LinAlg.transform(Erbt, ExtraA);
+        
+        int cntr = 0; // how many features were actually close enough
 
         for (int i = 0; i < ExtraA.size(); i++) {
             double d = LinAlg.distance(ExtraAinB.get(i), ExtraB.get(i));
             if (d < DISCARD_D) {
                 // add distance to our error estimate
                 totalError = totalError + d;
+                cntr++;
             }
         }
         if (ExtraA.isEmpty()) {
             return 0;
         } else {
-            return totalError / ExtraA.size();
+            return totalError / cntr; // normalize by the number we actualy used
         }
     }
 }
