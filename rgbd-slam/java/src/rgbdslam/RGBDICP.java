@@ -14,6 +14,7 @@ import rgbdslam.KdTree.Entry;
 public class RGBDICP {
 
     final static int MAX_ITERATIONS = 50; // maximum number of iteration for ICP
+    final static int MULTIPLIER_CAP = 15; // maximum multiplication factor for features.
     final static double THRESHOLD = 0.0005; // threshold for convergence change in normalized error
     final static double DISCARD_D = .5; // threshold for outlier rejection
     private KdTree.SqrEuclid<double[]> kdtree; // kdtree for storing points in B
@@ -108,6 +109,11 @@ public class RGBDICP {
 
         // calculate multiplier to figure out how many of each feature we need
         int multiplier = (int) CPCAsize / Fmatches.size();
+        // implement a multiplier cap to progressively shift weight over to point cloud 
+        // as we recieve fewer features
+        if (multiplier > MULTIPLIER_CAP) {
+            multiplier = MULTIPLIER_CAP;
+        }
         //int multiplier = 0;
 
         for (int i = 0; i < Fmatches.size(); i++) {
