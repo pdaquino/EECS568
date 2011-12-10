@@ -16,6 +16,9 @@ public class Constants {
     public static final int WIDTH = 640;
     public static final int HEIGHT = 480;
     
+    public static final double SIGMA = 2; // sigma for gaussian applied to depth image
+    public static final int FILTER_SIZE = 3; // size of kernel for blur, must be odd
+    
     // John's Calibration Data
     /*
     // RGB Intrinsic Camera Parameters
@@ -35,7 +38,7 @@ public class Constants {
     // assume 0 skew
     // distortion parameters 1 2 and 5 are radial terms, 3 and 4 are tangential
     public static final double[] Kir = {-0.09234, 0.31571, 0.00037, -0.00425, 0};
-     */
+    */ 
     
     // John's using many more images
     // RGB Intrinsic Camera Parameters
@@ -64,7 +67,7 @@ public class Constants {
     public static double Frgby = 5.2556393630057437e2;
     public static double Crgbx = 3.2894272028759258e2; // camera center in pixels
     public static double Crgby = 2.6748068171871557e2;
-    public static double[] Krgb = {2.6451622333009589e-1,  -8.3990749424620825e-1,
+    public static double[] Krgb = {2.6451622333009589e-1, -8.3990749424620825e-1,
 	-1.9922302173693159e-3, 1.4371995932897616e-3, 9.1192465078713847e-1};
 
     // parameters for IR depth camera
@@ -72,21 +75,15 @@ public class Constants {
     public static double Firy = 5.9104053696870778e2;
     public static double Cirx = 3.3930780975300314e2; // camera center in pixels
     public static double Ciry = 2.4273913761751615e2;
-    public static double[] Kir = {-2.6386489753128833e-1, 9.9966832163729757e-1,-7.6275862143610667e-4,
-	5.0350940090814270e-3, -1.3053628089976321};
-    
-    public static double[][] Rirtorgb = new double[][] {{9.9984628826577793e-1, 1.2635359098409581e-3, -1.7487233004436643e-2, 0},
-                                        {-1.4779096108364480e-3, 9.9992385683542895e-1, -1.2251380107679535e-2, 0},
-                                        {1.7470421412464927e-2, 1.2275341476520762e-2, 9.9977202419716948e-1, 0},
-                                        {0,0,0,1}};
-    
-    public static double[][] Tirtorgb = new double[][] {{1, 0, 0,1.9985242312092553e-2},
-        {0, 1, 0, -7.4423738761617583e-4}, {0, 0, 1, -1.0916736334336222e-2}, {0,0,0,1}};
-    
-    public static double[][] Transirtorgb = new double[][] {{9.9984628826577793e-1, 1.2635359098409581e-3, -1.7487233004436643e-2, 1.9985242312092553e-2},
-                                        {-1.4779096108364480e-3, 9.9992385683542895e-1, -1.2251380107679535e-2, -7.4423738761617583e-4},
-                                        {1.7470421412464927e-2, 1.2275341476520762e-2, 9.9977202419716948e-1, -1.0916736334336222e-2},
-                                        {0,0,0,1}};
+    public static double[] Kir = {-2.6386489753128833e-1, 9.9966832163729757e-1,
+        -7.6275862143610667e-4, 5.0350940090814270e-3, -1.3053628089976321};
+
+    // Rigid Body Transformation between IR and RGB camera courtesy of Nicolas Burrus
+    public static double[][] Transirtorgb = new double[][] 
+        {{9.9984628826577793e-1, 1.2635359098409581e-3, -1.7487233004436643e-2, 1.9985242312092553e-2},
+         {-1.4779096108364480e-3, 9.9992385683542895e-1, -1.2251380107679535e-2, -7.4423738761617583e-4},
+         {1.7470421412464927e-2, 1.2275341476520762e-2, 9.9977202419716948e-1, -1.0916736334336222e-2},
+         {0,0,0,1}};
     /*
     public static double[][] trans = LinAlg.translate(new double[] {1.9985242312092553e-2,                                            -7.4423738761617583e-4,                                              -1.0916736334336222e-2});
      */
