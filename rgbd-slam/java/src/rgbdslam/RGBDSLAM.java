@@ -370,6 +370,7 @@ public class RGBDSLAM implements LCMSubscriber {
                                     af.getCurrDecimatedPtCloud());
 
                             AlignFrames.RBT transform = af.align(lastRBT);
+                            lastRBT = transform.rbt;
 
 
                             //Grbt = LinAlg.matrixAB(Grbt, transform); // XXX which order!???
