@@ -15,6 +15,8 @@ import april.jcam.*;
 
 import april.util.*;
 
+import april.tag.*;
+
 import kinect.*;
 
 public class TagTestKinect implements ParameterListener
