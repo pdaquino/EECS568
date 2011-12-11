@@ -46,6 +46,8 @@ public class RGBDSLAM implements LCMSubscriber {
     // Saved options
     GetOpt opts;
 
+    // Ground truth data (XYZRPY)
+    ArrayList<double[]> expectedValues = new ArrayList<double[]>();
 
     // Frame tracking
     Kinect.Frame currFrame, lastFrame;
@@ -197,7 +199,8 @@ public class RGBDSLAM implements LCMSubscriber {
             pg.addIntSlider("kfps", "Kinect FPS", 1, 30, 20);
             pg.addIntSlider("rfps", "Render FPS", 1, 60, 15);
             pg.addButtons("save", "Save to file",
-                          "saveFrame", "Save frame");
+                          "saveFrame", "Save frame",
+                          "saveGT", "Mark Ground Truth");
             pg.addButtons("reset", "Reset Voxel Data");
             pg.addListener(new ParameterListener() {
 
@@ -214,6 +217,10 @@ public class RGBDSLAM implements LCMSubscriber {
                             String filename = "va_" + time + ".vx";
                             globalVoxelFrame.writeToFile(filename);
                             System.out.println("Saved to " + filename);
+
+                            // XXX Save ground truth
+                            filename = "gt_" + time + ".gt";
+                            saveGroundTruth(filename);
                         }
                     } else if (name.equals("saveFrame")) {
                         long time = System.currentTimeMillis();
@@ -232,13 +239,16 @@ public class RGBDSLAM implements LCMSubscriber {
                         synchronized (globalVoxelFrame) {
                             synchronized (rbtLock) {
                                 globalVoxelFrame = new VoxelArray(currRes);
+                                trajectory.clear();
                                 Grbt = KtoGrbt;
                                 currFrame = null;
                                 lastFrame = null;
                             }
 
                         }
-                    }else {
+                    } else if (name.equals("saveGT")) {
+                        expectedValues.add(LinAlg.matrixToXyzrpy(Grbt));
+                    } else {
                         updateFPS();
                     }
                 }
@@ -330,11 +340,38 @@ public class RGBDSLAM implements LCMSubscriber {
                             VzLines.LINE_STRIP,
                             new VzLines.Style(Color.red, 1)));
 
+                    vb.addBack(new VzPoints(new VisVertexData(expectedValues),
+                                            new VzPoints.Style(Color.cyan, 3)));
+
                     vb.swap();
                 }
 
                 TimeUtil.sleep(1000 / fps);
             }
+        }
+
+        /** Save the current ground truth data to a human-readable file */
+        private void saveGroundTruth(String filename)
+        {
+            PrintWriter fout;
+            try {
+                fout = new PrintWriter(new File(filename));
+            } catch (IOException ioex) {
+                System.err.println("ERR: Could not open file "+filename+" for editing.");
+                ioex.printStackTrace();
+                return;
+            }
+
+            for (double[] xyzrpy: expectedValues) {
+                fout.printf("XYZRPY [%f %f %f %f %f %f]\n", xyzrpy[0],
+                                                            xyzrpy[1],
+                                                            xyzrpy[2],
+                                                            xyzrpy[3],
+                                                            xyzrpy[4],
+                                                            xyzrpy[5]);
+            }
+
+            fout.close();
         }
 
         public void updateFPS() {
@@ -417,13 +454,13 @@ public class RGBDSLAM implements LCMSubscriber {
                             System.out.println("Pt Cloud Size: "+af.getCurrFullPtCloud().points.size());
                             System.out.println("Tranform Mag: "+af.TransMag(transform.rbt));
                             System.out.println("Last Mag: "+af.TransMag(lastRBT.rbt));
-                            
+
                             boolean goodTransform = af.getCurrFullPtCloud().points.size() > 0
                             && (af.TransMag(lastRBT.rbt) == 0
                             || (af.TransMag(transform.rbt) < 5*af.TransMag(lastRBT.rbt)));
-                            
+
                             boolean goodTransform2 = false;
-                            
+
                             // If transform between consecutive frames is bad, consider last good frame
                             // instead of last frame.
                             if(!goodTransform && lastGoodAF != null){
@@ -431,15 +468,15 @@ public class RGBDSLAM implements LCMSubscriber {
                             lastGoodAF.getCurrFeatures(),
                             lastGoodAF.getCurrFullPtCloud(),
                             lastGoodAF.getCurrDecimatedPtCloud());
-                            
+
                             transform = af.align(lastRBT.rbt);
-                            
+
                             goodTransform2 = af.getCurrFullPtCloud().points.size() > 0
                             && (af.TransMag(lastRBT.rbt) == 0
                             || (af.TransMag(transform.rbt) < 5*af.TransMag(lastRBT.rbt)
                             && af.TransMag(lastRBT.rbt) >= 0));
                             }
-                            
+
                             System.out.println("GT: "+goodTransform+"  GT2: "+goodTransform2);
                             if(goodTransform || goodTransform2){
                             lastGoodAF = af;
