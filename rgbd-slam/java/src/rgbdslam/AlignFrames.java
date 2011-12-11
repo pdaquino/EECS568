@@ -69,12 +69,12 @@ public class AlignFrames {
         //Tic tic = new Tic();
         List<DescriptorMatcher.Match> inliers = new ArrayList<Match>();
         double[][] Rrbt = RANSAC.RANSAC(rbt.allMatches, rbt.inliers); // RANSAC's Estimate
-        AdaptativeRANSAC.Output ransacOutput = AdaptativeRANSAC.RANSAC(rbt.allMatches);
+        //AdaptativeRANSAC.Output ransacOutput = AdaptativeRANSAC.RANSAC(rbt.allMatches);
         //rbt.inliers = ransacOutput.inliers;
         //double[][] Rrbt = ransacOutput.rbt;
-        
+
         //System.out.println("RANSAC took " + tic.toc());
-        
+
         System.out.println("Inliers: "+rbt.inliers.size());
         if (rbt.inliers.size() < MIN_RANSAC_INLIERS || Rrbt == null) {
             Rrbt = previousTransform;
@@ -184,11 +184,11 @@ public class AlignFrames {
     public double TransMag(double[][] A) {
         return Math.sqrt(A[0][3]*A[0][3] + A[1][3]*A[1][3] + A[2][3]*A[2][3]);
     }
-    
+
     // uses a SVD to enforce orthonormality amongst columns of the rotation portion
     // of the rigid body transformation it messes with the original so becareful
     public static double[][] renormalize(double[][] T) {
-        
+
         // get the rotation part
         double[][] R = new double[3][3];
         for (int i = 0; i < 3; i++) {
@@ -196,11 +196,11 @@ public class AlignFrames {
                 R[i][j] = T[i][j];
             }
         }
-        
+
         SingularValueDecomposition svd = new SingularValueDecomposition(new Matrix(R));
-        
+
         R = (svd.getU().times(svd.getV().transpose())).copyArray();
-        
+
         // set it back
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {

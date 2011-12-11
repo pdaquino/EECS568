@@ -27,6 +27,7 @@ public class ColorPointCloud {
                 processPoint(frame, x, y);
             }
         }
+        assert (points.size() == colors.size());
     }
 
     // alternate constructor for making a decimated point cloud
@@ -39,6 +40,7 @@ public class ColorPointCloud {
                 processPoint(frame, x, y);
             }
         }
+        assert (points.size() == colors.size());
     }
 
     protected final void processPoint(Frame frame, int x, int y) {
@@ -64,7 +66,7 @@ public class ColorPointCloud {
         // project 3D point into rgb image frame
         cx = (int) ((cxyz[0] * Constants.Frgbx / cxyz[2]) + Constants.Crgbx);
         cy = (int) ((cxyz[1] * Constants.Frgby / cxyz[2]) + Constants.Crgby);
-        
+
         if ((cx < 0) || (cx >= Constants.WIDTH) || (cy < 0) || (cy >= Constants.HEIGHT)) {
             return;
         }
