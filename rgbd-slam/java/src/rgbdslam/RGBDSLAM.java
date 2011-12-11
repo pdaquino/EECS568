@@ -27,9 +27,9 @@ public class RGBDSLAM implements LCMSubscriber {
     RenderThread rt;
     RGBDThread rgbd;
     FeatureVisualizer fv;
-    double DEFAULT_RES = 0.01;
-    double currRes = DEFAULT_RES;
-    VoxelArray globalVoxelFrame = new VoxelArray(DEFAULT_RES);
+    double DEFAULT_RES;
+    double currRes;
+    VoxelArray globalVoxelFrame;
 
     // State
     boolean loadedFromFile = false;
@@ -51,6 +51,10 @@ public class RGBDSLAM implements LCMSubscriber {
 
     public RGBDSLAM(GetOpt opts) {
         this.opts = opts;
+
+	DEFAULT_RES = opts.getDouble("resolution");
+	currRes = DEFAULT_RES;
+	globalVoxelFrame = new VoxelArray(DEFAULT_RES);
 
         // Load from file
         if (opts.getString("file") != null) {
@@ -476,6 +480,7 @@ public class RGBDSLAM implements LCMSubscriber {
         opts.addBoolean('h', "help", false, "Show this help screen");
         opts.addString('f', "file", null, "Load scene from file");
         opts.addBoolean((char) 0, "kinect-only", false, "Only render the kinect trajectory");
+		opts.addDouble('r', "resolution", 0.01, "Default Kinect Resolution [m]");
 
         if (!opts.parse(args)) {
             System.err.println("ERR: Opts error - " + opts.getReason());

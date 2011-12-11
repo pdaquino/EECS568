@@ -105,9 +105,13 @@ public class FeatureVisualizer {
             sb.append(inliers.size()).append(" inliers (").append(allMatches.size()).append(" matches)\n");
             sb.append("Average 3D error: ").append(total3DError/inliers.size()).append(" m\n");
             sb.append("Average descriptor error: ").append(totalDescriptorError/inliers.size()).append("\n");
-            
-            vbIm.addBack(lines);
-            vbIm.addBack(outlierLines);
+			
+			if (correspondences.size() > 0) {            
+				vbIm.addBack(lines);
+			}
+			if (outliersCorrespondences.size() > 0) {
+				vbIm.addBack(outlierLines);
+			}
             vbIm.addBack(new VzText(VzText.ANCHOR.BOTTOM_LEFT, sb.toString()));
 
             vbIm.swap();
