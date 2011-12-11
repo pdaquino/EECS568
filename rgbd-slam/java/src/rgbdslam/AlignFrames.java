@@ -15,13 +15,13 @@ public class AlignFrames {
 
     public static final int DECIMATION_FACTOR = 10;
     final static double ALPHA = 0.5; // relative weighting between initial estimate and new rbt estimate
-    public final static int MIN_RANSAC_INLIERS = 10;
+    public final static int MIN_RANSAC_INLIERS = 20;
 
     private List<ImageFeature> currFeatures, lastFeatures;
     private ColorPointCloud currFullPtCloud, currDecimatedPtCloud;
     private ColorPointCloud lastFullPtCloud, lastDecimatedPtCloud;
 
-    public class RBT {
+    public static class RBT {
         public double[][] rbt;
         public List<DescriptorMatcher.Match> allMatches = new ArrayList<Match>();
         public List<DescriptorMatcher.Match> inliers = new ArrayList<Match>();
@@ -51,6 +51,13 @@ public class AlignFrames {
     public RBT align(double[][] previousTransform) {
         RBT rbt = new RBT();
 
+        /*// If no points in point cloud, don't move.  Kind of a hack.
+        System.out.println("Pt cloud size: "+currFullPtCloud.points.size());
+        if(currFullPtCloud.points.size() == 0){
+            rbt.rbt = LinAlg.identity(4);
+            return rbt;
+        }*/
+
         DescriptorMatcher dm = new DescriptorMatcher(currFeatures, lastFeatures);
         rbt.allMatches = dm.match();
 
@@ -72,7 +79,7 @@ public class AlignFrames {
         RGBDICPNew icp = new RGBDICPNew(lastDecimatedPtCloud);
 
         double[][] Irbt = icp.match(currDecimatedPtCloud, Rrbt, rbt.inliers); // New method
-        
+
         /*
         if (!LinAlg.equals(Irbt, NIrbt, 0)) {
             System.out.println("Warning methods did not yield the same result!!!!!");
@@ -90,6 +97,11 @@ public class AlignFrames {
         LinAlg.print(Irbt);
          */
         //double[][] Erbt = weightedSum(Rrbt, Irbt, ALPHA);
+        // Refuse to jump ... XXX hack
+        /*if(TransMag(Irbt) > 10*TransMag(previousTransform) && TransMag(previousTransform) > 0.001){
+            rbt.rbt = previousTransform;
+        }
+        else{*/
         rbt.rbt = Irbt;
         /*
         System.out.println("Final Estimate");
@@ -158,7 +170,7 @@ public class AlignFrames {
     }
 
     // returns the magnitude of a translation encoded in 4x4 Rbt
-    private double TransMag(double[][] A) {
+    public double TransMag(double[][] A) {
         return Math.sqrt(A[0][3]*A[0][3] + A[1][3]*A[1][3] + A[2][3]*A[2][3]);
     }
 }

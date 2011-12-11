@@ -40,7 +40,7 @@ public class RGBDSLAM implements LCMSubscriber {
     ExpiringMessageCache<gamepad_t> lgp = new ExpiringMessageCache<gamepad_t>(0.25);
     // Saved options
     GetOpt opts;
-    
+
     Kinect.Frame currFrame, lastFrame;
 
     public RGBDSLAM(GetOpt opts) {
@@ -232,7 +232,7 @@ public class RGBDSLAM implements LCMSubscriber {
             dcm.interfaceMode = 3.0;
             dcm.setDefaultPosition(new double[]{-5, 0, 0}, new double[]{-4, 0, 0}, new double[]{0, 0, 1});
             dcm.uiDefault();
-            vl.cameraManager = dcm;          
+            vl.cameraManager = dcm;
 
             jf.add(vc, BorderLayout.CENTER);
             jf.add(pg, BorderLayout.SOUTH);
@@ -290,13 +290,13 @@ public class RGBDSLAM implements LCMSubscriber {
                         VisWorld.Buffer vb = vw.getBuffer("voxels");
                         vb.addBack(new VisLighting(false,
                                 globalVoxelFrame.getPointCloud()));
-                        vb.addBack(new VzAxes());
                         vb.swap();
                     }
                 }
 
                 synchronized (rbtLock) {
                     VisWorld.Buffer vb = vw.getBuffer("kinect-pos");
+		    vb.addBack(new VzAxes());
                     vb.addBack(new VisChain(Grbt,
                             new VzKinect()));
 
@@ -321,34 +321,40 @@ public class RGBDSLAM implements LCMSubscriber {
             if (gp == null) {
                 return new double[6];
             }
-            if ((gp.buttons & 0xF0) > 1 && !turbo) {
+            if ((gp.buttons & 0xC0) > 1 && !turbo) {
                 vel = FAST_VEL;
                 theta_vel = FAST_TVEL;
                 turbo = true;
-            } else if ((gp.buttons & 0xF0) == 0 && turbo) {
+            } else if ((gp.buttons & 0xC0) == 0 && turbo) {
                 vel = SLOW_VEL;
                 theta_vel = SLOW_TVEL;
                 turbo = false;
             }
 
+	    double roll = 0;
+	    roll += (gp.buttons & 0x10) > 0 ? 1 : 0;
+	    roll += (gp.buttons & 0x20) > 0 ? -1 : 0;
+
             return new double[]{gp.axes[1]*vel*dt,
                                 gp.axes[0]*vel*dt,
                                 gp.axes[5]*vel*dt,
-                                gp.axes[4]*theta_vel*dt,
+				roll*theta_vel*dt,
+                                //gp.axes[4]*theta_vel*dt,
                                 gp.axes[3]*theta_vel*dt,
                                 gp.axes[2]*-theta_vel*dt};
         }
     }
 
     class RGBDThread extends Thread {
-        
+
         ArrayList<ImageFeature> featuresL;
-        ColorPointCloud lastFullPtCloud;
-        ColorPointCloud lastDecimatedPtCloud;
-        double[][] lastRBT = LinAlg.identity(4);
+        AlignFrames lastGoodAF;
+        AlignFrames.RBT lastRBT = new AlignFrames.RBT();
 
         synchronized public void run() {
             AlignFrames af = null;
+
+            if(lastRBT.rbt == null){ lastRBT.rbt = LinAlg.identity(4); }
 
             //double[][] KtoGrbt = new double[][]{{0, 0, -1, 0}, {1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 0, 1}};
             //double[][] Grbt = KtoGrbt;
@@ -365,32 +371,58 @@ public class RGBDSLAM implements LCMSubscriber {
                             VoxelArray va = new VoxelArray(DEFAULT_RES); // XXX
 
                             af = new AlignFrames(currFrame,
-                                    af.getCurrFeatures(),
-                                    af.getCurrFullPtCloud(),
-                                    af.getCurrDecimatedPtCloud());
+                                                 af.getCurrFeatures(),
+                                                 af.getCurrFullPtCloud(),
+                                                 af.getCurrDecimatedPtCloud());
 
-                            AlignFrames.RBT transform = af.align(lastRBT);
-                            lastRBT = transform.rbt;
+                            AlignFrames.RBT transform = af.align(lastRBT.rbt);
 
+                            System.out.println("Pt Cloud Size: "+af.getCurrFullPtCloud().points.size());
+                            System.out.println("Tranform Mag: "+af.TransMag(transform.rbt));
+                            System.out.println("Last Mag: "+af.TransMag(lastRBT.rbt));
 
-                            //Grbt = LinAlg.matrixAB(Grbt, transform); // XXX which order!???
-                            LinAlg.timesEquals(Grbt, transform.rbt);
+                            boolean goodTransform = af.getCurrFullPtCloud().points.size() > 0
+                                    && (af.TransMag(lastRBT.rbt) == 0
+                                        || (af.TransMag(transform.rbt) < 5*af.TransMag(lastRBT.rbt)
+                                            && af.TransMag(lastRBT.rbt) >= 0));
 
-                            // constrain to no translation for now
-                            //Grbt[0][3] = 0;
-                            //Grbt[1][3] = 0;
-                            //Grbt[2][3] = 0;
-                            
-                            //System.out.println("Current position");
-                            //LinAlg.print(Grbt);
-                            //System.out.println();
-                            fv.updateFrames(currFrame.makeRGB(), lastFrame.makeRGB(), transform.allMatches, transform.inliers);
+                            boolean goodTransform2 = false;
 
-                            va.voxelizePointCloud(af.getCurrFullPtCloud());
+                            // If transform between consecutive frames is bad, consider last good frame
+                            // instead of last frame.
+                            if(!goodTransform && lastGoodAF != null){
+                                af = new AlignFrames(currFrame,
+                                                     lastGoodAF.getCurrFeatures(),
+                                                     lastGoodAF.getCurrFullPtCloud(),
+                                                     lastGoodAF.getCurrDecimatedPtCloud());
 
-                            // Let render thread do its thing
-                            globalVoxelFrame.merge(va, Grbt);
-                            trajectory.add(LinAlg.resize(LinAlg.matrixToXyzrpy(Grbt), 3));
+                                transform = af.align(lastRBT.rbt);
+
+                                goodTransform2 = af.getCurrFullPtCloud().points.size() > 0
+                                    && (af.TransMag(lastRBT.rbt) == 0
+                                        || (af.TransMag(transform.rbt) < 5*af.TransMag(lastRBT.rbt)
+                                            && af.TransMag(lastRBT.rbt) >= 0));
+                            }
+
+                            System.out.println("GT: "+goodTransform+"  GT2: "+goodTransform2);
+                            if(goodTransform || goodTransform2){
+                                lastGoodAF = af;
+                                lastRBT = transform;
+
+                                LinAlg.timesEquals(Grbt, transform.rbt);
+                                fv.updateFrames(currFrame.makeRGB(), lastFrame.makeRGB(), transform.allMatches, transform.inliers);
+                                va.voxelizePointCloud(af.getCurrFullPtCloud());
+
+                                // Let render thread do its thing
+                                globalVoxelFrame.merge(va, Grbt);
+                                trajectory.add(LinAlg.resize(LinAlg.matrixToXyzrpy(Grbt), 3));
+
+                            }/*
+                            else{
+                                LinAlg.timesEquals(Grbt, lastRBT.rbt);
+                                fv.updateFrames(currFrame.makeRGB(), lastFrame.makeRGB(), lastRBT.allMatches, lastRBT.inliers);
+                                va.voxelizePointCloud(lastGoodAF.getCurrFullPtCloud());
+                                }*/
                         }
                     }
                 }
