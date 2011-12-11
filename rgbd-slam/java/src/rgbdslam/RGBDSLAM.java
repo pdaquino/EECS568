@@ -418,10 +418,7 @@ public class RGBDSLAM implements LCMSubscriber {
                                 // numerical errors
                                 cntr++;
                                 if (cntr%RENORM_FREQ == 0) {
-                                    Tic tic = new Tic();
                                     Grbt = af.renormalize(Grbt);
-                                    double t = tic.toc();
-                                    System.out.println("renomalizing took = " + t + "seconds");
                                 }
                                 
                                 fv.updateFrames(currFrame.makeRGB(), lastFrame.makeRGB(), transform.allMatches, transform.inliers);
