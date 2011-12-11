@@ -1,6 +1,8 @@
 package rgbdslam;
 
 import april.jmat.LinAlg;
+import april.jmat.SingularValueDecomposition;
+import april.jmat.Matrix;
 import java.util.ArrayList;
 import java.util.List;
 import kinect.*;
@@ -172,5 +174,30 @@ public class AlignFrames {
     // returns the magnitude of a translation encoded in 4x4 Rbt
     public double TransMag(double[][] A) {
         return Math.sqrt(A[0][3]*A[0][3] + A[1][3]*A[1][3] + A[2][3]*A[2][3]);
+    }
+    
+    // uses a SVD to enforce orthonormality amongst columns of the rotation portion
+    // of the rigid body transformation it messes with the original so becareful
+    public static double[][] renormalize(double[][] T) {
+        
+        // get the rotation part
+        double[][] R = new double[3][3];
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                R[i][j] = T[i][j];
+            }
+        }
+        
+        SingularValueDecomposition svd = new SingularValueDecomposition(new Matrix(R));
+        
+        R = (svd.getU().times(svd.getV().transpose())).copyArray();
+        
+        // set it back
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                T[i][j] = R[i][j];
+            }
+        }
+        return T;
     }
 }
