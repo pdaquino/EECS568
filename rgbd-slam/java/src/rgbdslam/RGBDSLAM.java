@@ -429,11 +429,11 @@ public class RGBDSLAM implements LCMSubscriber {
 
 
             while (true) {
-                System.out.println("Locking");
+                //System.out.println("Locking");
                 synchronized (globalVoxelFrame) {
-                    System.out.println("Got Got Global Voxel Lock");
+                    //System.out.println("Got Got Global Voxel Lock");
                     synchronized (rbtLock) {
-                        System.out.println("Got rbtLock");
+                        //System.out.println("Got rbtLock");
                         if (currFrame != null && lastFrame != null && af == null) {
                             af = new AlignFrames(currFrame, lastFrame);
                             imu.mark(); // need to manually select time
@@ -506,10 +506,10 @@ public class RGBDSLAM implements LCMSubscriber {
                 }
                 //}
                 try {
-                    System.out.println("Going to Sleep");
+                    //System.out.println("Going to Sleep");
                     wait();
                 } catch (InterruptedException ex) {
-                    System.out.println("Woke up");
+                    //System.out.println("Woke up");
                 }
             }
         }
