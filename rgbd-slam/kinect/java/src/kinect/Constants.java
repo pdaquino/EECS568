@@ -60,23 +60,23 @@ public class Constants {
     // distortion parameters 1 2 and 5 are radial terms, 3 and 4 are tangential
     public static final double[] Kir = {-0.07415, 0.17787, 0.00168, -0.00245, 0.00000};
      */
-    
+    /*
     // Camera calibration numbers courtesy of Nicolas Burrus
     // parameters for rgb color camera
-    public static double Frgbx = 523.06864; // focal length 5.2921508098293293e2
-    public static double Frgby = 522.62898; // 5.2556393630057437e2
-    public static double Crgbx = 3.15e2; // camera center in pixels 3.2894272028759258e2
-    public static double Crgby = 2.65e2; // 2.6748068171871557e2 265 seems good
+    public static double Frgbx = 5.2921508098293293e2; // focal length 5.2921508098293293e2
+    public static double Frgby = 5.2556393630057437e2; // 5.2556393630057437e2
+    public static double Crgbx = 3.2894272028759258e2; // camera center in pixels 3.2894272028759258e2
+    public static double Crgby = 2.6748068171871557e2; // 2.6748068171871557e2 265 seems good
     public static double[] Krgb = {2.6451622333009589e-1, -8.3990749424620825e-1,
-	-1.9922302173693159e-3, 1.4371995932897616e-3, 0.8};
+	-1.9922302173693159e-3, 1.4371995932897616e-3, 9.1192465078713847e-1};
     // 0.8 seems to be a better 3rd order radial distortion term
     //9.1192465078713847e-1
 
     // parameters for IR depth camera
-    public static double Firx = 590; // focal length 5.9421434211923247e2
-    public static double Firy = 590; // 5.9104053696870778e2
-    public static double Cirx = 336; // camera center in pixels 3.3930780975300314e2
-    public static double Ciry = 243.38230; // 2.4273913761751615e2
+    public static double Firx = 5.9421434211923247e2; // focal length 5.9421434211923247e2
+    public static double Firy = 5.9104053696870778e2; // 5.9104053696870778e2
+    public static double Cirx = 3.3930780975300314e2; // camera center in pixels 3.3930780975300314e2
+    public static double Ciry = 2.4273913761751615e2; // 2.4273913761751615e2
     public static double[] Kir = {-2.6386489753128833e-1, 9.9966832163729757e-1,
         -7.6275862143610667e-4, 5.0350940090814270e-3, -1.3053628089976321};
 
@@ -85,7 +85,36 @@ public class Constants {
         {{9.9984628826577793e-1, 1.2635359098409581e-3, -1.7487233004436643e-2, 1.9985242312092553e-2},
          {-1.4779096108364480e-3, 9.9992385683542895e-1, -1.2251380107679535e-2, -7.4423738761617583e-4},
          {1.7470421412464927e-2, 1.2275341476520762e-2, 9.9977202419716948e-1, -1.0916736334336222e-2},
+         {0,0,0,1}}; */
+    
+    // Camera calibration numbers courtesy of Group Calibration using Buras's calibration program
+    // parameters for rgb color camera for Rob's sacred kinect.
+    public static double Frgbx = 5.2549146934887904e+02; // focal length 
+    public static double Frgby = 5.2564205413114996e+02; // 
+    public static double Crgbx = 3.1961505746870336e+02; // camera center in pixels 
+    public static double Crgby = 2.5073442780176708e+02; // 
+    public static double[] Krgb = {2.7376758102455484e-01,-1.0924409942510054e+00,
+        1.1055834733919326e-04,-3.6043261204609631e-04,1.6539945052733636e+00};
+    
+
+    // parameters for IR depth camera
+    public static double Firx = 5.8791759217862204e+02; // focal length 
+    public static double Firy = 5.8760489958891026e+02; // 
+    public static double Cirx = 3.2525048258259540e+02; // camera center in pixels 
+    public static double Ciry = 2.4275008449138741e+02; // 
+    public static double[] Kir = {-1.8177169518802491e-01,1.1695212447715055e+00,
+        -4.4512701863162500e-03,4.9033335891042291e-03,-2.7471289416375160e+00};
+
+    // Rigid Body Transformation between IR and RGB camera courtesy of Nicolas Burrus
+    // adding negative sign infront of x translation term since IR camera in -x direction from rgb
+    public static double[][] Transirtorgb = new double[][] 
+        {{9.9992722787002031e-01, 3.9846949567157140e-03, -1.1386885890292265e-02,2.5455174253462186e-02},
+         {3.9640245034303703e-03, 9.9999045541141818e-01, 1.8372794563272670e-03,2.1449990961662204e-04},
+         {1.1394098205334914e-02, -1.7920078589010067e-03,9.9993347940446564e-01,-3.1850123170360141e-04},
          {0,0,0,1}};
+    
+    
+    
     /*
     public static double[][] trans = LinAlg.translate(new double[] {1.9985242312092553e-2,                                            -7.4423738761617583e-4,                                              -1.0916736334336222e-2});
      */

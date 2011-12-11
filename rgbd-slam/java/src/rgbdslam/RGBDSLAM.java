@@ -27,23 +27,35 @@ public class RGBDSLAM implements LCMSubscriber {
     RenderThread rt;
     RGBDThread rgbd;
     FeatureVisualizer fv;
-    double DEFAULT_RES = 0.01;
-    double currRes = DEFAULT_RES;
-    VoxelArray globalVoxelFrame = new VoxelArray(DEFAULT_RES);
+    double DEFAULT_RES;
+    double currRes;
+    VoxelArray globalVoxelFrame;
+
     // State
     boolean loadedFromFile = false;
+
     // Kinect position
     Object rbtLock = new Object();
     ArrayList<double[]> trajectory = new ArrayList<double[]>();
-    double[][] Grbt = Matrix.identity(4, 4).copyArray();
+    double[][] KtoGrbt = new double[][]{{0, 0, 1, 0}, {-1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, 0, 1}};
+    double[][] Grbt = KtoGrbt;
+
     // Gamepad_t
     ExpiringMessageCache<gamepad_t> lgp = new ExpiringMessageCache<gamepad_t>(0.25);
+
     // Saved options
     GetOpt opts;
+
+
+    // Frame tracking
     Kinect.Frame currFrame, lastFrame;
 
     public RGBDSLAM(GetOpt opts) {
         this.opts = opts;
+
+	DEFAULT_RES = opts.getDouble("resolution");
+	currRes = DEFAULT_RES;
+	globalVoxelFrame = new VoxelArray(DEFAULT_RES);
 
         // Load from file
         if (opts.getString("file") != null) {
@@ -184,7 +196,9 @@ public class RGBDSLAM implements LCMSubscriber {
             pg.addDoubleSlider("resolution", "Voxel Resolution (m)", 0.005, 0.5, DEFAULT_RES);
             pg.addIntSlider("kfps", "Kinect FPS", 1, 30, 20);
             pg.addIntSlider("rfps", "Render FPS", 1, 60, 15);
-            pg.addButtons("save", "Save to file", "saveFrame", "Save frame");
+            pg.addButtons("save", "Save to file",
+                          "saveFrame", "Save frame");
+            pg.addButtons("reset", "Reset Voxel Data");
             pg.addListener(new ParameterListener() {
 
                 public void parameterChanged(ParameterGUI pg, String name) {
@@ -214,7 +228,17 @@ public class RGBDSLAM implements LCMSubscriber {
                             }
                             System.out.println("Saved frame to " + filename);
                         }
-                    } else {
+                    } else if (name.equals("reset")) {
+                        synchronized (globalVoxelFrame) {
+                            synchronized (rbtLock) {
+                                globalVoxelFrame = new VoxelArray(currRes);
+                                Grbt = KtoGrbt;
+                                currFrame = null;
+                                lastFrame = null;
+                            }
+
+                        }
+                    }else {
                         updateFPS();
                     }
                 }
@@ -287,9 +311,12 @@ public class RGBDSLAM implements LCMSubscriber {
                 synchronized (globalVoxelFrame) {
                     if (globalVoxelFrame.size() > 0 && !opts.getBoolean("kinect-only")) {
                         VisWorld.Buffer vb = vw.getBuffer("voxels");
-                        vb.addBack(new VisLighting(false,
-                                globalVoxelFrame.getPointCloud()));
-                        vb.swap();
+                        VzPoints pts = globalVoxelFrame.getPointCloud();
+                        if (pts != null) {
+                            vb.addBack(new VisLighting(false,
+                                    globalVoxelFrame.getPointCloud()));
+                            vb.swap();
+                        }
                     }
                 }
 
@@ -330,17 +357,18 @@ public class RGBDSLAM implements LCMSubscriber {
                 turbo = false;
             }
 
-            double roll = 0;
-            roll += (gp.buttons & 0x10) > 0 ? 1 : 0;
-            roll += (gp.buttons & 0x20) > 0 ? -1 : 0;
 
-            return new double[]{gp.axes[1] * vel * dt,
-                        gp.axes[0] * vel * dt,
-                        gp.axes[5] * vel * dt,
-                        roll * theta_vel * dt,
-                        //gp.axes[4]*theta_vel*dt,
-                        gp.axes[3] * theta_vel * dt,
-                        gp.axes[2] * -theta_vel * dt};
+	    double roll = 0;
+	    roll += (gp.buttons & 0x10) > 0 ? -1 : 0;
+	    roll += (gp.buttons & 0x20) > 0 ? 1 : 0;
+
+            return new double[]{gp.axes[1]*vel*dt,
+                                gp.axes[0]*vel*dt,
+                                gp.axes[5]*vel*dt,
+				roll*theta_vel*dt,
+                                //gp.axes[4]*theta_vel*dt,
+                                gp.axes[3]*theta_vel*dt,
+                                gp.axes[2]*-theta_vel*dt};
         }
     }
 
@@ -350,6 +378,7 @@ public class RGBDSLAM implements LCMSubscriber {
         //AlignFrames lastGoodAF;
         //AlignFrames.RBT lastRBT = new AlignFrames.RBT();
         IMU imu = new IMU(); // implments a constant velocity model for filtering motion
+
         int cntr = 0; // used so that we don't try and renormalize after every trial.
         final static int RENORM_FREQ = 20; // every 20 Frames
 
@@ -361,13 +390,19 @@ public class RGBDSLAM implements LCMSubscriber {
             double[][] KtoGrbt = new double[][]{{0, 0, 1, 0}, {-1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, 0, 1}};
             Grbt = KtoGrbt;
 
+
             while (true) {
+                System.out.println("Locking");
                 synchronized (globalVoxelFrame) {
+                    System.out.println("Got Got Global Voxel Lock");
                     synchronized (rbtLock) {
+                        System.out.println("Got rbtLock");
                         if (currFrame != null && lastFrame != null && af == null) {
                             af = new AlignFrames(currFrame, lastFrame);
+                            imu.mark(); // need to manually select time
                         } else if (currFrame != null && lastFrame != null) {
-                            VoxelArray va = new VoxelArray(DEFAULT_RES); // XXX
+                            imu.mark();
+                            VoxelArray va = new VoxelArray(currRes);
 
                             af = new AlignFrames(currFrame,
                                     af.getCurrFeatures(),
@@ -426,18 +461,18 @@ public class RGBDSLAM implements LCMSubscriber {
                             globalVoxelFrame.merge(va, Grbt);
                             trajectory.add(LinAlg.resize(LinAlg.matrixToXyzrpy(Grbt), 3));
 
-                        }/*
-                        else{
-                        LinAlg.timesEquals(Grbt, lastRBT.rbt);
-                        fv.updateFrames(currFrame.makeRGB(), lastFrame.makeRGB(), lastRBT.allMatches, lastRBT.inliers);
-                        va.voxelizePointCloud(lastGoodAF.getCurrFullPtCloud());
-                        }*/
+                        }  else{
+                            imu.mark();
+                            LinAlg.timesEquals(Grbt, imu.estimate());
+                        }
                     }
                 }
                 //}
                 try {
+                    System.out.println("Going to Sleep");
                     wait();
                 } catch (InterruptedException ex) {
+                    System.out.println("Woke up");
                 }
             }
         }
@@ -456,6 +491,7 @@ public class RGBDSLAM implements LCMSubscriber {
         opts.addBoolean('h', "help", false, "Show this help screen");
         opts.addString('f', "file", null, "Load scene from file");
         opts.addBoolean((char) 0, "kinect-only", false, "Only render the kinect trajectory");
+		opts.addDouble('r', "resolution", 0.01, "Default Kinect Resolution [m]");
 
         if (!opts.parse(args)) {
             System.err.println("ERR: Opts error - " + opts.getReason());

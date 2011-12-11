@@ -100,7 +100,7 @@ JNIEXPORT jint JNICALL Java_kinect_Kinect_initKinect(JNIEnv *env, jobject obj)
         return -1;
     }
 
-    freenect_set_log_level(f_ctx, FREENECT_LOG_ERROR);
+    freenect_set_log_level(f_ctx, FREENECT_LOG_FATAL);
     int num_devs = freenect_num_devices(f_ctx);
     printf("found %d devices\n", num_devs);
     if (num_devs < 1) {

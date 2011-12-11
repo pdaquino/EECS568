@@ -57,24 +57,35 @@ public class AlignFrames {
         DescriptorMatcher dm = new DescriptorMatcher(currFeatures, lastFeatures);
         rbt.allMatches = dm.match();
 
-        //List<DescriptorMatcher.Match> inliers = new ArrayList<Match>();
-        //double[][] Rrbt = RANSAC.RANSAC(rbt.allMatches, rbt.inliers); // RANSAC's Estimate
-        AdaptativeRANSAC.Output ransacOutput = AdaptativeRANSAC.RANSAC(rbt.allMatches);
-        rbt.inliers = ransacOutput.inliers;
-        double[][] Rrbt = ransacOutput.rbt;
-        
+        //Tic tic = new Tic();
+        List<DescriptorMatcher.Match> inliers = new ArrayList<Match>();
+        double[][] Rrbt = RANSAC.RANSAC(rbt.allMatches, rbt.inliers); // RANSAC's Estimate
+        //AdaptativeRANSAC.Output ransacOutput = AdaptativeRANSAC.RANSAC(rbt.allMatches);
+        //rbt.inliers = ransacOutput.inliers;
+        //double[][] Rrbt = ransacOutput.rbt;
+
+        //System.out.println("RANSAC took " + tic.toc());
+
+        //double[][] IMUrbt;
         System.out.println("Inliers: "+rbt.inliers.size());
+        // if we got too few then just estimate directly from constant velocity motion model
         if (rbt.inliers.size() < MIN_RANSAC_INLIERS || Rrbt == null) {
             Rrbt = imu.estimate(); // if got too few inliers, constant velocity model
             System.out.println("Too few inliers using IMU");
-        }
+            rbt.inliers = new ArrayList<Match>(); // even the inliers are bad
+        } 
+        /*
+        else {
+            IMUrbt = imu.estimate(Rrbt);
+        }*/
+        
         /*
         System.out.println("RANSAC's estimate Roll Pitch Yaw");
         LinAlg.print(LinAlg.matrixToRollPitchYaw(Rrbt));
         LinAlg.print(Rrbt);
         System.out.println("RANSAC's translation maginitude " + TransMag(Rrbt));*/
-        //System.out.println("RANSAC's transformation matrix");
-        //LinAlg.print(Rrbt);
+        System.out.println("RANSAC's transformation matrix");
+        LinAlg.print(Rrbt);
         
         RGBDICPNew icp = new RGBDICPNew(lastDecimatedPtCloud);
 
@@ -93,8 +104,8 @@ public class AlignFrames {
         LinAlg.print(LinAlg.matrixToRollPitchYaw(Irbt));
 
         System.out.println("ICP's translation maginitude " + TransMag(Irbt)); */
-        //System.out.println("ICP's transformation matrix");
-        //LinAlg.print(Irbt);
+        System.out.println("ICP's transformation matrix");
+        LinAlg.print(Irbt);
         
         //double[][] Erbt = weightedSum(Rrbt, Irbt, ALPHA);
         // Refuse to jump ... XXX hack
@@ -174,11 +185,11 @@ public class AlignFrames {
     public double TransMag(double[][] A) {
         return Math.sqrt(A[0][3]*A[0][3] + A[1][3]*A[1][3] + A[2][3]*A[2][3]);
     }
-    
+
     // uses a SVD to enforce orthonormality amongst columns of the rotation portion
     // of the rigid body transformation it messes with the original so becareful
     public static double[][] renormalize(double[][] T) {
-        
+
         // get the rotation part
         double[][] R = new double[3][3];
         for (int i = 0; i < 3; i++) {
@@ -186,11 +197,11 @@ public class AlignFrames {
                 R[i][j] = T[i][j];
             }
         }
-        
+
         SingularValueDecomposition svd = new SingularValueDecomposition(new Matrix(R));
-        
+
         R = (svd.getU().times(svd.getV().transpose())).copyArray();
-        
+
         // set it back
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {

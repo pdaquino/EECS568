@@ -88,14 +88,15 @@ public class RGBDICPNew {
 
         // itterate until change in error becomes small or reach max iterations
         while (((preverror - curerror) > THRESHOLD) && (cntr < MAX_ITERATIONS)) {
+           
             // use these lists to compute updated RBT
             // http://www.cs.duke.edu/courses/spring07/cps296.2/scribe_notes/lecture24.pdf
-            /*
+            
             System.out.println("AlignPoints3DM!");
             System.out.println("Size GoodA : " + GoodA.size());
             System.out.println("Size GoodB : " + GoodB.size());
             System.out.println("Size Weights : " + Weights.size());
-            System.out.println("Size of Extra Weights : "+ ExtraW.size());*/
+            System.out.println("Size of Extra Weights : "+ ExtraW.size());
             double[][] Erbt = AlignPoints3DM.align(GoodA, GoodB, Weights);
 
             // reassign errors
