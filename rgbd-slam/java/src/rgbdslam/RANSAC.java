@@ -12,7 +12,7 @@ public class RANSAC {
     final static int NUM_ITER = 1000;
     final static double MAX_SQ_CONSENSUS_DISTANCE = 0.01;
     final static double MIN_BREAK_EARLY_INLIERS_PERCENTAGE = 0.8;
-    
+
     private static Random rand = new Random(83247983);
 
     /**
@@ -29,7 +29,7 @@ public class RANSAC {
         if(matches.isEmpty()) {
             return null;
         }
-        
+
         List<Match> bestInliers = new ArrayList<Match>();
         double bestConsensus = 0;
 
@@ -38,6 +38,12 @@ public class RANSAC {
         for (int iter = 0; iter < NUM_ITER; iter++) {
 
             // gets DOF indices out of the whole list of matches
+            if (matches.size() < DOF) {
+                // If there are insufficient features to constrain us, return eye(4,4)
+                // with no inliers
+                inliers.clear();
+                return Matrix.identity(4,4).copyArray();
+            }
             int[] idx = getRandomIndices(matches.size());
             List<Match> currentInliers = new ArrayList<Match>(matches.size());
 
@@ -79,7 +85,7 @@ public class RANSAC {
 
         inliers.clear();
         inliers.addAll(bestInliers);
-        
+
         return getAlignment(inliers);
     }
 
@@ -110,8 +116,11 @@ public class RANSAC {
      * @return
      */
     protected static int[] getRandomIndices(int n) {
-        // Get DOF number of different features
+        // Get DOF number of different features.
+        // XXX It'd be nice if these weren't co-linear
         int[] idx = new int[DOF];
+        int counter = 0;
+        int MAX_CNT = DOF*10;
         for (int i = 0; i < DOF; i++) {
             boolean copy;
             do {
@@ -123,7 +132,8 @@ public class RANSAC {
                         copy = true;
                     }
                 }
-            } while (copy == true);
+                counter++;
+            } while (copy && counter < MAX_CNT);
         }
         return idx;
     }

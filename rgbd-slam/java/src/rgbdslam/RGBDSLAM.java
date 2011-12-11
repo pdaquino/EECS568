@@ -150,12 +150,15 @@ public class RGBDSLAM implements LCMSubscriber {
     class RenderThread extends Thread {
 
         int fps = 5;
+
         // Vis
         VisWorld vw;
         VisLayer vl;
         VisCanvas vc;
+
         // Knobs
         ParameterGUI pg;
+
         // Gamepad
         boolean turbo = false;
         double SLOW_VEL = -1.0;
@@ -402,8 +405,7 @@ public class RGBDSLAM implements LCMSubscriber {
             return new double[]{gp.axes[1]*vel*dt,
                                 gp.axes[0]*vel*dt,
                                 gp.axes[5]*vel*dt,
-				roll*theta_vel*dt,
-                                //gp.axes[4]*theta_vel*dt,
+				                roll*theta_vel*dt,
                                 gp.axes[3]*theta_vel*dt,
                                 gp.axes[2]*-theta_vel*dt};
         }
@@ -422,18 +424,13 @@ public class RGBDSLAM implements LCMSubscriber {
         synchronized public void run() {
             AlignFrames af = null;
 
-            //if(lastRBT.rbt == null){ lastRBT.rbt = LinAlg.identity(4); }
-
             double[][] KtoGrbt = new double[][]{{0, 0, 1, 0}, {-1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, 0, 1}};
             Grbt = KtoGrbt;
 
 
             while (true) {
-                System.out.println("Locking");
                 synchronized (globalVoxelFrame) {
-                    System.out.println("Got Got Global Voxel Lock");
                     synchronized (rbtLock) {
-                        System.out.println("Got rbtLock");
                         if (currFrame != null && lastFrame != null && af == null) {
                             af = new AlignFrames(currFrame, lastFrame);
                             imu.mark(); // need to manually select time
@@ -447,40 +444,6 @@ public class RGBDSLAM implements LCMSubscriber {
                                     af.getCurrDecimatedPtCloud());
 
                             AlignFrames.RBT transform = af.align(imu);
-
-
-
-                            /*
-                            System.out.println("Pt Cloud Size: "+af.getCurrFullPtCloud().points.size());
-                            System.out.println("Tranform Mag: "+af.TransMag(transform.rbt));
-                            System.out.println("Last Mag: "+af.TransMag(lastRBT.rbt));
-
-                            boolean goodTransform = af.getCurrFullPtCloud().points.size() > 0
-                            && (af.TransMag(lastRBT.rbt) == 0
-                            || (af.TransMag(transform.rbt) < 5*af.TransMag(lastRBT.rbt)));
-
-                            boolean goodTransform2 = false;
-
-                            // If transform between consecutive frames is bad, consider last good frame
-                            // instead of last frame.
-                            if(!goodTransform && lastGoodAF != null){
-                            af = new AlignFrames(currFrame,
-                            lastGoodAF.getCurrFeatures(),
-                            lastGoodAF.getCurrFullPtCloud(),
-                            lastGoodAF.getCurrDecimatedPtCloud());
-
-                            transform = af.align(lastRBT.rbt);
-
-                            goodTransform2 = af.getCurrFullPtCloud().points.size() > 0
-                            && (af.TransMag(lastRBT.rbt) == 0
-                            || (af.TransMag(transform.rbt) < 5*af.TransMag(lastRBT.rbt)
-                            && af.TransMag(lastRBT.rbt) >= 0));
-                            }
-
-                            System.out.println("GT: "+goodTransform+"  GT2: "+goodTransform2);
-                            if(goodTransform || goodTransform2){
-                            lastGoodAF = af;
-                            lastRBT = transform; */
 
                             LinAlg.timesEquals(Grbt, transform.rbt);
 
@@ -504,12 +467,9 @@ public class RGBDSLAM implements LCMSubscriber {
                         }
                     }
                 }
-                //}
                 try {
-                    System.out.println("Going to Sleep");
                     wait();
                 } catch (InterruptedException ex) {
-                    System.out.println("Woke up");
                 }
             }
         }
