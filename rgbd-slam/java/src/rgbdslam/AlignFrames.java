@@ -51,42 +51,31 @@ public class AlignFrames {
         this.lastDecimatedPtCloud = lastDecimatedPtCloud;
     }
 
-    public RBT align(double[][] previousTransform) {
+    public RBT align(IMU imu) {
         RBT rbt = new RBT();
-
-        /*// If no points in point cloud, don't move.  Kind of a hack.
-        System.out.println("Pt cloud size: "+currFullPtCloud.points.size());
-        if(currFullPtCloud.points.size() == 0){
-            rbt.rbt = LinAlg.identity(4);
-            return rbt;
-        }*/
 
         DescriptorMatcher dm = new DescriptorMatcher(currFeatures, lastFeatures);
         rbt.allMatches = dm.match();
 
-        double[] Arpy = new double[3]; // average roll pitch yaw
-
-        Tic tic = new Tic();
         //List<DescriptorMatcher.Match> inliers = new ArrayList<Match>();
         //double[][] Rrbt = RANSAC.RANSAC(rbt.allMatches, rbt.inliers); // RANSAC's Estimate
         AdaptativeRANSAC.Output ransacOutput = AdaptativeRANSAC.RANSAC(rbt.allMatches);
         rbt.inliers = ransacOutput.inliers;
         double[][] Rrbt = ransacOutput.rbt;
         
-        System.out.println("RANSAC took " + tic.toc());
-        
         System.out.println("Inliers: "+rbt.inliers.size());
         if (rbt.inliers.size() < MIN_RANSAC_INLIERS || Rrbt == null) {
-            Rrbt = previousTransform;
+            Rrbt = imu.estimate(); // if got too few inliers, constant velocity model
+            System.out.println("Too few inliers using IMU");
         }
         /*
         System.out.println("RANSAC's estimate Roll Pitch Yaw");
         LinAlg.print(LinAlg.matrixToRollPitchYaw(Rrbt));
         LinAlg.print(Rrbt);
-        System.out.println("RANSAC's translation maginitude " + TransMag(Rrbt));
-        System.out.println("RANSAC's transformation matrix");
-        LinAlg.print(Rrbt);
-        */
+        System.out.println("RANSAC's translation maginitude " + TransMag(Rrbt));*/
+        //System.out.println("RANSAC's transformation matrix");
+        //LinAlg.print(Rrbt);
+        
         RGBDICPNew icp = new RGBDICPNew(lastDecimatedPtCloud);
 
         double[][] Irbt = icp.match(currDecimatedPtCloud, Rrbt, rbt.inliers); // New method
@@ -103,20 +92,21 @@ public class AlignFrames {
         System.out.println("ICP's estimate Roll Pitch Yaw");
         LinAlg.print(LinAlg.matrixToRollPitchYaw(Irbt));
 
-        System.out.println("ICP's translation maginitude " + TransMag(Irbt));
-        System.out.println("ICP's transformation matrix");
-        LinAlg.print(Irbt);
-         */
+        System.out.println("ICP's translation maginitude " + TransMag(Irbt)); */
+        //System.out.println("ICP's transformation matrix");
+        //LinAlg.print(Irbt);
+        
         //double[][] Erbt = weightedSum(Rrbt, Irbt, ALPHA);
         // Refuse to jump ... XXX hack
         /*if(TransMag(Irbt) > 10*TransMag(previousTransform) && TransMag(previousTransform) > 0.001){
             rbt.rbt = previousTransform;
         }
         else{*/
+        imu.estimate(Irbt); // feed back into IMU for incorporating data
         rbt.rbt = Irbt;
-        /*
-        System.out.println("Final Estimate");
-        LinAlg.print(rbt.rbt);*/
+        
+        //System.out.println("IMU's estimate");
+        //LinAlg.print(rbt.rbt);
 
         return rbt;
     }
