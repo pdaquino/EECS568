@@ -1,6 +1,7 @@
 package rgbdslam;
 
 import april.jmat.LinAlg;
+import april.util.Tic;
 import java.util.ArrayList;
 import java.util.List;
 import kinect.*;
@@ -63,7 +64,15 @@ public class AlignFrames {
 
         double[] Arpy = new double[3]; // average roll pitch yaw
 
-        double[][] Rrbt = RANSAC.RANSAC(rbt.allMatches, rbt.inliers); // RANSAC's Estimate
+        Tic tic = new Tic();
+        //List<DescriptorMatcher.Match> inliers = new ArrayList<Match>();
+        //double[][] Rrbt = RANSAC.RANSAC(rbt.allMatches, rbt.inliers); // RANSAC's Estimate
+        AdaptativeRANSAC.Output ransacOutput = AdaptativeRANSAC.RANSAC(rbt.allMatches);
+        rbt.inliers = ransacOutput.inliers;
+        double[][] Rrbt = ransacOutput.rbt;
+        
+        System.out.println("RANSAC took " + tic.toc());
+        
         System.out.println("Inliers: "+rbt.inliers.size());
         if (rbt.inliers.size() < MIN_RANSAC_INLIERS || Rrbt == null) {
             Rrbt = previousTransform;
