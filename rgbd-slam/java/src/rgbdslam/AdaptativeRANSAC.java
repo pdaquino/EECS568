@@ -68,20 +68,21 @@ public class AdaptativeRANSAC {
     }
     
     private static Output maximumLikelihoodEstimation(List<Match> matches, Output output) {
-        Output mleOutput = new Output(output.rbt, output.inliers);
+        Output bestOutput = null;
+        Output currentBestOutput = new Output(output.rbt, output.inliers);
         int lastInlierCount = 0;
         do {
-            lastInlierCount = mleOutput.inliers.size();
+            bestOutput = currentBestOutput;
             ArrayList<double[]> cora = new ArrayList<double[]>();
             ArrayList<double[]> corb = new ArrayList<double[]>();
-            for(Match m : mleOutput.inliers) {
+            for(Match m : bestOutput.inliers) {
                 cora.add(m.feature1.xyz());
                 corb.add(m.feature2.xyz());
             }
-            mleOutput.rbt = AlignPoints3D.align(cora, corb);
-            mleOutput.inliers = computeInliers(matches, mleOutput.rbt);
-        } while(mleOutput.inliers.size() > lastInlierCount);
-        return mleOutput;
+            currentBestOutput.rbt = AlignPoints3D.align(cora, corb);
+            currentBestOutput.inliers = computeInliers(matches, bestOutput.rbt);
+        } while(currentBestOutput.inliers.size() > bestOutput.inliers.size());
+        return bestOutput;
     }
     
     protected static List<DescriptorMatcher.Match> computeInliers(List<Match> matches, double[][] transform) {
