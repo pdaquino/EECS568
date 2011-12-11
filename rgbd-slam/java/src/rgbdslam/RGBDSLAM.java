@@ -402,8 +402,7 @@ public class RGBDSLAM implements LCMSubscriber {
             return new double[]{gp.axes[1]*vel*dt,
                                 gp.axes[0]*vel*dt,
                                 gp.axes[5]*vel*dt,
-				roll*theta_vel*dt,
-                                //gp.axes[4]*theta_vel*dt,
+				                roll*theta_vel*dt,
                                 gp.axes[3]*theta_vel*dt,
                                 gp.axes[2]*-theta_vel*dt};
         }
@@ -435,52 +434,24 @@ public class RGBDSLAM implements LCMSubscriber {
                     synchronized (rbtLock) {
                         System.out.println("Got rbtLock");
                         if (currFrame != null && lastFrame != null && af == null) {
+                            System.out.println("Align frames");
                             af = new AlignFrames(currFrame, lastFrame);
+                            System.out.println("done with frames");
                             imu.mark(); // need to manually select time
                         } else if (currFrame != null && lastFrame != null) {
                             imu.mark();
+                            System.out.println("create voxels");
                             VoxelArray va = new VoxelArray(currRes);
 
+                            System.out.println("Got voxels. align frames.");
                             af = new AlignFrames(currFrame,
                                     af.getCurrFeatures(),
                                     af.getCurrFullPtCloud(),
                                     af.getCurrDecimatedPtCloud());
 
+                            System.out.println("totally aligned those frames");
                             AlignFrames.RBT transform = af.align(imu);
-
-
-
-                            /*
-                            System.out.println("Pt Cloud Size: "+af.getCurrFullPtCloud().points.size());
-                            System.out.println("Tranform Mag: "+af.TransMag(transform.rbt));
-                            System.out.println("Last Mag: "+af.TransMag(lastRBT.rbt));
-
-                            boolean goodTransform = af.getCurrFullPtCloud().points.size() > 0
-                            && (af.TransMag(lastRBT.rbt) == 0
-                            || (af.TransMag(transform.rbt) < 5*af.TransMag(lastRBT.rbt)));
-
-                            boolean goodTransform2 = false;
-
-                            // If transform between consecutive frames is bad, consider last good frame
-                            // instead of last frame.
-                            if(!goodTransform && lastGoodAF != null){
-                            af = new AlignFrames(currFrame,
-                            lastGoodAF.getCurrFeatures(),
-                            lastGoodAF.getCurrFullPtCloud(),
-                            lastGoodAF.getCurrDecimatedPtCloud());
-
-                            transform = af.align(lastRBT.rbt);
-
-                            goodTransform2 = af.getCurrFullPtCloud().points.size() > 0
-                            && (af.TransMag(lastRBT.rbt) == 0
-                            || (af.TransMag(transform.rbt) < 5*af.TransMag(lastRBT.rbt)
-                            && af.TransMag(lastRBT.rbt) >= 0));
-                            }
-
-                            System.out.println("GT: "+goodTransform+"  GT2: "+goodTransform2);
-                            if(goodTransform || goodTransform2){
-                            lastGoodAF = af;
-                            lastRBT = transform; */
+                            System.out.println("got that transform!");
 
                             LinAlg.timesEquals(Grbt, transform.rbt);
 
@@ -491,12 +462,16 @@ public class RGBDSLAM implements LCMSubscriber {
                                 Grbt = af.renormalize(Grbt);
                             }
 
+                            System.out.println("Update the frame, yo");
                             fv.updateFrames(currFrame.makeRGB(), lastFrame.makeRGB(), transform.allMatches, transform.inliers);
                             va.voxelizePointCloud(af.getCurrFullPtCloud());
+                            System.out.println("Voxels updated");
 
                             // Let render thread do its thing
+                            System.out.println("Merge some voxels, yo");
                             globalVoxelFrame.merge(va, Grbt);
                             trajectory.add(LinAlg.resize(LinAlg.matrixToXyzrpy(Grbt), 3));
+                            System.out.println("Merged and banging, son!");
 
                         }  else{
                             imu.mark();
@@ -508,8 +483,8 @@ public class RGBDSLAM implements LCMSubscriber {
                 try {
                     System.out.println("Going to Sleep");
                     wait();
-                } catch (InterruptedException ex) {
                     System.out.println("Woke up");
+                } catch (InterruptedException ex) {
                 }
             }
         }

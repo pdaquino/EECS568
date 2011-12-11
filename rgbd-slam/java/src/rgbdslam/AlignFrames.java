@@ -52,11 +52,14 @@ public class AlignFrames {
     }
 
     public RBT align(IMU imu) {
-       
+
         RBT rbt = new RBT();
 
+        System.out.println("Making matcher");
         DescriptorMatcher dm = new DescriptorMatcher(currFeatures, lastFeatures);
+        System.out.println("matching...");
         rbt.allMatches = dm.match();
+        System.out.println("ready to SAC the RAN");
 
         //Tic tic = new Tic();
         List<DescriptorMatcher.Match> inliers = new ArrayList<Match>();
@@ -74,12 +77,12 @@ public class AlignFrames {
             Rrbt = imu.estimate(); // if got too few inliers, constant velocity model
             System.out.println("Too few inliers using IMU");
             rbt.inliers = new ArrayList<Match>(); // even the inliers are bad
-        } 
+        }
         /*
         else {
             IMUrbt = imu.estimate(Rrbt);
         }*/
-        
+
         /*
         System.out.println("RANSAC's estimate Roll Pitch Yaw");
         LinAlg.print(LinAlg.matrixToRollPitchYaw(Rrbt));
@@ -87,7 +90,7 @@ public class AlignFrames {
         System.out.println("RANSAC's translation maginitude " + TransMag(Rrbt));*/
         System.out.println("RANSAC's transformation matrix");
         LinAlg.print(Rrbt);
-        
+
         RGBDICPNew icp = new RGBDICPNew(lastDecimatedPtCloud);
 
         double[][] Irbt = icp.match(currDecimatedPtCloud, Rrbt, rbt.inliers); // New method
@@ -107,7 +110,7 @@ public class AlignFrames {
         System.out.println("ICP's translation maginitude " + TransMag(Irbt)); */
         System.out.println("ICP's transformation matrix");
         LinAlg.print(Irbt);
-        
+
         //double[][] Erbt = weightedSum(Rrbt, Irbt, ALPHA);
         // Refuse to jump ... XXX hack
         /*if(TransMag(Irbt) > 10*TransMag(previousTransform) && TransMag(previousTransform) > 0.001){
@@ -120,7 +123,7 @@ public class AlignFrames {
             imu.estimate(Irbt); // feed back into IMU for incorporating data
             rbt.rbt = Irbt;
         }
-        
+
         //System.out.println("IMU's estimate");
         //LinAlg.print(rbt.rbt);
 
