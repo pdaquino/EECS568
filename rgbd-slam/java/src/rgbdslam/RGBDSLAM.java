@@ -417,13 +417,13 @@ public class RGBDSLAM implements LCMSubscriber {
                             System.out.println("Pt Cloud Size: "+af.getCurrFullPtCloud().points.size());
                             System.out.println("Tranform Mag: "+af.TransMag(transform.rbt));
                             System.out.println("Last Mag: "+af.TransMag(lastRBT.rbt));
-                            
+
                             boolean goodTransform = af.getCurrFullPtCloud().points.size() > 0
                             && (af.TransMag(lastRBT.rbt) == 0
                             || (af.TransMag(transform.rbt) < 5*af.TransMag(lastRBT.rbt)));
-                            
+
                             boolean goodTransform2 = false;
-                            
+
                             // If transform between consecutive frames is bad, consider last good frame
                             // instead of last frame.
                             if(!goodTransform && lastGoodAF != null){
@@ -431,15 +431,15 @@ public class RGBDSLAM implements LCMSubscriber {
                             lastGoodAF.getCurrFeatures(),
                             lastGoodAF.getCurrFullPtCloud(),
                             lastGoodAF.getCurrDecimatedPtCloud());
-                            
+
                             transform = af.align(lastRBT.rbt);
-                            
+
                             goodTransform2 = af.getCurrFullPtCloud().points.size() > 0
                             && (af.TransMag(lastRBT.rbt) == 0
                             || (af.TransMag(transform.rbt) < 5*af.TransMag(lastRBT.rbt)
                             && af.TransMag(lastRBT.rbt) >= 0));
                             }
-                            
+
                             System.out.println("GT: "+goodTransform+"  GT2: "+goodTransform2);
                             if(goodTransform || goodTransform2){
                             lastGoodAF = af;

@@ -78,12 +78,14 @@ public class Kinect {
         int[] argb = getVideoFrame();
         short[] depth = getDepthFrame();
         if (argb != null) {
-            rgb_buf = rectifyRGB(argb); // rectify the image
+            //rgb_buf = rectifyRGB(argb); // rectify the image
+            rgb_buf = argb;
             rgb_cnt++;
         }
         if (depth != null) {
             //depth = smoothD(depth); // smooth image
-            d_buf = rectifyD(depth); // rectify image
+            //d_buf = rectifyD(depth); // rectify image
+            d_buf = depth;
             d_cnt++;
         }
 
@@ -145,22 +147,22 @@ public class Kinect {
         }
         return Rd;
     }
-    
+
     // smooths the depth image to reduce noise in depth
     private synchronized short[] smoothD(short[] SD) {
         // construct the gaussian filter
         float[] G = SigProc.makeGaussianFilter(Constants.SIGMA,Constants.FILTER_SIZE);
-       
+
         float[] BDf = new float[SD.length]; // stores the result
-        
+
         // cast input as float
         float[] SDf = new float[SD.length];
         for (int i = 0; i < SD.length; i++) {
             SDf[i] = (float) SD[i];
         }
-        
+
         SigProc.convolveSymmetricCentered(SDf, 0, SDf.length, G, BDf, 0);
-        
+
         // cast output back to short
         short[] BD = new short[BDf.length];
         for (int i = 0; i < BDf.length; i++) {
