@@ -55,11 +55,8 @@ public class AlignFrames {
 
         RBT rbt = new RBT();
 
-        System.out.println("Making matcher");
         DescriptorMatcher dm = new DescriptorMatcher(currFeatures, lastFeatures);
-        System.out.println("matching...");
         rbt.allMatches = dm.match();
-        System.out.println("ready to SAC the RAN");
 
         //Tic tic = new Tic();
         List<DescriptorMatcher.Match> inliers = new ArrayList<Match>();
@@ -71,7 +68,7 @@ public class AlignFrames {
         //System.out.println("RANSAC took " + tic.toc());
 
         //double[][] IMUrbt;
-        System.out.println("Inliers: "+rbt.inliers.size());
+        //System.out.println("Inliers: "+rbt.inliers.size());
         // if we got too few then just estimate directly from constant velocity motion model
         if (rbt.inliers.size() < MIN_RANSAC_INLIERS || Rrbt == null) {
             Rrbt = imu.estimate(); // if got too few inliers, constant velocity model
@@ -88,9 +85,6 @@ public class AlignFrames {
         LinAlg.print(LinAlg.matrixToRollPitchYaw(Rrbt));
         LinAlg.print(Rrbt);
         System.out.println("RANSAC's translation maginitude " + TransMag(Rrbt));*/
-        System.out.println("RANSAC's transformation matrix");
-        LinAlg.print(Rrbt);
-
         RGBDICPNew icp = new RGBDICPNew(lastDecimatedPtCloud);
 
         double[][] Irbt = icp.match(currDecimatedPtCloud, Rrbt, rbt.inliers); // New method
@@ -108,21 +102,20 @@ public class AlignFrames {
         LinAlg.print(LinAlg.matrixToRollPitchYaw(Irbt));
 
         System.out.println("ICP's translation maginitude " + TransMag(Irbt)); */
-        System.out.println("ICP's transformation matrix");
-        LinAlg.print(Irbt);
-
         //double[][] Erbt = weightedSum(Rrbt, Irbt, ALPHA);
         // Refuse to jump ... XXX hack
         /*if(TransMag(Irbt) > 10*TransMag(previousTransform) && TransMag(previousTransform) > 0.001){
             rbt.rbt = previousTransform;
         }
         else{*/
-        if (inliers.isEmpty()) {
+        /*if (inliers.isEmpty()) {
             rbt.rbt = imu.estimate(Irbt); // make sure ICP didn't do something stupid
         } else {
             imu.estimate(Irbt); // feed back into IMU for incorporating data
             rbt.rbt = Irbt;
-        }
+        }*/
+        imu.estimate(Irbt); // feed back into IMU for incorporating data
+        rbt.rbt = Irbt;
 
         //System.out.println("IMU's estimate");
         //LinAlg.print(rbt.rbt);

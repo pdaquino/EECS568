@@ -150,12 +150,15 @@ public class RGBDSLAM implements LCMSubscriber {
     class RenderThread extends Thread {
 
         int fps = 5;
+
         // Vis
         VisWorld vw;
         VisLayer vl;
         VisCanvas vc;
+
         // Knobs
         ParameterGUI pg;
+
         // Gamepad
         boolean turbo = false;
         double SLOW_VEL = -1.0;
@@ -421,37 +424,26 @@ public class RGBDSLAM implements LCMSubscriber {
         synchronized public void run() {
             AlignFrames af = null;
 
-            //if(lastRBT.rbt == null){ lastRBT.rbt = LinAlg.identity(4); }
-
             double[][] KtoGrbt = new double[][]{{0, 0, 1, 0}, {-1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, 0, 1}};
             Grbt = KtoGrbt;
 
 
             while (true) {
-                System.out.println("Locking");
                 synchronized (globalVoxelFrame) {
-                    System.out.println("Got Got Global Voxel Lock");
                     synchronized (rbtLock) {
-                        System.out.println("Got rbtLock");
                         if (currFrame != null && lastFrame != null && af == null) {
-                            System.out.println("Align frames");
                             af = new AlignFrames(currFrame, lastFrame);
-                            System.out.println("done with frames");
                             imu.mark(); // need to manually select time
                         } else if (currFrame != null && lastFrame != null) {
                             imu.mark();
-                            System.out.println("create voxels");
                             VoxelArray va = new VoxelArray(currRes);
 
-                            System.out.println("Got voxels. align frames.");
                             af = new AlignFrames(currFrame,
                                     af.getCurrFeatures(),
                                     af.getCurrFullPtCloud(),
                                     af.getCurrDecimatedPtCloud());
 
-                            System.out.println("totally aligned those frames");
                             AlignFrames.RBT transform = af.align(imu);
-                            System.out.println("got that transform!");
 
                             LinAlg.timesEquals(Grbt, transform.rbt);
 
@@ -462,16 +454,12 @@ public class RGBDSLAM implements LCMSubscriber {
                                 Grbt = af.renormalize(Grbt);
                             }
 
-                            System.out.println("Update the frame, yo");
                             fv.updateFrames(currFrame.makeRGB(), lastFrame.makeRGB(), transform.allMatches, transform.inliers);
                             va.voxelizePointCloud(af.getCurrFullPtCloud());
-                            System.out.println("Voxels updated");
 
                             // Let render thread do its thing
-                            System.out.println("Merge some voxels, yo");
                             globalVoxelFrame.merge(va, Grbt);
                             trajectory.add(LinAlg.resize(LinAlg.matrixToXyzrpy(Grbt), 3));
-                            System.out.println("Merged and banging, son!");
 
                         }  else{
                             imu.mark();
@@ -479,11 +467,8 @@ public class RGBDSLAM implements LCMSubscriber {
                         }
                     }
                 }
-                //}
                 try {
-                    System.out.println("Going to Sleep");
                     wait();
-                    System.out.println("Woke up");
                 } catch (InterruptedException ex) {
                 }
             }
