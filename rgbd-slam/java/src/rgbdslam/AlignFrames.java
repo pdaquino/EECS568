@@ -52,6 +52,7 @@ public class AlignFrames {
     }
 
     public RBT align(IMU imu) {
+       
         RBT rbt = new RBT();
 
         DescriptorMatcher dm = new DescriptorMatcher(currFeatures, lastFeatures);
@@ -113,8 +114,12 @@ public class AlignFrames {
             rbt.rbt = previousTransform;
         }
         else{*/
-        imu.estimate(Irbt); // feed back into IMU for incorporating data
-        rbt.rbt = Irbt;
+        if (inliers.isEmpty()) {
+            rbt.rbt = imu.estimate(Irbt); // make sure ICP didn't do something stupid
+        } else {
+            imu.estimate(Irbt); // feed back into IMU for incorporating data
+            rbt.rbt = Irbt;
+        }
         
         //System.out.println("IMU's estimate");
         //LinAlg.print(rbt.rbt);
