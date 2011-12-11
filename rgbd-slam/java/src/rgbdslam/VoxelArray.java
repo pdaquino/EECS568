@@ -110,6 +110,9 @@ public class VoxelArray
             vcd.add(voxel.getABGR());
         }
 
+        if (points.size() < 1)
+            return null;
+
         return new VzPoints(new VisVertexData(points),
                             new VzPoints.Style(vcd, 2));
     }
