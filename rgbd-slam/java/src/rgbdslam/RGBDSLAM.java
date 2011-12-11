@@ -350,6 +350,9 @@ public class RGBDSLAM implements LCMSubscriber {
         ArrayList<ImageFeature> featuresL;
         AlignFrames lastGoodAF;
         AlignFrames.RBT lastRBT = new AlignFrames.RBT();
+        
+        int cntr = 0; // used so that we don't try and renormalize after every trial.
+        final static int RENORM_FREQ = 20; // every 20 Frames
 
         synchronized public void run() {
             AlignFrames af = null;
@@ -410,6 +413,14 @@ public class RGBDSLAM implements LCMSubscriber {
                                 lastRBT = transform;
 
                                 LinAlg.timesEquals(Grbt, transform.rbt);
+                                
+                                // renormalize the rotation part of our rigid body transformation to avoid
+                                // numerical errors
+                                cntr++;
+                                if (cntr%RENORM_FREQ == 0) {
+                                    Grbt = af.renormalize(Grbt);
+                                }
+                                
                                 fv.updateFrames(currFrame.makeRGB(), lastFrame.makeRGB(), transform.allMatches, transform.inliers);
                                 va.voxelizePointCloud(af.getCurrFullPtCloud());
 

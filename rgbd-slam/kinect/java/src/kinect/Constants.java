@@ -63,18 +63,20 @@ public class Constants {
     
     // Camera calibration numbers courtesy of Nicolas Burrus
     // parameters for rgb color camera
-    public static double Frgbx = 5.2921508098293293e2; // focal length
-    public static double Frgby = 5.2556393630057437e2;
-    public static double Crgbx = 3.2894272028759258e2; // camera center in pixels
-    public static double Crgby = 2.6748068171871557e2;
+    public static double Frgbx = 523.06864; // focal length 5.2921508098293293e2
+    public static double Frgby = 522.62898; // 5.2556393630057437e2
+    public static double Crgbx = 3.15e2; // camera center in pixels 3.2894272028759258e2
+    public static double Crgby = 2.65e2; // 2.6748068171871557e2 265 seems good
     public static double[] Krgb = {2.6451622333009589e-1, -8.3990749424620825e-1,
-	-1.9922302173693159e-3, 1.4371995932897616e-3, 9.1192465078713847e-1};
+	-1.9922302173693159e-3, 1.4371995932897616e-3, 0.8};
+    // 0.8 seems to be a better 3rd order radial distortion term
+    //9.1192465078713847e-1
 
     // parameters for IR depth camera
-    public static double Firx = 5.9421434211923247e2; // focal length
-    public static double Firy = 5.9104053696870778e2;
-    public static double Cirx = 3.3930780975300314e2; // camera center in pixels
-    public static double Ciry = 2.4273913761751615e2;
+    public static double Firx = 590; // focal length 5.9421434211923247e2
+    public static double Firy = 590; // 5.9104053696870778e2
+    public static double Cirx = 336; // camera center in pixels 3.3930780975300314e2
+    public static double Ciry = 243.38230; // 2.4273913761751615e2
     public static double[] Kir = {-2.6386489753128833e-1, 9.9966832163729757e-1,
         -7.6275862143610667e-4, 5.0350940090814270e-3, -1.3053628089976321};
 
