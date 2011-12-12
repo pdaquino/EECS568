@@ -78,12 +78,14 @@ public class Kinect {
         int[] argb = getVideoFrame();
         short[] depth = getDepthFrame();
         if (argb != null) {
-            rgb_buf = rectifyRGB(argb); // rectify the image
+            //rgb_buf = rectifyRGB(argb); // rectify the image
+            rgb_buf = argb;
             rgb_cnt++;
         }
         if (depth != null) {
             //depth = smoothD(depth); // smooth image
-            d_buf = rectifyD(depth); // rectify image
+            //d_buf = rectifyD(depth); // rectify image
+            d_buf = depth;
             d_cnt++;
         }
 
