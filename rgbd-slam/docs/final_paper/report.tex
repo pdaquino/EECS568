@@ -1,0 +1,60 @@
+\documentclass[letterpaper, 10pt, conference]{ieeeconf}
+
+\IEEEoverridecommandlockouts    % If we want to use the thanks command
+
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% EPS2PDF stuff?
+
+\newcommand{\xxx}[1]{\textcolor{red}{#1}}
+
+\title{\LARGE \bf
+    3D Environment Reconstruction Using RGB-D Visual Odometry
+}
+
+\author{Pedro D'Aquino, Rob Goeddel, Lauren Hinkle, and John Peterson}
+
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+\pagestyle{empty}
+
+\begin{abstract}
+The reconstruction of environments in 3D can be challenging with just range
+data. RGB-D sensors like the Microsoft Kinect provide visual details that
+allow odometry to be used even in environments with ambiguous depth data.
+This paper demonstrates a simplified implementation of Henry et al.'s work
+on RGB-D Mapping.~\cite{Henry10rgbd}
+Our system can construct reasonably accurate models of
+small to medium sized indoor environments in real time at resolutions of up
+to 2\,cm and in near-real time at 1\,cm. By using SURF features from the image
+data in conjunction with the Kinect's depth data, we are able to compute
+accurate alignments of point clouds over time. Our system does not attempt to
+implement the loop-closing portion of Henry et al.'s work.
+\end{abstract}
+
+\section{Introduction}
+
+
+\section{Motivation}
+\xxx{BACKGROUND AND MOTIVATION GOES HERE}
+
+\section{Methodology}
+\xxx{METHODOLOGY GOES HERE}
+
+\section{Evaluation}
+\xxx{EVALUATION AND PRETTY FIGURES GO HERE}
+
+\section{Conclusion}
+\xxx{CONCLUSION GOES HERE}
+
+% XXX References
+\bibliographystyle{IEEEtran}
+\bibliography{sources}
+
+\end{document}
