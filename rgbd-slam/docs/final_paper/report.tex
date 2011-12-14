@@ -12,7 +12,7 @@
 
 \newcommand{\xxx}[1]{\textcolor{red}{#1}}
 
-\title{\LARGE \bf
+\title{\LARGE \bf	
     3D Environment Reconstruction Using RGB-D Visual Odometry
 }
 
@@ -72,7 +72,7 @@ This preservation of visual data even aids in the end product of the mapping
 task. Imagine a 3D map of a building created from range data. While the map
 might be an accurate layout of the building, the lack of visual cues may still
 leave the user feeling lost and confused while navigating through a virtual
-reconstruction of this environment. Given associated color data, that could
+reconstruction of this environment. Associated color data could
 have features such as door numbers and maps of the building available to aid
 in navigation.
 
@@ -129,9 +129,15 @@ OpenKinect website, we are able to construct a colored point cloud with only
 minimal blurring of color between objects.
 
 \subsection{Frame Matching Using Image Features}
-Though the original implementation uses SIFT, we chose to switch to
-the significantly faster SURF. \xxx{Pedro, talk about your design decisions
-    here.}
+The first approximation of the movement of the Kinect comes from matching 3D image
+features between the current and the last frame. We compute SURF features and descriptors
+to extract and describe features in the image~\cite{Bay06surf}. Our approach differs
+from Henry et al., who use a parallel implementation of SIFT descriptors~\cite{SIFTGPU}.
+As the majority of the development laptops we used had integrated graphics cards, using
+a GPU implementation was not feasible. We found that SURF was an adequate tradeoff
+between robustness and performance. Our implementation uses OpenCV~\cite{opencv_library}
+for feature detection and descriptor extraction, with a JNI wrapper to allow for
+communication with the rest of the system.
 
 Once we extract these features from the RGB images, we project them into 3D space
 using the depth data from the Kinect. Given these 3D SURF features, we may
