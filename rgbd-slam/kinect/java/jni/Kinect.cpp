@@ -83,6 +83,7 @@ void video_cb(freenect_device *dev, void *v_rgb, uint32_t timestamp)
 }
 void *runThread(void *)
 {
+    freenect_set_led(f_dev, LED_BLINK_GREEN);
     while (!die && freenect_process_events(f_ctx) >= 0) {
         // Spin wildly and process events so the callbacks happen
     }
@@ -117,7 +118,7 @@ JNIEXPORT jint JNICALL Java_kinect_Kinect_initKinect(JNIEnv *env, jobject obj)
 
     // Init device
     //freenect_set_tilt_degs(f_dev, 0);
-    freenect_set_led(f_dev, LED_GREEN);
+    freenect_set_led(f_dev, LED_YELLOW);
     freenect_set_depth_callback(f_dev, depth_cb);
     freenect_set_video_callback(f_dev, video_cb);
 
@@ -136,6 +137,7 @@ JNIEXPORT jint JNICALL Java_kinect_Kinect_closeKinect(JNIEnv *env, jobject obj)
 {
     pthread_mutex_lock(&video_mutex);
     pthread_mutex_lock(&depth_mutex);
+    freenect_set_led(f_dev, LED_BLINK_RED_YELLOW);
     die = 1;
     pthread_mutex_unlock(&depth_mutex);
     pthread_mutex_unlock(&video_mutex);
