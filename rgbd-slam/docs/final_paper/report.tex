@@ -168,7 +168,7 @@ communication with the rest of the system.
 
 \subsubsection{Feature Matching}
 We match a SURF feature to its nearest Euclidian neighbor in the other frame. The matching
-uses a kd-tree for efficiency. We experimented with reducing the number of outliers by
+uses a KD-tree for efficiency. We experimented with reducing the number of outliers by
 constraining the matches in two ways. In the ``distant second'' approach, let $A_i$ be the
 best match for feature $B_j$, with distance $d_{ij}$, and $A_k$ be the second best match,
 with distance $d_{kj}$. Then we only consider $A_i$ to match $B_j$ if $d_{ij} \le \alpha d_{jk}$.
@@ -182,10 +182,34 @@ to robustly filter outliers.
 
 \subsubsection{Computing the Rigid Body Transformation}
 \label{ransac}
-Once we extract these features from the RGB images, we project them into 3D space
-using the depth data from the Kinect. Given these 3D SURF features, we may
-compute good alignment using RANSAC and Horn's algorithm. \xxx{Lauren, talk
-    more about point alignment}
+After features are extracted using SURF from the RGB images, we project
+them into 3D space using the depth data from the Kinect. Given these
+corrseponding 3D features, we may compute good alignment using Horn's
+algorithm and RANSAC.
+
+Horn's algorithm is a closed-form calculataion of the rigid body
+transformation in three or more dimensions.  Given a set of corresponding
+points it calculates the optimal transformation without iteration
+~\cite{horn1987closed}.  The majority of the calculations we perform with
+Horn's algorithm have only three sets of corresponding 3D points, and so
+Horn's algorithm is quite fast.
+
+Horn's Algorithm is used at every iteration within our RANSAC implementation.
+We use RANSAC to discover outliers in the set of corresponding features
+set.  At each iteration of RANSAC, three corresponding pairs of features
+are selected randomly; this is the minimum needed to model a rigid body
+transformation.  Horn's method is used on the projected locations of these
+features, and the resulting transformation is voted upon by all the remaining
+features.  Features from the first frame that are transformed to within $1cm$
+of their corresponding feature in the second frame and considered a vote in
+favor of the transformation and are considered inliers.  The largest set of
+inliers is maintained from iteration to iteration.
+
+RANSAC halts after a given number of iterations or after $80\%$ of the
+correspondences are considered to be inliers.  This was done to decrease
+the time spent in RANSAC, however in practice, inlier sets rarely exceeded
+$80\%$ of the total number of corresponding features.  An initial
+transformation is then computed using just the optimal inlier set.
 
 \subsection{ICP}
 Once we've used RANSAC to gain an initial alignment, we use ICP to jiggle the
