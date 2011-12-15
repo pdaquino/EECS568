@@ -101,15 +101,15 @@ public class FrameAligner {
                     Color.blue);
             vbIm.swap();
         }
-        
+
         {
             VisWorld.Buffer vb = vw.getBuffer("pts-clouds");
             vb.addBack(new VzPoints(new VisVertexData(pts1.points), new VzPoints.Style(pts1.vcd, 2)));
             vb.swap();
         }
-        
+
         AlignFrames af = new AlignFrames(frame1, frame2);
-        LinAlg.print(af.align(LinAlg.identity(4)).rbt);
+        //LinAlg.print(af.align(LinAlg.identity(4)).rbt);
     }
 
     public static void main(String[] args) throws Exception {
