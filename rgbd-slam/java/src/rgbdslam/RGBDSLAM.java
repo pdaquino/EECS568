@@ -280,6 +280,9 @@ public class RGBDSLAM implements LCMSubscriber {
         synchronized public void run() {
             Tic tic = new Tic();
             while (true) {
+                StopWatch sw = new StopWatch("rendering");
+
+                sw.start("camera");
                 double[] xyzrpy = getCameraXYZRPY(tic.toctic());
                 if (vc.getLastRenderInfo() != null) {
                     VisCameraManager.CameraPosition cpos = vc.getLastRenderInfo().cameraPositions.get(vl);
@@ -320,7 +323,9 @@ public class RGBDSLAM implements LCMSubscriber {
 
                     vl.cameraManager.uiLookAt(eye, lookat, up, false);
                 }
+                sw.stop();
 
+                sw.start("voxels");
                 synchronized (globalVoxelFrame) {
                     if (globalVoxelFrame.size() > 0 && !opts.getBoolean("kinect-only")) {
                         VisWorld.Buffer vb = vw.getBuffer("voxels");
@@ -332,7 +337,8 @@ public class RGBDSLAM implements LCMSubscriber {
                         }
                     }
                 }
-
+                sw.stop();
+                sw.start("path");
                 synchronized (rbtLock) {
                     VisWorld.Buffer vb = vw.getBuffer("kinect-pos");
                     vb.addBack(new VzAxes());
@@ -348,6 +354,8 @@ public class RGBDSLAM implements LCMSubscriber {
 
                     vb.swap();
                 }
+                sw.stop();
+                System.out.println(sw.prettyPrint());
 
                 TimeUtil.sleep(1000 / fps);
             }
@@ -438,12 +446,13 @@ public class RGBDSLAM implements LCMSubscriber {
                             imu.mark();
                             VoxelArray va = new VoxelArray(currRes);
 
+                            //StopWatch sw = new StopWatch("RGBDSLAM");
                             af = new AlignFrames(currFrame,
                                     af.getCurrFeatures(),
                                     af.getCurrFullPtCloud(),
                                     af.getCurrDecimatedPtCloud());
 
-                            AlignFrames.RBT transform = af.align(imu);
+                            AlignFrames.RBT transform = af.align(imu);//, sw);
 
                             LinAlg.timesEquals(Grbt, transform.rbt);
 
@@ -455,11 +464,16 @@ public class RGBDSLAM implements LCMSubscriber {
                             }
 
                             fv.updateFrames(currFrame.makeRGB(), lastFrame.makeRGB(), transform.allMatches, transform.inliers);
+                            //sw.start("voxelization");
                             va.voxelizePointCloud(af.getCurrFullPtCloud());
+                            //sw.stop();
 
                             // Let render thread do its thing
+                            //sw.start("mergeVoxels");
                             globalVoxelFrame.merge(va, Grbt);
                             trajectory.add(LinAlg.resize(LinAlg.matrixToXyzrpy(Grbt), 3));
+                            //sw.stop();
+                            //System.out.println(sw.prettyPrint());
 
                         }  else{
                             imu.mark();
