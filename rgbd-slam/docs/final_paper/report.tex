@@ -2,6 +2,7 @@
 
 \IEEEoverridecommandlockouts    % If we want to use the thanks command
 
+\usepackage{fullpage}
 \usepackage{color}
 \usepackage{graphicx}
 \usepackage{amsmath}
@@ -78,6 +79,15 @@ reconstruction of this environment. Associated color data could
 have features such as door numbers and maps of the building available to aid
 in navigation.
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.48\textwidth]{figures/Ed_hugging_pole.png}
+\caption{A model of Prof. Ed Olson taken during the EECS 568 public showcase.
+Voxel resolution for this model is 0.5\,cm, allowing us to preserve details
+such as the creases in Ed's shirt and pants or the pupils of his eyes.}
+\label{fig:ed-model}
+\end{figure}
+
 % Figure spanning columns. Top of second page, probably
 \begin{figure*}[t]
 \centering
@@ -117,7 +127,6 @@ support real time voxel mapping at a coarse resolution sufficient for
 trajectory planning.
 
 \section{Methodology}
-\xxx{METHODOLOGY GOES HERE}
 Our implementation of RGB-D mapping passes entirely on the SLAM portion,
 focusing instead on feature-based odometry. Lacking time to implement a
 full RGB-D SLAM system capable of rendering real-time navigable scenes at the
@@ -208,7 +217,24 @@ relative to the current camera position.
 \xxx{EVALUATION AND PRETTY FIGURES GO HERE}
 \subsection{Ground Truth Evaluation}
 
-\subsection{Performance}
+\subsection{Real-time Performance}
+Given our simplification of the original problem (namely not implementing SLAM
+or surfels), one of our major goals was to be able to collect and add data to
+our global point cloud in real-time. By switching from SIFT to SURF, for
+example, we reduced the cost of processing a frame for features from
+~180\,ms per frame to ~9\,ms per frame. The total cost of processing a frame
+can be seen Table...\xxx{This table doesn't exist. Make it!}
+
+Real time rendering performance is another issue. \xxx{maybe. is it actually,
+    or is this really encompassed by processing time?} Though we are able to
+process the data quickly enough and add it to our global point cloud in
+real-time, rendering the frame is incredibly costly, especially as the global
+point cloud grows. A 30 second dataset collected of a medium sized office
+contains over 2 million voxel points at 1\,cm resolution, and visual
+updates/real-time navigation of this scene lag noticeably behind input. Our
+experience shows that the system delivers real-time visual updates and
+navigability when running with 2\,cm voxels. For live demonstrations, this is
+the resolution we employ. \xxx{How fast are the frames actually rendered?}
 
 \begin{figure}
 \centering
@@ -233,14 +259,15 @@ point data is clearly added to our model of the world as we move around. By
 allowing people to fly through our virtual world as we are actively building
 it, they can easily compare the virtual scene to the real one before them. We
 can also build detailed 3D models of people on the fly, if the are able to
-hold still for a long enough period of time. %Reference to Ed picture
+hold still for a long enough period of time, as seen in Fig.~\ref{fig:ed-model}.
 
 \section{Conclusion}
 \xxx{CONCLUSION GOES HERE}
 
 \section*{Acknowledgements}
 Special thanks to Pradeep Ranganathan for providing some extra depth
-information in Fig.~\ref{fig:kinect-demo}.
+information in Fig.~\ref{fig:kinect-demo} and Prof. Ed Olson for patiently
+posing for us during our final demonstration.
 
 % XXX References
 \bibliographystyle{IEEEtranS}
