@@ -144,7 +144,11 @@ minimal blurring of color between objects.
 
 \subsection{Frame Matching Using Image Features}
 The first approximation of the movement of the Kinect comes from matching 3D image
-features between the current and the last frame. We compute SURF features and descriptors
+features between the current and the last frame. In this section, we describe the details
+of our implementation.
+
+\subsubsection{Feature Extraction and Description}
+We compute SURF features and descriptors
 to extract and describe features in the image~\cite{Bay06surf}. Our approach differs
 from Henry et al., who use a parallel implementation of SIFT descriptors~\cite{SIFTGPU}.
 As the majority of the development laptops we used had integrated graphics cards, using
@@ -153,6 +157,22 @@ between robustness and performance. Our implementation uses OpenCV~\cite{opencv_
 for feature detection and descriptor extraction, with a JNI wrapper to allow for
 communication with the rest of the system.
 
+\subsubsection{Feature Matching}
+We match a SURF feature to its nearest Euclidian neighbor in the other frame. The matching
+uses a kd-tree for efficiency. We experimented with reducing the number of outliers by
+constraining the matches in two ways. In the ``distant second'' approach, let $A_i$ be the
+best match for feature $B_j$, with distance $d_{ij}$, and $A_k$ be the second best match,
+with distance $d_{kj}$. Then we only consider $A_i$ to match $B_j$ if $d_{ij} \le \alpha d_{jk}$.
+We also experimented with enforcing ``marriage'' between matches: $A_i$ matches $B_j$ only if
+$B_j$ also matches $A_i$.
+
+Both constraints reduced the number of wrong matches, but also eliminated some inliers.
+Additionaly, there was significant overhead from applying the ``marriage'' constraint.
+In the end, we found that applying RANSAC as explained in the next section was enough
+to robustly filter outliers.
+
+\subsubsection{Computing the Rigid Body Transformation}
+\label{ransac}
 Once we extract these features from the RGB images, we project them into 3D space
 using the depth data from the Kinect. Given these 3D SURF features, we may
 compute good alignment using RANSAC and Horn's algorithm. \xxx{Lauren, talk
@@ -193,10 +213,10 @@ relative to the current camera position.
 \begin{figure}
 \centering
 \includegraphics[width=0.48\textwidth]{figures/KinectDemo.png}
-\caption{RGB and depth data from a kinect. For easier consumption, the depth
+\caption{RGB and depth data from a Kinect. For easier consumption, the depth
 data has been mapped through the colors of the rainbow where red corresponds
 to objects roughly 1\,m away and purple corresponds to objects roughly 8~\,m
-away. Though the kinect clearly has a range of at least 8\,m, this data
+away. Though the maximum range is at least 8\,m, the depth data
 becomes increasingly noisy, so we only use data within 3.8\,m of the Kinect,
 the range at which the data seems to begin to deteriorate.}
 \label{fig:kinect-demo}
