@@ -83,10 +83,12 @@ void video_cb(freenect_device *dev, void *v_rgb, uint32_t timestamp)
 }
 void *runThread(void *)
 {
+    freenect_set_led(f_dev, LED_BLINK_GREEN);
     while (!die && freenect_process_events(f_ctx) >= 0) {
         // Spin wildly and process events so the callbacks happen
     }
 
+    freenect_set_led(f_dev, LED_BLINK_RED_YELLOW);
     freenect_close_device(f_dev);
     freenect_shutdown(f_ctx);
 
