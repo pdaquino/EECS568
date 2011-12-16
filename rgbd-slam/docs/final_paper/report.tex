@@ -212,8 +212,63 @@ $80\%$ of the total number of corresponding features.  An initial
 transformation is then computed using just the optimal inlier set.
 
 \subsection{ICP}
-Once we've used RANSAC to gain an initial alignment, we use ICP to jiggle the
-new frame into place. \xxx{John, talk about ICP here!}
+	The rigid body transformation (RBT) calculated by aligning corresponding visual features can be further refined by aligning point clouds between successive frames.  Iterative Closest Point (ICP) is one method to accomplish this.  ICP is an iterative processes that alternates between using a given rigid body transformation to determine point correspondences and using these point correspondences to compute an RBT to align the points.  \newline
+
+$\textbf{given: } \text{pointclouds } A = a_{i}, B = b_{i} $ \newline
+$\text{An initial transformation, $T_{0}$} $ \newline
+$T = T_{0}; $\newline 
+$\textbf{while} \emph{ not converged} \textbf{ do} $\newline
+$\hspace*{5 mm} \textbf{for } \emph{i = i:N} $\newline
+$ \hspace*{10mm} a^{B}_{i} in B = T * a_i$ \newline
+$ \hspace*{10 mm} n_{i} = Find Nearest Point in B(a^{B}_{i}) $ \newline
+$ \hspace*{5 mm} \textbf{end} $ \newline
+$ \hspace*{5 mm} T = argmin_{T} \{\sum_{i} ||T*a_{i} - n_{i} || ^2\}; $ \newline
+$ \textbf{end} $ \newline
+
+	Let point cloud A be the point cloud corresponding to the most recent frame received from the Kinect and let point cloud B be the previous one received.  ICP applies an initial estimate of the RBT between $A$ and $B$, to the each of the points, $a_{i}$ in $A$ to get points a in frame $B$.  Simple nearest neighbor data association determines point correspondences which is accelerated through the use of a K-D tree.  Then using Horn's algorithm \xxx{Fix citation for Horns!} (citation Berthold K. P. Horn. Closed-form solution of absolute orientation using unit quaternions. Journal of the Optical Society of America A, 4(4):629–642, April 1987) we compute the optimal RBT to align the corresponding points.  We made use of the AlignPoints3D April code for this computation.  Then we compute the error in the alignment by taking the sum of the distances between corresponding points.  This whole process is repeated until the decrease in error from one iteration to the next has increased above a set threshold.
+
+	Unfortunately, simple ICP as described above has quite a few weaknesses, some of which we have attempted to address.  
+
+	ICP uses a point to point error metric which implicitly assumes that our sensor has measured the same point from both frames.  However this is not a completely rigorous or robust way of describing how two views of a scene are related to one another, since it is exceedingly unlikely that our sensor will sample the exact point in each view.  Alternative formulations of ICP, such as Iterative Closest Plane, which minimizes a point to plane error metric deal with this problem to some degree.  Iterative Closest Plane introduces the additional complication of computing normal vectors for each point in one of the views.  This more complicated formulation would yield improved accuracy, however there are other areas where we could improve the project that would provide greater benefits for less cost in development time, so we avoided utilizing this more difficult formulation. 
+
+	ICP's nearest neighbor data association also implicitly assumes that the two point clouds being matched completely overlap.  In the vast majority of cases, movement of the sensor means that there will be points in one point cloud that do not correspond to points in the other point cloud.  Inaccurate point correspondences lead to distortions in the RBT.  The absence of corresponding point in the other view can occur for points that are near occlusion boundaries or close to the maximum range of the sensor.  It would be possible to construct a heuristic that would reason about occlusions and sensor range to avoid matching such points.  As a substitute for this more complex reasoning we introduce a horizon for point correspondences which limits the maximum distance between corresponding points.   If the nearest neighbor if beyond this horizon, then the correspondence is discarded.  However, this horizon introduces other complications.  If it is set to be too short, then the initial alignment will need to be very good to make any correspondences at all.  On the other hand if it is too long, then there will be no effect on the correspondences that are made.  In practice the alignment that RANSAC provides is good enough  to set a short horizon which all but eliminates this problem.   
+
+	There is still one, more troubling issue that a data association horizon introduces.  If the algorithm uses an error metric that is simply the sum of the distances between corresponding points, then it is plausible for the error to increase as the alignment improves if this horizon is used.  Given two point clouds and an initial alignment that puts most of the points beyond the horizon for data association.  The initial error will be relatively small because only a small number of correspondences will exist between the two clouds.  As the alignment is improved, more point correspondences will be discovered, which would cause the total error to increase.  This could cause the algorithm to terminate prematurely, leading to suboptimal alignments.  To solve this issue we use a normalized error metric which is simply the average error per correspondence.  Using this metric, the error will decrease correctly as the alignment is improved.   
+
+	ICP also requires a good initial alignment in order to guarantee that it converges to the global minimum error.  If we have a poor initialization, ICP will get caught in a local minimum.  Using visual feature correspondences provides a good enough estimate of the RBT that this problem is completely taken care of. 
+ 
+	Another major issue with ICP and other scan matching schemes like Mult-Resolution scan matching is that some scene geometries can make motions ambiguous.  For example moving down the length of a hallway would yield no change in the 3D range scans read by the Kinect or other similar sensors making it impossible to tell that the sensor has moved at all.  In fact, ICP would converge to a solution that would claim that the sensor has not moved at all, since such a solution would yield the greatest overlap of the two point clouds.  If such an environment has visual features, we can use these features to augment the alignment algorithm, as originally described in Henry's paper. (CITATION)  This modification, described below, yields significantly improvements even in cases where there were no ambiguities in the environment.  
+
+\subsection{RGBD-ICP}
+Using visual features to augment point cloud matching improves the quality of alignments produced by this step.    To utilize visual features we introduce the 3D coordinates relative to the Kinect, of inlier feature correspondences, into both point clouds.  Since their correspondence has already been determined by matching SURF descriptors and then filtered with RANSAC, these correspondences remain constant throughout each iteration of ICP.
+
+$\textbf{given: } \text{pointclouds } A = a_{i}, B = b_{i} $ \newline
+$\text{An initial transformation, $T_{0}$} $ \newline
+$\text{Corresponding Visual Features } Fa_{i}, Fb_{i} $ \newline
+$T = T_{0}; $\newline 
+$\textbf{while} \emph{ not converged} \textbf{ do} $\newline
+$\hspace*{5 mm} \textbf{for } \emph{i = i:N} $\newline
+$ \hspace*{10mm} a^{B}_{i} in B = T * a_i$ \newline
+$ \hspace*{10 mm} n_{i} = Find Nearest Point in B(a^{B}_{i}) $ \newline
+$ \hspace*{10 mm} \textbf{if } ||n_{i}-a^{B}_{i}|| <= d_{threshold} $ \newline
+$\hspace*{15 mm} w_i = 1; $ \newline
+$\hspace*{10mm} \textbf{else} $ \newline
+$\hspace*{15mm} w_i = 0; $ \newline
+$\hspace*{10mm} \textbf{end} $\newline
+$ \hspace*{5 mm} \textbf{end} $ \newline
+$ \hspace*{5 mm} T = argmin_{T} \{\sum_{i} w_{i}||T*a_{i} - n_{i} || ^2 +$ \newline
+$ \hspace*{15mm} m_{i} ||T*Fa_{i} - Fb_{i}||^2\}; $ \newline
+$ \textbf{end} $ \newline
+
+
+	Visual features are generally out-numbered by other points in the point cloud, so we have introduced a correspondence weighting term and modified the AlignPoints3D class to utilize this weight when computing the optimal transformation.  By increasing the weight of visual features relative to other points in the point cloud we can ensure that they influence the alignment to the degree that we want.  To achieve a relative weight of 50% where as a whole both the point cloud and the visual features have approximately same say in the final alignment, each visual feature correspondence is given a weight, $m_{i}$, equal to the size of the point cloud divided by the number of feature correspondences.  It would be more accurate to calculate the number of point correspondences and use that rather than the size of the point cloud.  Conceptually this weighting procedure is equivalent to duplicating each of the visual features to increase their influence on the alignment.  However this formulation for the weight becomes problematic at low inlier correspondence numbers as increasingly few features are given greater and greater weight when in fact we should trust visual features less if there are so few to use in the first place.  To address this issue, the maximum weight assigned to each visual feature is capped at a maximum number ensuring that the influence of the point cloud grows as visual features become less reliable. 
+
+\subsection{Constant Velocity Motion Model}
+In circumstances when there are few or no visual features, we would still like to estimate the RBT between frames to initialize ICP.  As in the paper, we implemented a constant velocity model which uses the RBT estimated by RGBD-ICP at each time step combined with a timer to estimate the linear and angular velocities of the Kinect.  These values averaged over time to attempt to reduce the noise that velocity estimates are prone to, however this tends to introduce time delays in the response of the estimated velocity compared to the actual velocity of the Kinect.  We found that once the set of inliers features from RANSAC dropped to about 20, it would no longer give accurate RBTs.  At this threshold, the constant velocity motion model steps in and provides an estimate to initialize ICP.
+
+By definition the constant velocity model assumes that the Kinect maintains a constant velocity so large changes in the motion of the sensor in areas without visual features causes the system to fail.  Additionally there are cases where both a lack of visual features and the presence of a geometric ambiguiity cause both RANSAC and RGBD-ICP to fail.  This simultaneous failure quickly renders the constant velocity model useless since its estimates are quickly ruined by the erroneous results from RGBD-ICP.  We attempted to deal with this problem by setting internal limits on how rapidly the estimates of velocity could change, but our implementation currently has no heuristics to determine when RGBD-ICP has failed leading to poor behavior in circumstances when the constant velocity model alone might yield better results.  Improvements in this area would greatly increase the reliability of the system in many common situations such as mapping large empty sections of large rooms, where features are beyond the range of the sensor or if the sensor is looking at a featureless wall for brief periods of time.  
+
+
 
 \subsection{Rendering the Scene}
 We do not attempt to implement the surfels demonstrated by Henry et al.
