@@ -182,6 +182,13 @@ Additionaly, there was significant overhead from applying the ``marriage'' const
 In the end, we found that applying RANSAC as explained in the next section was enough
 to robustly filter outliers.
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/awesome_couch.png}
+\caption{A reconstruction of the couches in Tishman Hall.}
+\label{fig:couch}
+\end{figure*}
+
 \subsubsection{Computing the Rigid Body Transformation}
 \label{ransac}
 After features are extracted using SURF from the RGB images, we project
@@ -375,8 +382,8 @@ Kinect's estimated position, with the first checkpoint being at the origin. At t
 test run, we compared the Kinect's esimate of the checkpoints to where they really were in the
 world.
 
-We performed this evaluation in two environments. Fig.~\ref{fig:cse-wall} shows the result of the test
-in a feature-rich hallway. Three checkpoints were placed on the ground along the hallway, and the Kinect was
+We performed this evaluation in two environments. Fig.~\ref{fig:cse-wall} shows the reconstruction of a
+feature-rich hallway. Three checkpoints were placed on the ground along the hallway, and the Kinect was
 moved between them. Fig.~\ref{fig:gt-slc} is the reconstructed whiteboard in the student learning
 center in CSE. For this test, six checkpoints were placed in a zig-zag pattern on a table.
 
@@ -385,6 +392,11 @@ As expected from a pure odometry system, the error acumulates and the estimative
 position tends to diverge with time. Fig.~\ref{fig:plot-angular} presents the angular error at
 every checkpoint. The ``table" dataset shows significantly greater errors because of the
 zig-zag pattern of the markers, which caused angular errors to accumulate more rapidly.
+
+We also conducted a number of reconstructions without ground-truth data. Fig.~\ref{fig:couch}
+is an example of a reasonably long trajectory for which our system produced a good
+reconstruction.
+
 \subsection{Real-time Performance}
 Given our simplification of the original problem (namely not implementing SLAM
 or surfels), one of our major goals was to be able to collect and add data to
@@ -478,7 +490,8 @@ the full speed of our sensor, forcing us to throw away some data. The addition o
 visual features to depth information allow us to accurately maintain our position
 estimate in the world even in environments lacking unique depth data. Though our
 system could clearly benefit from the addition of a full SLAM system to
-correct our slowly accumulating error, we are still able to maintain position
+correct our slowly accumulating error, as exemplified in Fig.~\ref{fig:slam},
+ we are still able to maintain position
 estimates within a 10\% error margin of the total distance traveled. % XXX This is the number, yes?
 
 \begin{figure}[t]
@@ -487,6 +500,13 @@ estimates within a 10\% error margin of the total distance traveled. % XXX This 
 \caption{The errors in roll, pitch and yaw as the Kinect moves between the checkpoints
 for the two datasets.}
 \label{fig:plot-angular}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.48\textwidth]{figures/slam.png}
+\caption{An example of a dataset that would have greatly benefitted from loop-closures.}
+\label{fig:slam}
 \end{figure}
 
 \section*{Acknowledgements}
