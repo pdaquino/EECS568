@@ -422,7 +422,16 @@ can also build detailed 3D models of people on the fly, if the are able to
 hold still for a long enough period of time, as seen in Fig.~\ref{fig:ed-model}.
 
 \section{Conclusion}
-\xxx{CONCLUSION GOES HERE}
+We successfully implemented a simplified version of Henry et al.'s RGB-D mapping
+system that is able to make 3D reconstructions of the surrounding environment
+using a Kinect sensor~\cite{Henry2010rgbd}. Modifications to the original
+design allow our system to run in real time, though we are unable to keep up with
+the full speed of our sensor, forcing us to throw away some data. The addition of
+visual features to depth information allow us to accurately maintain our position
+estimate in the world even in environments lacking unique depth data. Though our
+system could clearly benefit from the addition of a full SLAM system to
+correct our slowly accumulating error, we are still able to maintain position
+estimates within a 10\% error margin of the total distance traveled. % XXX This is the number, yes?
 
 \section*{Acknowledgements}
 Special thanks to Pradeep Ranganathan for providing some extra depth
