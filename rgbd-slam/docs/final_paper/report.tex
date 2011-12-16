@@ -169,7 +169,8 @@ for feature detection and descriptor extraction, with a JNI wrapper to allow for
 communication with the rest of the system.
 
 \subsubsection{Feature Matching}
-We match a SURF feature to its nearest Euclidian neighbor in the other frame. The matching
+We match a SURF feature to its nearest Euclidian neighbor in the other frame in the space
+of SURF descriptors. The matching
 uses a KD-tree for efficiency. We experimented with reducing the number of outliers by
 constraining the matches in two ways. In the ``distant second'' approach, let $A_i$ be the
 best match for feature $B_j$, with distance $d_{ij}$, and $A_k$ be the second best match,
@@ -255,7 +256,8 @@ transformation is then computed using just the optimal inlier set.
 
 	Let point cloud A be the point cloud corresponding to the most recent frame received from the Kinect and let point cloud B be the previous one received.  ICP applies an initial estimate of the RBT between $A$ and $B$, to the each of the points, $a_{i}$ in $A$ to get points a in frame $B$.  Simple nearest neighbor data association determines point correspondences which is accelerated through the use of a K-D tree.  Then using Horn's algorithm we compute the optimal RBT to align the corresponding points~\cite{horn1987closed}.  We made use of the AlignPoints3D April code for this computation.  Then we compute the error in the alignment by taking the sum of the distances between corresponding points.  This whole process is repeated until the decrease in error from one iteration to the next has increased above a set threshold.
 
-	Unfortunately, simple ICP as described above has quite a few weaknesses, some of which we have attempted to address.
+	Unfortunately, simple ICP as described above has quite a few weaknesses, some of which we have attempted to address
+by emulating the methods described in A. Segal's Generalized ICP~\cite{gicp}.
 
 	ICP uses a point to point error metric which implicitly assumes that our sensor has measured the same point from both frames.  However this is not a completely rigorous or robust way of describing how two views of a scene are related to one another, since it is exceedingly unlikely that our sensor will sample the exact point in each view.  Alternative formulations of ICP, such as Iterative Closest Plane, which minimizes a point to plane error metric deal with this problem to some degree.  Iterative Closest Plane introduces the additional complication of computing normal vectors for each point in one of the views.  This more complicated formulation would yield improved accuracy, however there are other areas where we could improve the project that would provide greater benefits for less cost in development time, so we avoided utilizing this more difficult formulation.
 
