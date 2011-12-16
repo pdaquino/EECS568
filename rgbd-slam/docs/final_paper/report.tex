@@ -335,8 +335,56 @@ in place rotation of the camera.
 
 \section{Evaluation}
 \xxx{EVALUATION AND PRETTY FIGURES GO HERE}
-\subsection{Ground Truth Evaluation}
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.48\textwidth]{figures/cropped_gt_slc.png}
+\caption{The reconstruction of one of the whiteboards in the student learning center,
+in the CSE building. This dataset was used to evaluate the system.}
+\label{fig:gt-slc}
+\end{figure}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.48\textwidth]{figures/gt_translational.pdf}
+\caption{The errors in the x, y and z coordinates as the Kinect moves between the checkpoints
+for the two datasets.}
+\label{fig:plot-trans}
+\end{figure}
+
+\subsection{Ground Truth Evaluation}
+The end goal of our system is to provide rich 3D reconstructions of indoor environments.
+It is hard to quantify the quality of those reconstructions, and therefore to numerically
+judge the performance of the system. However, we can estimate the error in the visual odometry,
+which is the most important factor in the reconstruction of the environment. This provides
+a decent approximation of the quality of the final output.
+
+Our first try at an experiment involved using AprilTags~\cite{olson2011tags} to
+provide ground-truth localization. Because the size of the tags are known, it is
+possible to know their 3D positions relative to the camera. If we assume that the tags are fixed and that
+the detection of the tags is precise enough, we can use the movement of the
+Kinect in relation to the tags as the ground-truth. However, we have found that
+the RGB images were not of sufficient quality to provide accurate and consistent
+detection of the tags. In particular, debayering artifacts were clearly noticable.
+This is problematic because the tags are black and white. The debayering blurs the
+image around the edges in such a way that the detected position of the tags is very noisy.
+
+We therefore resorted to a simple ground-truth experiment. Instead of measuring the actual trajectory of
+the Kinect, we physically marked a number of checkpoints on the world,
+and moved the Kinect from one to the other. At every one of those checkpoints, we recorded the
+Kinect's estimated position, with the first checkpoint being at the origin. At the end of the
+test run, we compared the Kinect's esimate of the checkpoints to where they really were in the
+world.
+
+We performed this evaluation in two environments. Fig.~\ref{fig:cse-wall} shows the result of the test
+in a feature-rich hallway. Three checkpoints were placed on the ground along the hallway, and the Kinect was
+moved between them. Fig.~\ref{fig:gt-slc} is the reconstructed whiteboard in the student learning
+center in CSE. For this test, six checkpoints were placed in a zig-zag pattern on a table.
+
+Fig.~\ref{fig:plot-trans} shows the translational error at every checkpoint for both datasets.
+As expected from a pure odometry system, the error acumulates and the estimative of the Kinect's
+position tends to diverge with time. Fig.~\ref{fig:plot-angular} presents the angular error at
+every checkpoint. The ``table" dataset shows significantly greater errors because of the
+zig-zag pattern of the markers, which caused angular errors to accumulate more rapidly.
 \subsection{Real-time Performance}
 Given our simplification of the original problem (namely not implementing SLAM
 or surfels), one of our major goals was to be able to collect and add data to
@@ -432,6 +480,14 @@ estimate in the world even in environments lacking unique depth data. Though our
 system could clearly benefit from the addition of a full SLAM system to
 correct our slowly accumulating error, we are still able to maintain position
 estimates within a 10\% error margin of the total distance traveled. % XXX This is the number, yes?
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.48\textwidth]{figures/gt_angular.pdf}
+\caption{The errors in roll, pitch and yaw as the Kinect moves between the checkpoints
+for the two datasets.}
+\label{fig:plot-angular}
+\end{figure}
 
 \section*{Acknowledgements}
 Special thanks to Pradeep Ranganathan for providing some extra depth
