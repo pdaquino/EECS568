@@ -137,21 +137,33 @@ real-time. This can be used to justify many of deviations from the original
 implementation.
 
 \subsection{Kinect Data Acquisition and Calibration}
-We use the open source OpenKinect library (often referred to as libfreenect)
-to acquire data from the Kinect~\cite{OpenKinect}. Though our project is
-written primarily in Java, our interface to the Kinect is written in C and we
-use JNI bindings to tie the C and java together. We are easily able to acquire
-a full 30 frames per second with this code.
+%We use the open source OpenKinect library (often referred to as libfreenect)
+%to acquire data from the Kinect~\cite{OpenKinect}. Though our project is
+%written primarily in Java, our interface to the Kinect is written in C and we
+%use JNI bindings to tie the C and java together. We are easily able to acquire
+%a full 30 frames per second with this code.
+%
+%We calibrated our Kinect using Nicolas Burrus's RGBDemo
+%toolkit~\cite{BurrusCalibration}. The software includes a tool for calibrating
+%a Kinect simply by taking a large number of pictures of a calibration target
+%with both the IR and RGB cameras. This tool not only returns the intrinsics
+%and undistortion parameters for both cameras, but also the stereo calibration
+%parameters relating the two cameras to each other. Using these parameters
+%along with a depth model provided by Dr. St\'{e}phane Magnenat on the
+%OpenKinect website, we are able to construct a colored point cloud with only
+%minimal blurring of color between objects.
+%
+We used the open source OpenKinect C library, more commonly known as Libfreenect ~\cite{OpenKinect}, to acquire RGB images from the Kinects Color camera at a resolution of 640x480 pixels and to acquire the depth image of the scene that the Kinect computes also at a resolution of 640x480, though the block matching employed to compute the depth values means that the depth image only has an effective resolution of 632x480.
 
-We calibrated our Kinect using Nicolas Burrus's RGBDemo
-toolkit~\cite{BurrusCalibration}. The software includes a tool for calibrating
-a Kinect simply by taking a large number of pictures of a calibration target
-with both the IR and RGB cameras. This tool not only returns the intrinsics
-and undistortion parameters for both cameras, but also the stereo calibration
-parameters relating the two cameras to each other. Using these parameters
-along with a depth model provided by Dr. St\'{e}phane Magnenat on the
-OpenKinect website, we are able to construct a colored point cloud with only
-minimal blurring of color between objects.
+The kinect generates this “depth image” by effectively solving the stereo camera problem in hardware and then outputting a value for each pixel that can be mapped to a depth value.  The Kinect uses an Infra-Red projector to shine a structured pattern onto the scene.  The Kinect also has an infrared camera which it uses to observe the pattern projected on the scene.  Together the projector and camera form a stereo pair allowing the Kinect to compute disparities and from that depth.  Through calibration at the manufacturer, the Kinect computes a disparity between a reference image of the IR pattern, effectively the view from the projector, and uses a 9x9 block matching algorithm to compute the disparity between this reference image and the actual pattern which is deformed by objects in the world.  The depth image is not actually in terms of meters but instead is in integers from 0 to 1027.  Using a depth model provided by Dr. Stephane Magnenat on the Open Kinect Website, we can convert these integers into a real depth value.  
+
+This active lighting system for determining depth has several implications for the performance of the Kinect.  The limited power of the Kinect’s projector limits the maximum range that it can measure to approximately 8 meters.  Furthermore accuracy rapidly falls off after 4 meters so we simply threw out points beyond this distance.   The Kinect is also subject to interference from other strong sources of IR light like the Sun, making it unsuitable for out door use.  There also may be the possibility for multiple Kinects to interfere with one another but we did not investigate this possibility since we were only considering a single Kinect rig.  
+
+Using this pair of color images of the scene, the depth image, and another stereo calibration, it is possible to generate a colored point cloud, a set of points in 3D relative to the Kinect with color values.  In the traditional stereo problem, the intrinsic parameters of each camera turn each pixel into rays out into the scene, which are epipolar lines when seen from the other camera.  However the Kinect makes this problem much easier because we have depth values for each of the pixels from the depth image’s perspective.  This depth value means that rather than having a ray from the camera, we simply have a point in 3D space.  Then using the intrinsic parameters of the rgb camera combined with the rotation transformation relating the two frames it is easy to project this 3D point into pixel coordinates of the color image to get the point’s color.  We repeat this process for each point in the depth image to generate a Colored Point Cloud in the Kinect’s local frame.  
+
+The above process requires an accurate estimate of the intrinsic parameters of both the RGB and IR cameras.  We initially used the “Camera Calibration Toolbox for Matlab” \xxx{Cite Matlab Toolbox} to extract the intrinsic camera parameters for each of the cameras.  These parameters include focal lengths optical axis and radial and tangential distortion parameters for brown’s distortion model.  Despite getting errors on the order of .5 pixel the parameters did not seem to yield a good result.  We calibrated our Kinect using Nicolas Burrus's RGBDemo toolkit ~\cite{BurrusCalibration}.  This software, like the Matlab Toolbox, also uses multiple images of a calibration target with both the IR and RGB cameras but also automatically handles the stereo calibration.  This calibration seemed to yield the best results out of several calibration attempts.  
+
+Unfortunately this method is not quite perfect, perhaps due to an imperfect estimation of the camera parameters.  Get poor color estimates around edges in some cases, where colors in the background would appear on foreground objects and vice versa.  This error is visible in Fig.~\ref{fig:cropped_ed.png } where color from pole appears at the depth of his sleeve.  Overall accuracy seems sufficient to generate high quality point clouds that represent the environment that the Kinect sees but there is still room for improvement in this area. 
 
 \subsection{Frame Matching Using Image Features}
 The first approximation of the movement of the Kinect comes from matching 3D image
