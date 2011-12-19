@@ -156,11 +156,25 @@ implementation.
 %OpenKinect website, we are able to construct a colored point cloud with only
 %minimal blurring of color between objects.
 %
-We used the open source OpenKinect C library, more commonly known as Libfreenect ~\cite{OpenKinect}, to acquire RGB images from the Kinects Color camera at a resolution of 640x480 pixels and to acquire the depth image of the scene that the Kinect computes also at a resolution of 640x480, though the block matching employed to compute the depth values means that the depth image only has an effective resolution of 632x480.
+
+We used the open source OpenKinect C library, more commonly known as Libfreenect ~\cite{OpenKinect}, to acquire RGB images from the Kinects Color camera at a resolution of 640x480 pixels and to acquire the depth image of the scene that the Kinect computes also at a resolution of 640x480, though the block matching employed to compute the depth values means that the depth image only has an effective resolution of 632x480. An example of the data returned by the Kinect can be seen in Fig. \ref{fig:kinect-demo}.
 
 The kinect generates this “depth image” by effectively solving the stereo camera problem in hardware and then outputting a value for each pixel that can be mapped to a depth value.  The Kinect uses an Infra-Red projector to shine a structured pattern onto the scene.  The Kinect also has an infrared camera which it uses to observe the pattern projected on the scene.  Together the projector and camera form a stereo pair allowing the Kinect to compute disparities and from that depth.  Through calibration at the manufacturer, the Kinect computes a disparity between a reference image of the IR pattern, effectively the view from the projector, and uses a 9x9 block matching algorithm to compute the disparity between this reference image and the actual pattern which is deformed by objects in the world.  The depth image is not actually in terms of meters but instead is in integers from 0 to 1027.  Using a depth model provided by Dr. Stephane Magnenat on the Open Kinect Website, we can convert these integers into a real depth value.  
 
 This active lighting system for determining depth has several implications for the performance of the Kinect.  The limited power of the Kinect’s projector limits the maximum range that it can measure to approximately 8 meters.  Furthermore accuracy rapidly falls off after 4 meters so we simply threw out points beyond this distance.   The Kinect is also subject to interference from other strong sources of IR light like the Sun, making it unsuitable for out door use.  There also may be the possibility for multiple Kinects to interfere with one another but we did not investigate this possibility since we were only considering a single Kinect rig.  
+
+
+\begin{figure}
+\centering
+\includegraphics[width=0.48\textwidth]{figures/KinectDemo.png}
+\caption{RGB and depth data from a Kinect. For easier consumption, the depth
+data has been mapped through the colors of the rainbow where red corresponds
+to objects roughly 1\,m away and purple corresponds to objects roughly 8~\,m
+away. Though the maximum range is at least 8\,m, the depth data
+becomes increasingly noisy, so we only use data within 3.8\,m of the Kinect,
+the range at which the data seems to begin to deteriorate.}
+\label{fig:kinect-demo}
+\end{figure}
 
 Using this pair of color images of the scene, the depth image, and another stereo calibration, it is possible to generate a colored point cloud, a set of points in 3D relative to the Kinect with color values.  In the traditional stereo problem, the intrinsic parameters of each camera turn each pixel into rays out into the scene, which are epipolar lines when seen from the other camera.  However the Kinect makes this problem much easier because we have depth values for each of the pixels from the depth image’s perspective.  This depth value means that rather than having a ray from the camera, we simply have a point in 3D space.  Then using the intrinsic parameters of the rgb camera combined with the rotation transformation relating the two frames it is easy to project this 3D point into pixel coordinates of the color image to get the point’s color.  We repeat this process for each point in the depth image to generate a Colored Point Cloud in the Kinect’s local frame.  
 
@@ -472,31 +486,6 @@ appear slowly from the viewer's perspective. We believe that 4-5\,fps falls
 clearly into the realm of real-time, though, and found this performance
 adequate for demonstration purposes.
 
-\begin{figure}
-\centering
-\includegraphics[width=0.48\textwidth]{figures/KinectDemo.png}
-\caption{RGB and depth data from a Kinect. For easier consumption, the depth
-data has been mapped through the colors of the rainbow where red corresponds
-to objects roughly 1\,m away and purple corresponds to objects roughly 8~\,m
-away. Though the maximum range is at least 8\,m, the depth data
-becomes increasingly noisy, so we only use data within 3.8\,m of the Kinect,
-the range at which the data seems to begin to deteriorate.}
-\label{fig:kinect-demo}
-\end{figure}
-
-\subsection{Public Demonstration}
-To show how our system works, we employ two separate demonstrations. The first
-is a simple Kinect testing demo that we used to verify that we were receiving
-good color and depth data (seen in Fig.~\ref{fig:kinect-demo}. This demo helps
-us explain the type of data that a Kinect gives us and how we can use that to
-construct 3D point clouds in the first place. Our second demonstration
-consists of running our system live at a slightly lowered resolution so that
-point data is clearly added to our model of the world as we move around. By
-allowing people to fly through our virtual world as we are actively building
-it, they can easily compare the virtual scene to the real one before them. We
-can also build detailed 3D models of people on the fly, if the are able to
-hold still for a long enough period of time, as seen in Fig.~\ref{fig:ed-model}.
-
 \section{Conclusion}
 We successfully implemented a simplified version of Henry et al.'s RGB-D mapping
 system that is able to make 3D reconstructions of the surrounding environment
@@ -532,7 +521,7 @@ and also to the EECS 568 report, which served as basis for this report.
 
 Special thanks to Pradeep Ranganathan for providing some extra depth
 information in Fig.~\ref{fig:kinect-demo} and Prof. Ed Olson for patiently
-posing for us during our final demonstration.
+posing for us in Fig.~\ref{fig:ed-model}.
 
 % XXX References
 \bibliographystyle{IEEEtranS}
