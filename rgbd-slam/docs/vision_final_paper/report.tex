@@ -20,7 +20,7 @@
     3D Environment Reconstruction Using RGB-D Visual Odometry
 }
 
-\author{Pedro d'Aquino, Rob Goeddel, Lauren Hinkle, and John Peterson}
+\author{Pedro d'Aquino, Paridhi Desai and John Peterson}
 
 
 \begin{document}
@@ -44,7 +44,7 @@ accurate alignments of point clouds over time. Our system does not attempt to
 implement the loop-closing portion of Henry et al.'s work.
 \end{abstract}
 
-\section{Introduction and Motivation}
+\section{Introduction}
 This paper will present a system capable of building detailed colored point
 clouds using a consumer grade RGB-D sensor, the Microsoft Kinect. The
 convenient availability of such sensors makes them an appealing budget option
@@ -102,7 +102,7 @@ an accurate model of the wall to the left of the doors.}
 \label{fig:cse-wall}
 \end{figure*}
 
-\section{Background}
+\section{Previous Work}
 Our work is a simplified reimplementation of the work of Peter Henry et
 al~\cite{Henry2010rgbd}. Their work demonstrated a system capable of RGB-D
 mapping using a conjunction of 3D SIFT alignment, plane-fitting ICP, and the
@@ -127,6 +127,9 @@ fly through cluttered 3D environments using a Kinect~\cite{Huang2011isrr}.
 Huang et al.'s work adds data from IMUs and switches to FAST features to
 support real time voxel mapping at a coarse resolution sufficient for
 trajectory planning.
+
+\subsection{Contribution}
+\xxx{OUR CONTRIBUTIONS!}
 
 \section{Methodology}
 Our implementation of RGB-D mapping passes entirely on the SLAM portion,
@@ -523,6 +526,10 @@ for the two datasets.}
 \end{figure}
 
 \section*{Acknowledgements}
+This was also the final project for EECS 568. Lauren Hinkle and Robert Goeddel
+contributed extensively to the development of the system
+and also to the EECS 568 report, which served as basis for this report.
+
 Special thanks to Pradeep Ranganathan for providing some extra depth
 information in Fig.~\ref{fig:kinect-demo} and Prof. Ed Olson for patiently
 posing for us during our final demonstration.
