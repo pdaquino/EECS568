@@ -35,7 +35,7 @@ The reconstruction of environments in 3D can be challenging with just range
 data. RGB-D sensors like the Microsoft Kinect provide visual details that
 allow odometry to be used even in environments with ambiguous depth data.
 This paper demonstrates a simplified implementation of Henry et al.'s work
-on RGB-D Mapping.~\cite{Henry2010rgbd}
+on RGB-D Mapping.~\cite{Henry2010RGBd}
 Our system can construct reasonably accurate models of
 small to medium sized indoor environments in real time at resolutions of up
 to 2\,cm and in near-real time at 1\,cm. By using SURF features from the image
@@ -104,7 +104,7 @@ an accurate model of the wall to the left of the doors.}
 
 \section{Previous Work}
 Our work is a simplified reimplementation of the work of Peter Henry et
-al~\cite{Henry2010rgbd}. Their work demonstrated a system capable of RGB-D
+al~\cite{Henry2010RGBd}. Their work demonstrated a system capable of RGB-D
 mapping using a conjunction of 3D SIFT alignment, plane-fitting ICP, and the
 SLAM system TORO. By using visual features projected into 3D space to gain an
 initial alignment between frames and by using ICP to converge the rest of the
@@ -144,12 +144,11 @@ implementation.
 \section{Methodology}
 
 \subsection{Kinect Data Acquisition and Calibration}
-We used the open source OpenKinect C library, more commonly known as Libfreenect ~\cite{OpenKinect}, to acquire RGB images from the Kinects Color camera at a resolution of 640x480 pixels and to acquire the depth image of the scene that the Kinect computes also at a resolution of 640x480, though the block matching employed to compute the depth values means that the depth image only has an effective resolution of 632x480. An example of the data returned by the Kinect can be seen in Fig. \ref{fig:kinect-demo}.
+We used the open source OpenKinect C library, more commonly known as Libfreenect ~\cite{OpenKinect}, to acquire RGB images from the Kinects Color camera at a resolution of 640x480 pixels and to acquire the depth image of the scene that the Kinect computes also at a resolution of 640x480, though the block matching employed to compute the depth values means that the depth image only has an effective resolution of 632x480. An example of the data returned by the Kinect can be seen in Fig. \ref{fig:Kinect-demo}.
 
-The kinect generates this “depth image” by effectively solving the stereo camera problem in hardware and then outputting a value for each pixel that can be mapped to a depth value.  The Kinect uses an Infra-Red projector to shine a structured pattern onto the scene.  The Kinect also has an infrared camera which it uses to observe the pattern projected on the scene.  Together the projector and camera form a stereo pair allowing the Kinect to compute disparities and from that depth.  Through calibration at the manufacturer, the Kinect computes a disparity between a reference image of the IR pattern, effectively the view from the projector, and uses a 9x9 block matching algorithm to compute the disparity between this reference image and the actual pattern which is deformed by objects in the world.  The depth image is not actually in terms of meters but instead is in integers from 0 to 1027.  Using a depth model provided by Dr. Stephane Magnenat on the Open Kinect Website, we can convert these integers into a real depth value.  
+The Kinect generates this ``depth image''� by effectively solving the stereo camera problem in hardware and then outputting a value for each pixel that can be mapped to a depth value.  The Kinect uses an Infra-Red projector to shine a structured pattern onto the scene.  The Kinect also has an infrared camera which it uses to observe the pattern projected on the scene.  Together the projector and camera form a stereo pair allowing the Kinect to compute disparities and from that depth.  Through calibration at the manufacturer, the Kinect computes a disparity between a reference image of the IR pattern, effectively the view from the projector, and uses a 9x9 block matching algorithm to compute the disparity between this reference image and the actual pattern which is deformed by objects in the world.  The depth image is not actually in terms of meters but instead is in integers from 0 to 1027.  Using a depth model provided by Dr. Stephane Magnenat on the Open Kinect Website, we can convert these integers into a real depth value.  
 
-This active lighting system for determining depth has several implications for the performance of the Kinect.  The limited power of the Kinect’s projector limits the maximum range that it can measure to approximately 8 meters.  Furthermore accuracy rapidly falls off after 4 meters so we simply threw out points beyond this distance.   The Kinect is also subject to interference from other strong sources of IR light like the Sun, making it unsuitable for out door use.  There also may be the possibility for multiple Kinects to interfere with one another but we did not investigate this possibility since we were only considering a single Kinect rig.  
-
+This active lighting system for determining depth has several implications for the performance of the Kinect.  The limited power of the Kinect's projector limits the maximum range that it can measure to approximately 8 meters.  Furthermore accuracy rapidly falls off after 4 meters so we simply threw out points beyond this distance.   The Kinect is also subject to interference from other strong sources of IR light like the Sun, making it unsuitable for out door use.  There also may be the possibility for multiple Kinects to interfere with one another but we did not investigate this possibility since we were only considering a single Kinect rig.  
 
 \begin{figure}
 \centering
@@ -160,12 +159,12 @@ to objects roughly 1\,m away and purple corresponds to objects roughly 8~\,m
 away. Though the maximum range is at least 8\,m, the depth data
 becomes increasingly noisy, so we only use data within 3.8\,m of the Kinect,
 the range at which the data seems to begin to deteriorate.}
-\label{fig:kinect-demo}
+\label{fig:Kinect-demo}
 \end{figure}
 
-Using this pair of color images of the scene, the depth image, and another stereo calibration, it is possible to generate a colored point cloud, a set of points in 3D relative to the Kinect with color values.  In the traditional stereo problem, the intrinsic parameters of each camera turn each pixel into rays out into the scene, which are epipolar lines when seen from the other camera.  However the Kinect makes this problem much easier because we have depth values for each of the pixels from the depth image’s perspective.  This depth value means that rather than having a ray from the camera, we simply have a point in 3D space.  Then using the intrinsic parameters of the rgb camera combined with the rotation transformation relating the two frames it is easy to project this 3D point into pixel coordinates of the color image to get the point’s color.  We repeat this process for each point in the depth image to generate a Colored Point Cloud in the Kinect’s local frame.  
+Using this pair of color images of the scene, the depth image, and another stereo calibration, it is possible to generate a colored point cloud, a set of points in 3D relative to the Kinect with color values.  In the traditional stereo problem, the intrinsic parameters of each camera turn each pixel into rays out into the scene, which are epipolar lines when seen from the other camera.  However the Kinect makes this problem much easier because we have depth values for each of the pixels from the depth image's perspective.  This depth value means that rather than having a ray from the camera, we simply have a point in 3D space.  Then using the intrinsic parameters of the RGB camera combined with the rotation transformation relating the two frames it is easy to project this 3D point into pixel coordinates of the color image to get the point's color.  We repeat this process for each point in the depth image to generate a colored point cloud in the Kinect's local frame.  
 
-The above process requires an accurate estimate of the intrinsic parameters of both the RGB and IR cameras.  We initially used the “Camera Calibration Toolbox for Matlab� \xxx{Cite Matlab Toolbox} to extract the intrinsic camera parameters for each of the cameras.  These parameters include focal lengths optical axis and radial and tangential distortion parameters for brown’s distortion model.  Despite getting errors on the order of .5 pixel the parameters did not seem to yield a good result.  We calibrated our Kinect using Nicolas Burrus's RGBDemo toolkit ~\cite{BurrusCalibration}.  This software, like the Matlab Toolbox, also uses multiple images of a calibration target with both the IR and RGB cameras but also automatically handles the stereo calibration.  This calibration seemed to yield the best results out of several calibration attempts.  
+The above process requires an accurate estimate of the intrinsic parameters of both the RGB and IR cameras.  We initially used the Camera Calibration Toolbox for Matlab� \xxx{Cite Matlab Toolbox} to extract the intrinsic camera parameters for each of the cameras.  These parameters include focal lengths optical axis and radial and tangential distortion parameters for Brown's distortion model.  Despite getting errors on the order of .5 pixel the parameters did not seem to yield a good result.  We calibrated our Kinect using Nicolas Burrus's RGBDemo toolkit ~\cite{BurrusCalibration}.  This software, like the Matlab Toolbox, also uses multiple images of a calibration target with both the IR and RGB cameras but also automatically handles the stereo calibration.  This calibration seemed to yield the best results out of several calibration attempts.  
 
 Unfortunately this method is not quite perfect, perhaps due to an imperfect estimation of the camera parameters.  Get poor color estimates around edges in some cases, where colors in the background would appear on foreground objects and vice versa.  This error is visible in Fig.~\ref{fig:ed-model} where color from pole appears at the depth of his sleeve.  Overall accuracy seems sufficient to generate high quality point clouds that represent the environment that the Kinect sees but there is still room for improvement in this area. 
 
@@ -267,7 +266,7 @@ by emulating the methods described in A. Segal's Generalized ICP~\cite{gicp}.
 
 	ICP also requires a good initial alignment in order to guarantee that it converges to the global minimum error.  If we have a poor initialization, ICP will get caught in a local minimum.  Using visual feature correspondences provides a good enough estimate of the RBT that this problem is completely taken care of.
 
-	Another major issue with ICP and other scan matching schemes like Mult-Resolution scan matching is that some scene geometries can make motions ambiguous.  For example moving down the length of a hallway would yield no change in the 3D range scans read by the Kinect or other similar sensors making it impossible to tell that the sensor has moved at all.  In fact, ICP would converge to a solution that would claim that the sensor has not moved at all, since such a solution would yield the greatest overlap of the two point clouds.  If such an environment has visual features, we can use these features to augment the alignment algorithm, as originally described in Henry's paper~\cite{Henry2010rgbd}.  This modification, described below, yields significantly improvements even in cases where there were no ambiguities in the environment.
+	Another major issue with ICP and other scan matching schemes like Mult-Resolution scan matching is that some scene geometries can make motions ambiguous.  For example moving down the length of a hallway would yield no change in the 3D range scans read by the Kinect or other similar sensors making it impossible to tell that the sensor has moved at all.  In fact, ICP would converge to a solution that would claim that the sensor has not moved at all, since such a solution would yield the greatest overlap of the two point clouds.  If such an environment has visual features, we can use these features to augment the alignment algorithm, as originally described in Henry's paper~\cite{Henry2010RGBd}.  This modification, described below, yields significantly improvements even in cases where there were no ambiguities in the environment.
 
 \subsection{RGBD-ICP}
 Using visual features to augment point cloud matching improves the quality of alignments produced by this step.    To utilize visual features we introduce the 3D coordinates relative to the Kinect, of inlier feature correspondences, into both point clouds.  Since their correspondence has already been determined by matching SURF descriptors and then filtered with RANSAC, these correspondences remain constant throughout each iteration of ICP.
@@ -313,7 +312,7 @@ voxels store a running total of the ARGB values observed in that bin and are
 treated as being colored as an average of these observations.
 
 Henry et al. wrote a custom tool to allow them to navigate surfel environments
-in real time~\cite{Henry2010rgbd}. Again, this was a large engineering effort
+in real time~\cite{Henry2010RGBd}. Again, this was a large engineering effort
 and was not our main priority. Instead, we render all of our voxels at once,
 as cubes, regardless of on screen visibility. The performance for this
 rendering scheme proved to be unacceptable, so our voxels are instead rendered
@@ -391,7 +390,7 @@ processing time, taking 78\% of the total time for 1\,cm of resolution
 (generally the smallest resolution we operate at). Still, this is as opposed
 to surfel updates in Henry et al.'s work, which were reported to take roughly
 6 seconds per frame, so we still consider this a vast improvement. Though by
-no means fast enough to keep up with the full speed of the kinect, this allows
+no means fast enough to keep up with the full speed of the Kinect, this allows
 us to update scenes at between 7-20\,fps depending on our needs.
 
 \begin{table}
@@ -441,7 +440,7 @@ adequate for demonstration purposes.
 \section{Conclusion}
 We successfully implemented a simplified version of Henry et al.'s RGB-D mapping
 system that is able to make 3D reconstructions of the surrounding environment
-using a Kinect sensor~\cite{Henry2010rgbd}. Modifications to the original
+using a Kinect sensor~\cite{Henry2010RGBd}. Modifications to the original
 design allow our system to run in real time, though we are unable to keep up with
 the full speed of our sensor, forcing us to throw away some data. The addition of
 visual features to depth information allow us to accurately maintain our position
@@ -472,7 +471,7 @@ contributed extensively to the development of the system
 and also to the EECS 568 report, which served as basis for this report.
 
 Special thanks to Pradeep Ranganathan for providing some extra depth
-information in Fig.~\ref{fig:kinect-demo} and Prof. Ed Olson for patiently
+information in Fig.~\ref{fig:Kinect-demo} and Prof. Ed Olson for patiently
 posing for us in Fig.~\ref{fig:ed-model}.
 
 % XXX References
