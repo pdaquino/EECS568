@@ -128,16 +128,20 @@ Huang et al.'s work adds data from IMUs and switches to FAST features to
 support real time voxel mapping at a coarse resolution sufficient for
 trajectory planning.
 
-\subsection{Contribution}
-\xxx{OUR CONTRIBUTIONS!}
+Recently, Pandey et al. worked on extending ICP using visual features~\cite{silviogicp}.
+Their work focuses on laser scanner data, but bears resamblance to Henry et al.'s
+RGBD-ICP.
 
-\section{Methodology}
+\subsection{Contributions}
+For this project, we have implemented a subset of the work of Henry et al.
 Our implementation of RGB-D mapping passes entirely on the SLAM portion,
 focusing instead on feature-based odometry. Lacking time to implement a
 full RGB-D SLAM system capable of rendering real-time navigable scenes at the
 level of detail demonstrated by Henry et al., we focused on making our system
 real-time. This can be used to justify many of deviations from the original
 implementation.
+
+\section{Methodology}
 
 \subsection{Kinect Data Acquisition and Calibration}
 We used the open source OpenKinect C library, more commonly known as Libfreenect ~\cite{OpenKinect}, to acquire RGB images from the Kinects Color camera at a resolution of 640x480 pixels and to acquire the depth image of the scene that the Kinect computes also at a resolution of 640x480, though the block matching employed to compute the depth values means that the depth image only has an effective resolution of 632x480. An example of the data returned by the Kinect can be seen in Fig. \ref{fig:kinect-demo}.
