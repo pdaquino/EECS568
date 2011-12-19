@@ -20,7 +20,8 @@
     3D Environment Reconstruction Using RGB-D Visual Odometry
 }
 
-\author{Pedro d'Aquino, Paridhi Desai and John Peterson}
+\author{Pedro d'Aquino, Paridhi Desai and John Peterson\thanks{Robert Goeddel and Lauren Hinkle
+wrote parts of this report, as explained in the end of the document.}}
 
 
 \begin{document}
@@ -84,7 +85,7 @@ in navigation.
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.48\textwidth]{figures/cropped_ed.png}
-\caption{A model of Prof. Ed Olson taken during the EECS 568 public showcase.
+\caption{A model of Prof. Ed Olson.
 Voxel resolution for this model is 0.5\,cm, allowing us to preserve details
 such as the creases in Ed's shirt and pants or the pupils of his eyes.}
 \label{fig:ed-model}
@@ -142,8 +143,19 @@ real-time. This can be used to justify many of deviations from the original
 implementation.
 
 \section{Methodology}
+Fig.~\ref{fig:blockdiagram} shows a block diagram of our system. The goal of the system is
+to use RGB and depth image from the current and previous frames to find the rigid body transformation that moved
+the camera between these frames, and then use this RBT to create a 3D map.
+
+Firstly, SURF features are extracted from the RGB images, and combined with depth information to form 3D features.
+These features are matched based on the euclidian distance among their descriptors.
+The matches are refined using RANSAC, which also computes the optimal alignment between the inlier 3D feature pairs. This
+initial estimate of the RBT is fed into RGBD-ICP, which tries to find the best alignment between the point clouds from
+the two frames. The resulting alignment is the system's best guess of the RBT that moved the Kinect between the
+two frames, and is used to project the color point cloud from the last frame into the 3D map.
 
 \subsection{Kinect Data Acquisition and Calibration}
+
 We used the open source OpenKinect C library, more commonly known as Libfreenect ~\cite{OpenKinect}, to acquire RGB images from the Kinects Color camera at a resolution of 640x480 pixels and to acquire the depth image of the scene that the Kinect computes also at a resolution of 640x480, though the block matching employed to compute the depth values means that the depth image only has an effective resolution of 632x480. An example of the data returned by the Kinect can be seen in Fig. \ref{fig:Kinect-demo}.
 
 The Kinect generates this ``depth image''ù by effectively solving the stereo camera problem in hardware and then outputting a value for each pixel that can be mapped to a depth value.  The Kinect uses an Infra-Red projector to shine a structured pattern onto the scene.  The Kinect also has an infrared camera which it uses to observe the pattern projected on the scene.  Together the projector and camera form a stereo pair allowing the Kinect to compute disparities and from that depth.  Through calibration at the manufacturer, the Kinect computes a disparity between a reference image of the IR pattern, effectively the view from the projector, and uses a 9x9 block matching algorithm to compute the disparity between this reference image and the actual pattern which is deformed by objects in the world.  The depth image is not actually in terms of meters but instead is in integers from 0 to 1027.  Using a depth model provided by Dr. Stephane Magnenat on the Open Kinect Website, we can convert these integers into a real depth value.  
@@ -163,6 +175,15 @@ the range at which the data seems to begin to deteriorate.}
 \end{figure}
 
 Using this pair of color images of the scene, the depth image, and another stereo calibration, it is possible to generate a colored point cloud, a set of points in 3D relative to the Kinect with color values.  In the traditional stereo problem, the intrinsic parameters of each camera turn each pixel into rays out into the scene, which are epipolar lines when seen from the other camera.  However the Kinect makes this problem much easier because we have depth values for each of the pixels from the depth image's perspective.  This depth value means that rather than having a ray from the camera, we simply have a point in 3D space.  Then using the intrinsic parameters of the RGB camera combined with the rotation transformation relating the two frames it is easy to project this 3D point into pixel coordinates of the color image to get the point's color.  We repeat this process for each point in the depth image to generate a colored point cloud in the Kinect's local frame.  
+
+
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=1.0\textwidth]{figures/blockdiagram.pdf}
+\caption{A block diagram of our proposed system.}
+\label{fig:blockdiagram}
+\end{figure*}
 
 The above process requires an accurate estimate of the intrinsic parameters of both the RGB and IR cameras.  We initially used the Camera Calibration Toolbox for Matlab~\cite{MatlabCalibration} to extract the intrinsic camera parameters for each of the cameras.  These parameters include focal lengths optical axis and radial and tangential distortion parameters for Brown's distortion model.  Despite getting errors on the order of .5 pixel the parameters did not seem to yield a good result.  We calibrated our Kinect using Nicolas Burrus's RGBDemo toolkit ~\cite{BurrusCalibration}.  This software, like the Matlab Toolbox, also uses multiple images of a calibration target with both the IR and RGB cameras but also automatically handles the stereo calibration.  This calibration seemed to yield the best results out of several calibration attempts.  
 
@@ -206,35 +227,49 @@ to robustly filter outliers.
 \end{figure*}
 
 \subsubsection{Computing the Rigid Body Transformation}
-\label{ransac}
 After features are extracted using SURF from the RGB images, we project
 them into 3D space using the depth data from the Kinect. Given these
-corrseponding 3D features, we may compute good alignment using Horn's
-algorithm and RANSAC.
+corrseponding 3D features, we may estimate the movement of the camera
+between the frames using Horn's algorithm and RANSAC.
 
-Horn's algorithm is a closed-form calculation of the rigid body
+Horn's algorithm is a closed-form calculation of the optimal rigid body
 transformation in three or more dimensions.  Given a set of corresponding
 points it calculates the optimal transformation without iteration
 ~\cite{horn1987closed}.  The majority of the calculations we perform with
 Horn's algorithm have only three sets of corresponding 3D points, and so
 Horn's algorithm is quite fast.
 
-Horn's Algorithm is used at every iteration within our RANSAC implementation.
+Horn's algorithm is used at every iteration within our RANSAC implementation.
 We use RANSAC to discover outliers in the set of corresponding features
-set.  At each iteration of RANSAC, three corresponding pairs of features
+set. At each iteration of RANSAC, three corresponding pairs of features
 are selected randomly; this is the minimum needed to model a rigid body
-transformation.  Horn's method is used on the projected locations of these
-features, and the resulting transformation is voted upon by all the remaining
-features.  Features from the first frame that are transformed to within $1cm$
-of their corresponding feature in the second frame and considered a vote in
-favor of the transformation and are considered inliers.  The largest set of
-inliers is maintained from iteration to iteration.
+transformation. The optimal alignment between these pairs is computed using
+Horn's algorithm. The consensus voting is based on the reprojection error.
+For every potential correspondence between 3D points $A_i$ and $B_i$,
+the rigid body transformation $T$ receives a ``yes'' vote if
+$\parallel A_i - TB_i \parallel < K$. In our implementation, $K$ is 10\,cm.
 
 RANSAC halts after a given number of iterations or after $80\%$ of the
 correspondences are considered to be inliers.  This was done to decrease
 the time spent in RANSAC, however in practice, inlier sets rarely exceeded
 $80\%$ of the total number of corresponding features.  An initial
 transformation is then computed using just the optimal inlier set.
+
+We have experimented with using adaptative RANSAC, as described in~\cite{Hartley2004}.
+The goal of this algorithm is to estimate the ratio of inliers, and therefore the number
+of iterations needed to arrive at a solution that has only inliers with a level $p$ of
+confidence. Adaptative RANSAC starts by presuming a worst case scenario where
+there are no inliers, and therefore infinite iterations would be needed. This estimate is
+then refined at every iteration. If the number of consensus votes that a rigid-body
+transformation gets is greater than the current estimate of the number of inliers,
+that estimate is refined, along with the number of iterations needed.
+
+As expected, using adaptative RANSAC decreased the average number of iterations significantly.
+However, our experiments showed that the quality of the resulting transformations was worse
+than when using normal RANSAC. Additionaly, the number of inliers detected was also smaller.
+We believe that these issues could be ironed out, but we did not give it much further attention
+due to time constraints, and the fact that plain RANSAC was giving good enough results
+for our purposes.
 
 \subsection{ICP}
 	The rigid body transformation (RBT) calculated by aligning corresponding visual features can be further refined by aligning point clouds between successive frames.  Iterative Closest Point (ICP) is one method to accomplish this.  ICP is an iterative processes that alternates between using a given rigid body transformation to determine point correspondences and using these point correspondences to compute an RBT to align the points.  \newline
@@ -266,7 +301,7 @@ by emulating the methods described in A. Segal's Generalized ICP~\cite{gicp}.
 
 	ICP also requires a good initial alignment in order to guarantee that it converges to the global minimum error.  If we have a poor initialization, ICP will get caught in a local minimum.  Using visual feature correspondences provides a good enough estimate of the RBT that this problem is completely taken care of.
 
-	Another major issue with ICP and other scan matching schemes like Mult-Resolution scan matching is that some scene geometries can make motions ambiguous.  For example moving down the length of a hallway would yield no change in the 3D range scans read by the Kinect or other similar sensors making it impossible to tell that the sensor has moved at all.  In fact, ICP would converge to a solution that would claim that the sensor has not moved at all, since such a solution would yield the greatest overlap of the two point clouds.  If such an environment has visual features, we can use these features to augment the alignment algorithm, as originally described in Henry's paper~\cite{Henry2010RGBd}.  This modification, described below, yields significantly improvements even in cases where there were no ambiguities in the environment.
+	Another major issue with ICP and other scan matching schemes like multi-resolution scan matching is that some scene geometries can make motions ambiguous.  For example moving down the length of a hallway would yield no change in the 3D range scans read by the Kinect or other similar sensors making it impossible to tell that the sensor has moved at all.  In fact, ICP would converge to a solution that would claim that the sensor has not moved at all, since such a solution would yield the greatest overlap of the two point clouds.  If such an environment has visual features, we can use these features to augment the alignment algorithm, as originally described in Henry's paper~\cite{Henry2010RGBd}.  This modification, described below, yields significantly improvements even in cases where there were no ambiguities in the environment.
 
 \subsection{RGBD-ICP}
 Using visual features to augment point cloud matching improves the quality of alignments produced by this step.    To utilize visual features we introduce the 3D coordinates relative to the Kinect, of inlier feature correspondences, into both point clouds.  Since their correspondence has already been determined by matching SURF descriptors and then filtered with RANSAC, these correspondences remain constant throughout each iteration of ICP.
@@ -331,14 +366,6 @@ in the CSE building. This dataset was used to evaluate the system.}
 \label{fig:gt-slc}
 \end{figure}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.48\textwidth]{figures/gt_translational.pdf}
-\caption{The errors in the x, y and z coordinates as the Kinect moves between the checkpoints
-for the two datasets.}
-\label{fig:plot-trans}
-\end{figure}
-
 \subsection{Ground Truth Evaluation}
 The end goal of our system is to provide rich 3D reconstructions of indoor environments.
 It is hard to quantify the quality of those reconstructions, and therefore to numerically
@@ -362,6 +389,14 @@ and moved the Kinect from one to the other. At every one of those checkpoints, w
 Kinect's estimated position, with the first checkpoint being at the origin. At the end of the
 test run, we compared the Kinect's esimate of the checkpoints to where they really were in the
 world.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.48\textwidth]{figures/gt_translational.pdf}
+\caption{The errors in the x, y and z coordinates as the Kinect moves between the checkpoints
+for the two datasets.}
+\label{fig:plot-trans}
+\end{figure}
 
 We performed this evaluation in two environments. Fig.~\ref{fig:cse-wall} shows the reconstruction of a
 feature-rich hallway. Three checkpoints were placed on the ground along the hallway, and the Kinect was
@@ -418,7 +453,6 @@ us to update scenes at between 7-20\,fps depending on our needs.
 \label{tbl:match-times}
 \end{table}
 
-
 Real time rendering performance is another issue. Though we are able to
 process the data quickly enough and add it to our global point cloud in
 real-time, rendering the frame is incredibly costly, especially as the global
@@ -458,17 +492,12 @@ for the two datasets.}
 \label{fig:plot-angular}
 \end{figure}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.48\textwidth]{figures/slam.png}
-\caption{An example of a dataset that would have greatly benefitted from loop-closures.}
-\label{fig:slam}
-\end{figure}
-
 \section*{Acknowledgements}
 This was also the final project for EECS 568. Lauren Hinkle and Robert Goeddel
 contributed extensively to the development of the system
-and also to the EECS 568 report, which served as basis for this report.
+and also to the EECS 568 report, which served as basis for this document. However,
+the majority of this report was written by the three authors. In particular, the
+section on Methodology was written almost entirely by the authors.
 
 Special thanks to Pradeep Ranganathan for providing some extra depth
 information in Fig.~\ref{fig:Kinect-demo} and Prof. Ed Olson for patiently
@@ -477,5 +506,13 @@ posing for us in Fig.~\ref{fig:ed-model}.
 % XXX References
 \bibliographystyle{IEEEtranS}
 \bibliography{sources}
+
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.48\textwidth]{figures/slam.png}
+\caption{An example of a dataset that would have greatly benefitted from loop-closures.}
+\label{fig:slam}
+\end{figure}
 
 \end{document}
